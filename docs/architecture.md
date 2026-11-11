@@ -118,7 +118,7 @@ match the game first if they differ.
 | Multiblock `Problems:` line format in sensor info | **Unverified** |
 | `internet.request` streaming, `/home/bin` on the OpenOS shell path | Reported working |
 | `handle.response()` giving the HTTP status after a failed read (404 for a repo with no releases, a missing tag) | Reported working (0.5.0) |
-| `internet.request(url, nil, headers)` to `api.github.com` returning the latest release's `tag_name` | **Unverified** until the first release |
+| `internet.request(url, nil, headers)` to `api.github.com` returning the latest release's `tag_name` | Reported working (0.5.0) |
 | GT Stocking Input Bus `me_inputbus`: `getSlotSize`, `get/setConfiguration` (`{name, damage}`, no table clears), `isAdvanced`, `get/setAutoPull` (from GTNewHorizons/OpenComputers #222, merged 2026-09-21) | Reported working (stocking-buses branch) |
 | A multiblock with the same item in two stocking buses still runs | **Unverified**; docs say one stocker per multiblock |
 | `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
