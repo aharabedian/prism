@@ -3,7 +3,8 @@
   Tip: to tell your export buses apart, drop a different "marker" item into
   slot 1 of each bus's filter by hand (cobblestone in the washer bus, dirt in
   the centrifuge bus, ...) before running this. The marker is printed next to
-  each bus so you know which line is which.
+  each bus so you know which line is which. Stocking input buses work the
+  same way: put a marker in slot 1 of their configuration.
 ]]
 
 local component = require("component")
@@ -55,6 +56,19 @@ for addr in component.list("me_exportbus") do
   end
 end
 if not found then print("  none - put an adapter against the cable block your export buses are on") end
+
+header("GT Stocking Input Buses (ME) - paste into prism.cfg 'stockers' and set each process:")
+found = false
+for addr in component.list("me_inputbus") do
+  local p = component.proxy(addr)
+  local okC, stack = pcall(p.getConfiguration, 1)
+  local marker = okC and type(stack) == "table" and (stack.label or stack.name) or "(empty)"
+  local okA, adv = pcall(p.isAdvanced)
+  print(string.format('  { address = "%s", process = "?" }, -- %sslot 1: %s',
+    addr:sub(1, 8), okA and adv and "advanced, " or "", marker))
+  found = true
+end
+if not found then print("  none - put an adapter against each stocking input bus (needs a GTNH build with its OC driver)") end
 
 header("ME interfaces (feeder 'interface'):")
 found = false

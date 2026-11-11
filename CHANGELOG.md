@@ -6,6 +6,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **GT Stocking Input Bus (ME)** support (`stockers` in `prism.cfg`). The router fills each stocking bus's
+  16 slots with the top items for its process, so the multiblock pulls straight from the subnet: no export
+  bus or feeder speed limit, and batch items work. Auto-pull is switched off on Advanced buses. Shown under
+  BUSES on the control screen; listed by `prism-discover` and set up by `prism-setup`. Needs a GTNH build
+  whose OpenComputers has the stocking bus driver.
+- The Database Upgrade is only required when export buses or feeders are configured.
 - `prism-setup`: a guided setup wizard for either computer. It asks whether this is the router or the
   control screen.
   - Router: pick the processes you run from a list (crush, wash, thermal, centrifuge, sift, or your own) and

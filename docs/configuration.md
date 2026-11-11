@@ -18,12 +18,13 @@ previous version as `<file>.bak`, but hand-written comments are lost.
 | `idleAlert` | `30` | Seconds a monitored machine may sit idle with work waiting before an alert |
 | `slotsPerBus` | `9` | Filter slots per export bus: 1, 5 or 9 (0, 1 or 2 Capacity Cards) |
 | `network` | first found | Address (or prefix) of the `me_controller` / `me_interface` to scan |
-| `database` | first found | Address (or prefix) of the Database Upgrade |
+| `database` | first found | Address (or prefix) of the Database Upgrade. Only needed for `buses` and `feeders` |
 | `modemPort` | none | Wireless port for the control screen; `nil` or `false` disables networking |
 | `token` | none | Shared secret; commands without it are ignored. Set the same `token` in `prism-control.cfg` |
 | `verbose` | `false` | Log every filter and interface change |
 | `defaultPriority` | `10` | Priority for rules/overrides that don't set one |
 | `buses` | `{}` | Export buses, see below |
+| `stockers` | `{}` | GT Stocking Input Buses, see below |
 | `feeders` | `{}` | Batch feeders, see below |
 | `machines` | `{}` | Monitored GT machines, see below |
 | `rules` | `{}` | Pattern rules, see below |
@@ -37,6 +38,19 @@ previous version as `<file>.bak`, but hand-written comments are lost.
 
 `address` is the `me_exportbus` component (the adapter next to the cable block). `side` is which face
 of that cable block the bus is on. Several buses with the same `process` each get the same top items.
+
+### `stockers`
+
+```lua
+{ address = "7a8b9c0d", process = "ebf", name = "EBF 1" },
+```
+
+`address` is the `me_inputbus` component: a GT **Stocking Input Bus (ME)** (or Advanced) with an adapter
+touching it. Each scan the router puts the top 16 items waiting for `process` in its slots. The multiblock
+pulls straight from the network and takes exactly what each recipe needs, so stockers also take
+[batch](#batch-sizes) items and aren't limited by bus or feeder speed. Auto-pull on an Advanced bus is
+switched off at startup. Use one stocker per multiblock: several stockers with the same `process` each hold
+the same top items, like export buses.
 
 ### `feeders`
 
@@ -122,8 +136,9 @@ Keys are `itemname:damage`. The router logs the key of every unassigned item, an
 ## Batch sizes
 
 `batch = N` (on a rule or override, or set on the screen) means "only ever send multiples of N".
-Only **feeders** send batch items; export buses skip them, and the router logs a warning if a process
-has batch items but no feeder. A remainder smaller than N waits in the network until more arrives.
+**Feeders** send batch items in exact multiples, and **stockers** offer them to a multiblock, which only
+takes whole recipes. Export buses skip them, and the router logs a warning if a process has batch items
+but no feeder or stocker. A remainder smaller than N waits in the network until more arrives.
 
 ## Data files
 

@@ -5,7 +5,7 @@ Usage: python3 tools/render_screens.py <dump dir> <output dir> [name ...]
 
 Each dump has one "char<TAB>fg<TAB>bg" line per cell of the 160x50 screen.
 Block characters are drawn as shapes so bars and sparklines look right with any font.
-Requires Pillow (pip install pillow).
+Requires Pillow: `make dev` installs it into .venv (see requirements.txt).
 """
 import os
 import sys

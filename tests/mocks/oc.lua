@@ -10,6 +10,7 @@
     M.dbSlots               the Database Upgrade's slots
     M.proxies[addr]         every component; add your own (machines, transposers...)
     M.machine(addr, fields) add a gt_machine whose methods return `fields` values
+    M.stocker(addr, opts)   add a GT Stocking Input Bus (me_inputbus); returns { slots, autoPull }
     M.web[url] = text       content served by internet.request (missing -> HTTP 404)
     M.onPull(n)             called on every event.pullMultiple; return an event
                             table to deliver it, or nil to let time pass
@@ -154,6 +155,47 @@ function M.machine(addr, fields)
     end
   end })
   return fields
+end
+
+---------------------------------------------------------------- GT stocking input buses
+-- A Stocking Input Bus (ME), component "me_inputbus" (GTNewHorizons/OpenComputers #222).
+-- 16 slots, 1-based. setConfiguration(slot, {name, damage}) sets a slot (the table is parsed like an
+-- OC item stack: name or id required, unknown items throw), setConfiguration(slot) clears it, and
+-- getConfiguration returns an OC item table or nil. Returns the slot table for tests to inspect.
+-- opts.advanced: has auto-pull (on unless opts.autoPull == false). opts.broken: every call throws.
+function M.stocker(addr, opts)
+  opts = opts or {}
+  local slots, SLOTS = {}, 16
+  local s = { slots = slots, autoPull = opts.advanced and opts.autoPull ~= false or false }
+  local function live() if opts.broken then error("chunk unloaded") end end
+  local function check(slot)
+    live()
+    if math.type(slot) == nil or slot < 1 or slot > SLOTS then error("invalid slot") end
+  end
+  proxies[addr] = {
+    address = addr, type = "me_inputbus",
+    getSlotSize = function() live(); return SLOTS end,
+    isAdvanced = function() live(); return opts.advanced == true end,
+    getAutoPull = function() live(); return s.autoPull end,
+    setAutoPull = function(on) live(); if opts.advanced then s.autoPull = on end; return true end,
+    getConfiguration = function(slot)
+      check(slot)
+      local c = slots[slot]
+      return c and { name = c.name, damage = c.damage, label = c.label, size = 1, maxSize = 64, hasTag = false } or nil
+    end,
+    setConfiguration = function(slot, detail)
+      check(slot)
+      if detail == nil then slots[slot] = nil; M.setCalls = M.setCalls + 1; return true end
+      if type(detail) ~= "table" then error("bad argument #2 (table expected)") end
+      if not detail.name then error("item id or name expected") end
+      local damage = math.floor(detail.damage or 0)
+      local it = findItem(detail.name, damage)
+      slots[slot] = { name = detail.name, damage = damage, label = it and it.label or detail.name }
+      M.setCalls = M.setCalls + 1
+      return true
+    end,
+  }
+  return s
 end
 
 ---------------------------------------------------------------- GPU + screen

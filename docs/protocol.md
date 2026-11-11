@@ -38,13 +38,13 @@ until a message fits and sets `truncated = true` when it had to. That's why item
 | `version` | string | Router version |
 | `uptime`, `interval`, `cycles`, `cycleMs`, `writes` | number | Housekeeping |
 | `lastError` | string? | Problem during the last scan |
-| `processes` | `{ [name] = { types, items, buses, stalled? } }` | Backlog per process. `buses` counts buses + feeders; `stalled` is seconds |
-| `buses` | `{ name, process, filters = { label... } }[]` | `filters` may be dropped to fit the packet |
+| `processes` | `{ [name] = { types, items, buses, stalled? } }` | Backlog per process. `buses` counts buses, stockers and feeders; `stalled` is seconds |
+| `buses` | `{ name, process, filters = { label... }, kind? }[]` | Export buses, then stockers (`kind = "stocker"`; `filters` are the stocked items). `filters` may be dropped to fit the packet |
 | `feeders` | `{ name, process, state, label?, batch?, fed }[]` | |
 | `machines` | `{ name, process, state, progress?, eu?, idle? }[]` | `progress`/`eu` are 0..1; `idle` is seconds idle with work waiting |
 | `unassigned` | `{ key, label, size }[]` | Top 25 by quantity |
 | `unassignedCount`, `catalogCount` | number | |
-| `knownProcesses` | string[] | Every process named by buses, feeders, machines, rules or overrides |
+| `knownProcesses` | string[] | Every process named by buses, stockers, feeders, machines, rules or overrides |
 | `alerts` | `{ id, level = "bad"|"warn", text }[]` | |
 
 ### Replies

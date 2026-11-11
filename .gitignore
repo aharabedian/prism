@@ -1,9 +1,10 @@
 # build output (make screens)
 build/
 
-# local Lua tooling
+# local tooling (make dev)
 lua_modules/
 .luarocks/
+.venv/
 
 # editors / OS
 .DS_Store

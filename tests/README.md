@@ -16,6 +16,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | File | Covers |
 |---|---|
 | `test_router.lua` | Filter selection, stable slots, clearing, remote assign, status |
+| `test_stockers.lua` | GT stocking input buses: top items incl. batch items, stable slots, auto-pull off, no database, unloaded bus, screen row |
 | `test_feeders.lua` | Exact-batch feeding against a machine that only consumes full batches; catalog paging, forget |
 | `test_monitor_rules.lua` | Machine states, stall/idle alerts, rule commands and preview |
 | `test_control.lua` | Screen: routing an item, ITEMS paging, search, batch, forget, clear absent, overrides |
@@ -56,7 +57,7 @@ Key ideas:
   Returning an event from `M.onPull` delivers it instantly.
 - **Drive the program with events:** `modem_message` (commands), `touch` and `key_down` (screen), and
   `interrupted` to end the run.
-- **Inspect state directly:** `M.busHosts`, `M.dbSlots`, `M.sent` (every wireless message), and files in `H.TMP`.
+- **Inspect state directly:** `M.busHosts`, `M.stocker(...).slots`, `M.dbSlots`, `M.sent` (every wireless message), and files in `H.TMP`.
 - **Screen tests:** `M.find(text, minY, minX)` locates text, so tap it with `{ "touch", "screen", x + 1, y }`.
   `M.row(y)`, `M.fgb` / `M.bgb` (colors), `M.oob` (draws off-screen) and `M.beeps` cover the rest.
 - **Run the router first to get real messages** for screen tests, rather than hand-writing status tables.

@@ -11,8 +11,9 @@ touchscreen front end. Only the router is required.
 | Wireless Network Card | status and commands for the control screen |
 | Internet Card (optional) | `prism-update` |
 | Adapter touching the subnet's **ME Controller** (or an ME Interface on it) | reads the network |
-| **Database Upgrade** (any tier) inside an adapter | stages items for filters |
+| **Database Upgrade** (any tier) inside an adapter | stages items for export bus filters and feeders (not needed for stocking buses) |
 | Adapter touching each **cable block** that has export buses on it | one adapter covers every bus on that block |
+| Adapter touching each **Stocking Input Bus (ME)** | one per stocking bus |
 | Adapter touching each **GT machine** you want to monitor (optional) | machine status, stall detection |
 | Power Converter | OpenComputers doesn't run on EU directly |
 
@@ -28,6 +29,19 @@ For each machine (or group of identical machines):
 3. Optionally add **Acceleration Cards** for throughput.
 
 Export buses only get items with a batch size of 1. Use a feeder for anything else.
+
+## Stocking input buses (multiblocks)
+
+For a GT multiblock, a **Stocking Input Bus (ME)** (or the Advanced one) is the better choice: the
+multiblock pulls straight from the subnet, so there's no export bus or feeder speed limit, and batch
+items work because each recipe takes exactly what it needs.
+
+1. Put a Stocking Input Bus (ME) on the multiblock and connect it to the subnet.
+2. Put an **adapter** against it (one adapter per stocking bus).
+3. Use one stocking bus per multiblock for PRISM. It fills all 16 slots.
+
+This needs a GTNH build whose OpenComputers includes the stocking bus driver (GTNewHorizons/OpenComputers
+#222). If `prism-discover` lists no stocking buses, your pack is older.
 
 ## Feeders (batch items)
 
@@ -77,19 +91,21 @@ Run it again any time to change something.
 
 ### Router
 
-Before you start, put a different marker item in slot 1 of each export bus's filter by hand
-(cobblestone in the washer bus, dirt in the centrifuge bus...) so you can tell the buses apart.
+Before you start, put a different marker item in slot 1 of each export bus's filter, and of each
+stocking bus's configuration, by hand (cobblestone in the washer bus, dirt in the centrifuge bus...) so
+you can tell the buses apart.
 
 | Step | You answer |
 |---|---|
 | Processes | which of crush, wash, thermal, centrifuge, sift (or your own names) you have machines for; it writes the matching [starting rules](configuration.md#rules), asking first if you already have rules |
-| ME network, database | which one, only if there are several |
+| ME network, database | which one, only if there are several. Without a database, export buses and feeders are skipped |
 | Export buses | Capacity Cards per bus, then for each bus (shown with its marker item) a process (number or new name) and optional name, or Enter to skip |
+| Stocking input buses | for each one (shown with the item in slot 1): process and name, or Enter to skip |
 | Feeders | for each transposer (interface and machine sides found automatically): process and name, or Enter to skip |
 | GT machines | for each machine (shown with state and coordinates): process and name, or Enter to skip |
 | Wireless | port (default 4242, 0 = off) and an optional shared secret |
 | Start on boot | `y` to start `prism` when the computer boots |
-| Review | warnings for processes with no bus/feeder or no rule; `y` saves `/home/prism.cfg` |
+| Review | warnings for processes with no bus/stocker/feeder or no rule; `y` saves `/home/prism.cfg` |
 
 It ends by printing the port and secret to enter on the control screen. Settings it doesn't ask about
 (`interval`, `overrides`...) are kept, and the previous file is saved as `prism.cfg.bak`.

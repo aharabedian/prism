@@ -14,6 +14,7 @@ A second computer runs a touchscreen control panel.
 
 - **Rule-based routing**: Lua patterns on item names (`^Crushed .+ Ore$` → `wash`), per-item overrides, priorities.
 - **Export buses** that always hold the 9 highest-priority items waiting for their machine.
+- **GT Stocking Input Buses** on multiblocks, configured directly: no bus speed limit, and batch items just work.
 - **Batch feeders** that send exact multiples (2, 9, 36…) for recipes that would otherwise clog on leftovers.
 - **Item catalog**: every item ever seen, so you can set up routing before you have any in stock.
 - **Machine monitoring**: GT machines' working/idle state, progress, power and maintenance.
