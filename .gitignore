@@ -1,0 +1,13 @@
+# build output (make screens)
+build/
+
+# local Lua tooling
+lua_modules/
+.luarocks/
+
+# editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+__pycache__/

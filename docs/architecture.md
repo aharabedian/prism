@@ -1,0 +1,107 @@
+# Architecture
+
+## Programs
+
+| File | Runs on | Role |
+|---|---|---|
+| `src/prism.lua` | router computer | Scans, decides, configures buses and feeders, monitors machines, serves the protocol |
+| `src/prism-control.lua` | control computer | Touchscreen UI; holds no state the router doesn't have |
+| `src/prism-discover.lua` | router computer | Lists components and prints config lines |
+| `src/prism-update.lua` | both | Installs and updates from GitHub |
+
+Each is a single self-contained file with no project-local `require`s, so it can be copied onto a computer on its own.
+
+## Router main loop
+
+One loop, three timers, woken early by wireless commands:
+
+| Timer | Default | Work |
+|---|---|---|
+| monitor | 2 s | Poll each `gt_machine`; broadcast `router-machines` between scans |
+| scan | 5 s | The cycle below; broadcast `router-status` |
+| feed | 1 s | One step per feeder |
+
+A command that changes routing (assign, rule edit, reload...) triggers an immediate scan.
+
+### Scan cycle
+
+1. `getItemsInNetwork()`; merge stacks of the same `name:damage` (NBT variants).
+2. Add new items to the catalog (`prism-items.cfg`).
+3. Classify each item (screen override → cfg override → rules) into process, priority, batch.
+4. Sort each process's queue by priority, then quantity.
+5. For each export bus: take the top `slotsPerBus` **batch-1** items for its process and apply them (below).
+6. Detect stalls and build alerts.
+7. Broadcast status.
+
+### Export bus filters
+
+`applyBus` keeps every slot that already holds a wanted item, fills the remaining slots with the
+missing ones in priority order, and clears slots holding items no longer wanted. An unchanged network
+causes zero writes, and one item running out rewrites exactly one slot.
+
+### Database staging
+
+Filters and interface configs can only be set from a Database Upgrade entry. To set one, the router
+`store()`s the item from the network into a database slot and points the bus at that slot. The bus
+keeps its own copy, so database slots are reused round-robin. The database never fills up, and any
+tier works (a bigger one just means fewer `store()` calls). The last slot is kept empty and is used to clear configs.
+
+### Feeders
+
+Each step, per feeder:
+
+1. Read the machine's inventory and the interface's stock through the transposer.
+2. Pick the item already in the machine (to top it up), else the first queued item with at least one full batch available.
+3. If the interface isn't stocking that item, reconfigure it and wait one step for stock.
+4. Move `floor(min(stock, room) / batch) * batch` items.
+
+If the machine already holds a non-multiple of the batch (a leftover from before), the feeder reports
+`blocked` instead of adding to it. Remainders smaller than a batch stay in the network.
+
+### Stall detection
+
+A process is **stalled** when it has items waiting and at least one bus or feeder, but for `stallAfter`
+seconds none of these happened:
+
+- any of its items' quantity dropped, or an item left the network entirely
+- a feeder for it moved items
+- a monitored machine for it was `working`
+
+Without monitored machines this relies on items leaving the network, so a process whose input arrives
+exactly as fast as it's processed can be falsely flagged; monitoring its machines fixes that.
+
+Alerts are rebuilt every scan, with stable ids (`stall:wash`, `machine:Washer 1`...). The router logs
+each alert when it starts and when it resolves. The control screen beeps when a new id appears.
+
+### Machine states
+
+From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (sensor info reports
+`Problems: N` > 0), `working`, `no power` (idle with EU stored < 5%), `idle`, or `offline` when calls fail.
+
+## Control screen
+
+- Redraws fully on status, touch and key events; machine updates redraw only the machine rows.
+- Item lists are fetched in pages, because wireless packets are limited to about 8 KB.
+- All edits are commands to the router; the screen re-fetches after each `router-ack`.
+- The left column switches to one row per bus and feeder when everything wouldn't otherwise fit.
+
+## Wireless protocol
+
+See [protocol.md](protocol.md).
+
+## In-game verification status
+
+The test suite runs against [tests/mocks/oc.lua](../tests/mocks/oc.lua), which mirrors the
+OpenComputers/AE2/GregTech APIs as we understand them. This table tracks which assumptions have been
+confirmed in a real game. **Update it when you confirm or disprove something**, and fix the mock to
+match the game first if they differ.
+
+| API / behavior | Status |
+|---|---|
+| `me_controller.getItemsInNetwork`, `store`; Database Upgrade `get`/`clear` | Verified in-game (0.1) |
+| `me_exportbus.get/setExportConfiguration` via adapter, clearing with an empty database slot | Verified in-game (0.1) |
+| Wireless status/commands, control screen rendering and touch | Reported working (0.2) |
+| `me_interface.setInterfaceConfiguration` (block), transposer reading interface stock and `transferItem` | Reported working (0.3) |
+| `gt_machine` method names (`isMachineActive`, `getWorkProgress`, `getWorkMaxProgress`, `getEUStored`, `getEUMaxStored`, `isWorkAllowed`, `getSensorInformation`, `getCoordinates`) | **Unverified** |
+| Multiblock `Problems:` line format in sensor info | **Unverified** |
+| `internet.request` streaming, `/home/bin` on the OpenOS shell path | **Unverified** |

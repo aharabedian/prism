@@ -1,0 +1,3 @@
+# OpenComputers and the tests expect LF line endings
+* text=auto eol=lf
+*.png binary
