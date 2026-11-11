@@ -19,7 +19,7 @@ local serialization = require("serialization")
 local unicode       = require("unicode")
 local term          = require("term")
 
-local VERSION = "0.4.0"
+local VERSION = "0.5.0"
 
 ---------------------------------------------------------------- settings
 

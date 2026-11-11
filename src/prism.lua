@@ -35,7 +35,7 @@ local event         = require("event")
 local serialization = require("serialization")
 local sides         = require("sides")
 
-local VERSION = "0.4.0"
+local VERSION = "0.5.0"
 
 local args = { ... }
 local CONFIG_PATH    = args[1] or "/home/prism.cfg"

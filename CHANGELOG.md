@@ -5,6 +5,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-11
+
 ### Added
 - **GT Stocking Input Bus (ME)** support (`stockers` in `prism.cfg`). The router fills each stocking bus's
   16 slots with the top items for its process, so the multiblock pulls straight from the subnet: no export

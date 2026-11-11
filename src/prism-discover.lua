@@ -9,7 +9,7 @@
 
 local component = require("component")
 
-local VERSION = "0.4.0"
+local VERSION = "0.5.0"
 
 local SIDE_NAMES = { [0] = "down", "up", "north", "south", "west", "east" }
 

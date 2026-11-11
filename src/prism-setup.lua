@@ -24,7 +24,7 @@ local component  = require("component")
 local filesystem = require("filesystem")
 local sides      = require("sides")
 
-local VERSION = "0.4.0"
+local VERSION = "0.5.0"
 
 local PREFIX      = os.getenv("PRISM_PREFIX") or ""   -- lets the test suite use a temp dir
 local HOME        = PREFIX .. "/home"
