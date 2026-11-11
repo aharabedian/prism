@@ -6,6 +6,7 @@
 |---|---|---|
 | `src/prism.lua` | router computer | Scans, decides, configures buses and feeders, monitors machines, serves the protocol |
 | `src/prism-control.lua` | control computer | Touchscreen UI; holds no state the router doesn't have |
+| `src/prism-setup.lua` | both | Guided setup: router or screen, writes `prism.cfg` or `prism-control.cfg` and `.shrc` |
 | `src/prism-discover.lua` | router computer | Lists components and prints config lines |
 | `src/prism-update.lua` | both | Installs and updates from GitHub |
 
@@ -105,3 +106,5 @@ match the game first if they differ.
 | `gt_machine` method names (`isMachineActive`, `getWorkProgress`, `getWorkMaxProgress`, `getEUStored`, `getEUMaxStored`, `isWorkAllowed`, `getSensorInformation`, `getCoordinates`) | **Unverified** |
 | Multiblock `Problems:` line format in sensor info | **Unverified** |
 | `internet.request` streaming, `/home/bin` on the OpenOS shell path | **Unverified** |
+| `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
+| `/home/.shrc` run by the shell at boot (start on boot) | **Unverified** |

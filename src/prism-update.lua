@@ -9,10 +9,10 @@
     prism-update OWNER/REPO      switch repo (saved for next time)
     prism-update OWNER/REPO dev  use a different branch
 
-  Installs prism, prism-control, prism-discover and prism-update into /home/bin (on the
-  shell PATH) and prism.example.cfg into /home. Your /home/prism.cfg and the
-  prism-*.cfg data files are never touched; prism.cfg is only created from
-  the example when it doesn't exist yet. Each download is syntax-checked before
+  Installs prism, prism-control, prism-discover, prism-setup and prism-update into /home/bin (on the
+  shell PATH) and prism.example.cfg into /home. Your /home/prism.cfg,
+  prism-control.cfg and the prism-*.cfg data files are never touched; run
+  prism-setup to create or change them. Each download is syntax-checked before
   it replaces the installed file, so a failed download can't break a computer.
 ]]
 
@@ -31,6 +31,7 @@ local FILES = {
   { "src/prism.lua",           BIN .. "/prism.lua" },
   { "src/prism-control.lua",          BIN .. "/prism-control.lua" },
   { "src/prism-discover.lua",         BIN .. "/prism-discover.lua" },
+  { "src/prism-setup.lua",            BIN .. "/prism-setup.lua" },
   { "src/prism-update.lua",    BIN .. "/prism-update.lua" },
   { "config/prism.example.cfg", HOME .. "/prism.example.cfg" },
 }
@@ -113,13 +114,8 @@ if not filesystem.exists(cfg) and filesystem.exists(HOME .. "/router.cfg") then
   end
 end
 
-if not filesystem.exists(cfg) then
-  for _, d in ipairs(downloads) do
-    if d.name == "config/prism.example.cfg" then writeFile(cfg, d.data) end
-  end
-  print("  created " .. cfg .. " from the example - edit it, then run prism-discover")
-else
-  print("  kept your " .. cfg .. " (compare with prism.example.cfg for new options)")
+if not filesystem.exists(cfg) and not filesystem.exists(HOME .. "/prism-control.cfg") then
+  print("  not configured yet - run prism-setup to set this computer up as the router or the control screen")
 end
 
 writeFile(SETTINGS, serialization.serialize({ repo = repo, branch = branch }))

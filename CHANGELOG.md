@@ -5,6 +5,25 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `prism-setup`: a guided setup wizard for either computer. It asks whether this is the router or the
+  control screen.
+  - Router: pick the processes you run from a list (crush, wash, thermal, centrifuge, sift, or your own) and
+    get a matching set of starting rules; then the ME network, database, Capacity Cards, export buses (showing
+    marker items), feeders (transposer sides found automatically), GT machines (processes chosen by number),
+    wireless port and secret. Warns about processes with no bus/feeder or no rule. Writes `/home/prism.cfg`,
+    keeping settings it doesn't ask about and the previous file as `prism.cfg.bak`.
+  - Control screen: wireless port and secret, beep. Writes `/home/prism-control.cfg`.
+  - Both: optionally start the program on boot via `/home/.shrc`.
+  Run it again to change anything; current settings are the defaults.
+- `prism-control` reads its settings from `/home/prism-control.cfg` (`modemPort`, `token`, `beep`, `history`,
+  `staleAfter`, `batches`) instead of constants at the top of the program.
+
+### Changed
+- `prism-update` no longer creates `prism.cfg` from the example; it points to `prism-setup`.
+- `prism` without a config says to run `prism-setup`.
+- `prism-update` installs `prism-setup`.
+
 ## [0.4.0] - 2026-11-11
 
 ### Changed

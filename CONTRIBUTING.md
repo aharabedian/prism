@@ -25,8 +25,9 @@
 - **Don't block.** The router must keep yielding (`event.pull*`) between steps; long work without yielding
   crashes OpenComputers programs ("too long without yielding").
 - **Wireless packets are about 8 KB.** Page or trim lists; never send unbounded data.
-- **Never overwrite user files.** New config keys get a default in `loadConfig()`; data files
-  (`prism-*.cfg`) stay backward compatible.
+- **Never overwrite user files** except through `prism-setup` (which asks and keeps a `.bak`). New config
+  keys get a default in `loadConfig()` and are written by `prism-setup`; data files (`prism-*.cfg`) stay
+  backward compatible.
 - **Protocol changes add fields; they don't rename them**, so router and screen can be one version apart.
 - 2-space indent, `local` everything, short functions with a comment saying *why* when it isn't obvious.
 
@@ -34,7 +35,7 @@
 
 | You changed | Update |
 |---|---|
-| A config option | `config/prism.example.cfg`, `docs/configuration.md` |
+| A config option | `config/prism.example.cfg`, `docs/configuration.md`, the matching render in `src/prism-setup.lua` |
 | A wireless message or command | `docs/protocol.md` |
 | How routing, feeders, stalls or the loop work | `docs/architecture.md` |
 | Hardware or build steps | `docs/setup.md` |
@@ -44,5 +45,5 @@
 ## Releasing
 
 1. Move **Unreleased** in `CHANGELOG.md` to a new version heading with the date.
-2. Bump `VERSION` in all four `src/*.lua` files (`grep -n 'local VERSION' src/`).
+2. Bump `VERSION` in every `src/*.lua` file (`grep -n 'local VERSION' src/`).
 3. `make check`, commit, tag `vX.Y.Z`, push. Players update with `prism-update`.

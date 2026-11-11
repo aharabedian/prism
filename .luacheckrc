@@ -11,7 +11,7 @@ files["src/"] = {
 
 files["tests/"] = {
   -- tests deliberately swap these to capture output / trap exits
-  globals = { "print", "io.write", "io.stderr", "os.getenv", "os.exit" },
+  globals = { "print", "io.write", "io.read", "io.stderr", "os.getenv", "os.exit" },
   max_line_length = 160,
 }
 

@@ -150,6 +150,7 @@ end
 ---------------------------------------------------------------- config + components
 
 local function loadConfig()
+  if not fileExists(CONFIG_PATH) then error("no " .. CONFIG_PATH .. " - run prism-setup to create it", 0) end
   local fn, err = loadfile(CONFIG_PATH, "t", { sides = sides })
   if not fn then error("can't load " .. CONFIG_PATH .. ": " .. tostring(err), 0) end
   local ok, c = pcall(fn)
@@ -305,7 +306,7 @@ local function setup()
   if screenRules then
     log("using %d rule(s) from %s - rules in prism.cfg are ignored", #screenRules, RULES_PATH)
   end
-  if #buses + #feeders == 0 then log("no buses or feeders configured yet - run prism-discover and edit prism.cfg") end
+  if #buses + #feeders == 0 then log("no buses or feeders configured yet - run prism-setup") end
 end
 
 ---------------------------------------------------------------- export buses

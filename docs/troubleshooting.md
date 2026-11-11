@@ -10,7 +10,7 @@ alert and error. `prism-discover` shows what the computer can actually see.
 | `no ME controller/interface found` | Put an adapter against the subnet's controller (or an ME Interface on it) and connect it with cable. Set `network` if there are several |
 | `no database found` | Put a Database Upgrade *inside* an adapter |
 | `prism-discover` lists no export buses | The adapter must touch the **cable block** the buses are on, not the bus face or the machine |
-| `bus ... (side x): no export bus` | Wrong `side`. Use the line `prism-discover` printed |
+| `bus ... (side x): no export bus` | Wrong `side`. Run `prism-setup` again, or use the line `prism-discover` printed |
 | `transposer sees no inventory on interfaceSide` | Sides are relative to the transposer; check `prism-discover`'s transposer section. Use an ME Interface **block** |
 | `too many components` / components missing | Over the CPU's component limit; see [setup.md](setup.md) |
 
@@ -30,7 +30,7 @@ alert and error. `prism-discover` shows what the computer can actually see.
 
 | Symptom | Fix |
 |---|---|
-| `waiting for router` forever | Same `PORT` on both? Wireless card on both, within range? If `token` is set, set `TOKEN` too |
+| `waiting for router` forever | Same `PORT` on both? Wireless card on both, within range? If `token` is set, the screen needs it too. Run `prism-setup` on both; the router's run prints the values |
 | `NO SIGNAL` | The router stopped, crashed (check its screen) or is out of range |
 | Yellow `router X ≠ screen Y` badge | Run `prism-update` on both computers and restart both |
 | `prism-control.lua needs a tier 3 GPU and screen` | The display must be at least 100×36: T3 GPU and T3 screen |

@@ -8,7 +8,8 @@
          edit it with a live preview of what it would catch.
   Keyboard: types into the search box, or into the pattern while editing a rule.
 
-  Usage: prism-control      QUIT button or Ctrl+C to exit.
+  Usage: prism-control [path]   (default /home/prism-control.cfg; run prism-setup to write it)
+  QUIT button or Ctrl+C to exit.
 ]]
 
 local component     = require("component")
@@ -22,12 +23,28 @@ local VERSION = "0.4.0"
 
 ---------------------------------------------------------------- settings
 
-local PORT        = 4242   -- must match modemPort in prism.cfg
-local TOKEN       = nil    -- must match token in prism.cfg, if you set one
-local HISTORY     = 60     -- backlog samples kept for the sparklines
-local STALE_AFTER = 3      -- missed router cycles before showing NO SIGNAL
-local BEEP        = true   -- beep when a new alert appears
-local BATCHES     = { 1, 2, 3, 4, 6, 8, 9, 16, 32, 36, 64 }
+-- From prism-control.cfg (written by prism-setup); every setting has a default, so the file is optional.
+local CONFIG_PATH = ({ ... })[1] or "/home/prism-control.cfg"
+
+local function loadSettings()
+  local f = io.open(CONFIG_PATH, "r")
+  if not f then return {} end
+  f:close()
+  local fn, err = loadfile(CONFIG_PATH, "t", {})
+  if not fn then error("can't load " .. CONFIG_PATH .. ": " .. tostring(err), 0) end
+  local ok, t = pcall(fn)
+  if not ok or type(t) ~= "table" then error("bad config " .. CONFIG_PATH .. ": " .. tostring(t), 0) end
+  return t
+end
+
+local settings = loadSettings()
+local function opt(v, default) if v == nil then return default end return v end
+local PORT        = opt(settings.modemPort, 4242)  -- must match the router's modemPort; false = wireless off
+local TOKEN       = settings.token or nil         -- must match the router's token, if it has one
+local HISTORY     = opt(settings.history, 60)      -- backlog samples kept for the sparklines
+local STALE_AFTER = opt(settings.staleAfter, 3)    -- missed router cycles before showing NO SIGNAL
+local BEEP        = opt(settings.beep, true)       -- beep when a new alert appears
+local BATCHES     = opt(settings.batches, { 1, 2, 3, 4, 6, 8, 9, 16, 32, 36, 64 })
 
 local C = {
   bg     = 0x0f1419, panel = 0x1a2129, line  = 0x2c3640,
@@ -41,7 +58,7 @@ local SPARK = { "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█" }
 ---------------------------------------------------------------- setup
 
 local gpu = component.gpu
-local modem = component.isAvailable("modem") and component.modem or nil
+local modem = PORT and component.isAvailable("modem") and component.modem or nil
 
 local W, H = gpu.maxResolution()
 if W < 100 or H < 36 then

@@ -21,7 +21,8 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_control.lua` | Screen: routing an item, ITEMS paging, search, batch, forget, clear absent, overrides |
 | `test_control_rules.lua` | Screen: machines, alerts, beep, rule editor, MAKE RULE, compact layout, version badge |
 | `test_discover.lua` | prism-discover output |
-| `test_update.lua` | prism-update install/update, keeping config, rejecting bad downloads, migrating old `router*.cfg` |
+| `test_setup.lua` | prism-setup for router and screen: rules, hardware, wireless, start on boot, re-runs, backups, cancelling; both programs running on its output |
+| `test_update.lua` | prism-update install/update, keeping config, pointing to prism-setup, rejecting bad downloads, migrating old `router*.cfg` |
 | `test_example_config.lua` | The shipped example config loads and routes with its default rules |
 | `helper.lua` | Shared setup (`H`) |
 | `mocks/oc.lua` | The mock world (`M`) |

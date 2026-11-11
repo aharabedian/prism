@@ -16,7 +16,8 @@ io.stderr = { write = function(_, s) errors[#errors + 1] = s end }
 local function serve(repo, branch)
   M.web = {}
   local base = ("https://raw.githubusercontent.com/%s/%s/"):format(repo, branch)
-  for _, f in ipairs({ "src/prism.lua", "src/prism-control.lua", "src/prism-discover.lua", "src/prism-update.lua", "config/prism.example.cfg" }) do
+  for _, f in ipairs({ "src/prism.lua", "src/prism-control.lua", "src/prism-discover.lua", "src/prism-setup.lua",
+                       "src/prism-update.lua", "config/prism.example.cfg" }) do
     local h = assert(io.open(H.ROOT .. "/" .. f))
     M.web[base .. f] = h:read("*a")
     h:close()
@@ -42,12 +43,18 @@ check(not ok and table.concat(errors):find("usage"), "asks for OWNER/REPO the fi
 
 -- fresh install
 serve("me/prism", "main")
-ok = quiet(function() return update("me/prism") end)
+local printed = {}
+local realPrint = print
+print = function(line) printed[#printed + 1] = tostring(line) end
+ok = update("me/prism")
+print = realPrint
 check(ok, "fresh install succeeds")
-for _, f in ipairs({ "router", "control", "discover", "prism-update" }) do
-  check(read(prefix .. "/home/bin/" .. f .. ".lua") == read(H.ROOT .. "/src/" .. f .. ".lua"), f .. ".lua installed into /home/bin")
+for _, f in ipairs({ "prism", "prism-control", "prism-discover", "prism-setup", "prism-update" }) do
+  local got = read(prefix .. "/home/bin/" .. f .. ".lua")
+  check(got and got == read(H.ROOT .. "/src/" .. f .. ".lua"), f .. ".lua installed into /home/bin")
 end
-check(read(prefix .. "/home/prism.cfg") == read(H.ROOT .. "/config/prism.example.cfg"), "prism.cfg created from the example")
+check(read(prefix .. "/home/prism.cfg") == nil, "no prism.cfg made up from the example")
+check(table.concat(printed, "\n"):find("run prism-setup", 1, true), "points to prism-setup when not configured")
 local saved = H.readTable(prefix .. "/home/.prism-update.cfg")
 check(saved.repo == "me/prism" and saved.branch == "main", "repo and branch saved")
 
