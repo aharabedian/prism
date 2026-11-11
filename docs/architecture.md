@@ -166,8 +166,8 @@ match the game first if they differ.
 | `gt_machine` method names (`isMachineActive`, `getWorkProgress`, `getWorkMaxProgress`, `getEUStored`, `getEUMaxStored`, `isWorkAllowed`, `getSensorInformation`, `getCoordinates`) | **Unverified** |
 | Multiblock `Problems:` line format in sensor info | **Unverified** |
 | `internet.request` streaming, `/home/bin` on the OpenOS shell path | Reported working |
-| `/home/lib/?.lua` appended to `package.path` finds `/home/lib/prism/*.lua`; clearing `package.loaded["prism.*"]` reloads modules on restart | **Unverified** |
-| `filesystem.makeDirectory` creating `/home/lib/prism/router` (prism-update creates each level itself) | **Unverified** |
+| `/home/lib/?.lua` appended to `package.path` finds `/home/lib/prism/*.lua`; clearing `package.loaded["prism.*"]` reloads modules on restart | Reported working (modules branch) |
+| `filesystem.makeDirectory` creating `/home/lib/prism/router` (prism-update creates each level itself) | Reported working (modules branch) |
 | `handle.response()` giving the HTTP status after a failed read (404 for a repo with no releases, a missing tag) | Reported working (0.5.0) |
 | `internet.request(url, nil, headers)` to `api.github.com` returning the latest release's `tag_name` | Reported working (0.5.0) |
 | GT Stocking Input Bus `me_inputbus`: `getSlotSize`, `get/setConfiguration` (`{name, damage}`, no table clears), `isAdvanced`, `get/setAutoPull` (from GTNewHorizons/OpenComputers #222, merged 2026-09-21) | Reported working (stocking-buses branch) |
