@@ -1,0 +1,2 @@
+# Python tools for development (make screens / make docs-images). Install with `make dev`.
+pillow==13.0.0

@@ -3,8 +3,15 @@
 ## Setup
 
 - **Lua 5.3** (`lua5.3`) to run tests. Debian/Ubuntu: `sudo apt install lua5.3`. macOS: `brew install lua@5.3`.
-- **luacheck** for linting: `luarocks --lua-version=5.3 install luacheck` (Debian/Ubuntu also need `liblua5.3-dev`).
-- Optional: **Python 3 + Pillow** for `make screens`.
+- A C compiler, `make`, `curl` and **Python 3**.
+- Then run **`make dev`** ([tools/setup-dev.sh](tools/setup-dev.sh)). It needs no sudo and installs:
+  - **luacheck** into `.luarocks/`. It builds LuaRocks there, and uses the Lua 5.3 headers from lua.org
+    if `liblua5.3-dev` isn't installed.
+  - a Python venv in `.venv/` with [requirements.txt](requirements.txt) (Pillow, for `make screens`).
+    It bootstraps pip if the system Python lacks `ensurepip`.
+
+  The Makefile uses these when present, and otherwise falls back to `luacheck` and `python3` on the PATH.
+  Re-running is safe.
 - On Windows, use WSL; the test runner shells out to `ls`, `mkdir` and `rm`.
 
 ## Workflow

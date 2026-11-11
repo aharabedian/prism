@@ -15,4 +15,4 @@ files["tests/"] = {
   max_line_length = 160,
 }
 
-exclude_files = { ".luarocks/**", "lua_modules/**" }
+exclude_files = { ".luarocks/**", "lua_modules/**", ".venv/**", "build/**" }
