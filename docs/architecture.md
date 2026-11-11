@@ -178,7 +178,7 @@ match the game first if they differ.
 | `internet.request(url, nil, headers)` to `api.github.com` returning the latest release's `tag_name` | Reported working (0.5.0) |
 | GT Stocking Input Bus `me_inputbus`: `getSlotSize`, `get/setConfiguration` (`{name, damage}`, no table clears), `isAdvanced`, `get/setAutoPull` (from GTNewHorizons/OpenComputers #222, merged 2026-09-21) | Reported working (stocking-buses branch) |
 | A multiblock with the same item in two stocking buses still runs | **Unverified**; docs say one stocker per multiblock |
-| ME interface block as an output: `setInterfaceConfiguration` on slots 2..9, the interface restocking as another network's import bus empties it, clearing a slot handing its stock back | **Unverified** (slot 1 for feeders is verified) |
+| ME interface block as an output: `setInterfaceConfiguration` on slots 2..9, the interface restocking as another network's import bus empties it, clearing a slot handing its stock back | Reported working (interfaces branch) |
 | `me_interface.getInterfaceConfiguration(slot)` (only for the slot 1 marker in prism-setup/discover; missing = "(empty)") | **Unverified** |
 | `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
 | `/home/.shrc` run by the shell at boot (start on boot) | **Unverified** |
