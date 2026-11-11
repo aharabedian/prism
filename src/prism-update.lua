@@ -25,7 +25,7 @@ local component  = require("component")
 local filesystem = require("filesystem")
 local serialization = require("serialization")
 
-local VERSION = "0.5.0"
+local VERSION = "0.6.0"
 
 local PREFIX   = os.getenv("PRISM_PREFIX") or ""   -- lets the test suite install into a temp dir
 local HOME     = PREFIX .. "/home"

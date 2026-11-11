@@ -5,6 +5,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-11
+
 ### Added
 - **ME interfaces as outputs** (`interfaces` in `prism.cfg`): an ME Interface block on the subnet stocks a
   stack of each of a process's top 9 items, and another network's Import Bus (with Acceleration Cards) pulls
