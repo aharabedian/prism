@@ -53,4 +53,7 @@
 
 1. Move **Unreleased** in `CHANGELOG.md` to a new version heading with the date.
 2. Bump `VERSION` in every `src/*.lua` file (`grep -n 'local VERSION' src/`).
-3. `make check`, commit, tag `vX.Y.Z`, push. Players update with `prism-update`.
+3. `make check`, commit and push to `main`.
+4. Publish a GitHub **release** (a bare tag isn't enough: `prism-update` asks for the latest release):
+   `gh release create vX.Y.Z --title "PRISM X.Y.Z" --notes-file <the changelog section>`.
+   `prism-update` installs it on every computer that follows releases, which is the default.

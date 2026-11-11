@@ -43,6 +43,8 @@ alert and error. `prism-discover` shows what the computer can actually see.
 
 | Symptom | Fix |
 |---|---|
-| `doesn't look like valid Lua (wrong repo or branch?)` | GitHub returned an error page. Check `OWNER/REPO` and branch; nothing was changed |
+| `doesn't look like valid Lua (wrong repo or branch?)` | GitHub returned an error page. Check `OWNER/REPO` and branch or tag; nothing was changed |
+| `can't find the latest release of ...: HTTP 403` | GitHub's API limits each IP to 60 requests an hour. Wait, or `prism-update main` (no API call); nothing was changed |
+| `can't download ...: HTTP 404` | That branch or tag doesn't exist, or the file isn't in it |
 | `can't download ...` | Internet Card missing, or the server blocks outgoing HTTP (OpenComputers config) |
 | New options don't appear | `prism-update` never overwrites `prism.cfg`; copy them from `/home/prism.example.cfg` |

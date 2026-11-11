@@ -11,7 +11,8 @@
     M.proxies[addr]         every component; add your own (machines, transposers...)
     M.machine(addr, fields) add a gt_machine whose methods return `fields` values
     M.stocker(addr, opts)   add a GT Stocking Input Bus (me_inputbus); returns { slots, autoPull }
-    M.web[url] = text       content served by internet.request (missing -> HTTP 404)
+    M.web[url] = text       content served by internet.request (missing -> HTTP 404,
+                            { status = N } -> HTTP N); M.requests logs every request
     M.onPull(n)             called on every event.pullMultiple; return an event
                             table to deliver it, or nil to let time pass
     M.sent                  every modem send/broadcast: { to, port, data }
@@ -326,16 +327,26 @@ local filesystem = {
   rename = function(a, b) return os.rename(a, b) end,
 }
 
+-- Like OpenOS internet.request: a callable handle that yields the body; reads of an HTTP error
+-- throw (Java's message is the URL) and handle.response() gives code, message, headers.
+-- M.web[url] = text serves 200; { status = 500 } serves that status; missing = 404.
+-- Every request is logged in M.requests as { url, headers }.
+M.requests = {}
 local internet = {
-  request = function(url)
+  request = function(url, _, headers)
+    M.requests[#M.requests + 1] = { url = url, headers = headers }
     local body = M.web[url]
+    local status = body == nil and 404 or (type(body) == "table" and body.status) or 200
     local done = false
-    return function()
-      if body == nil then error("HTTP 404 " .. url) end
+    return setmetatable({
+      response = function() return status, status == 200 and "OK" or "Error", {} end,
+      close = function() end,
+    }, { __call = function()
+      if status ~= 200 then error(url) end
       if done then return nil end
       done = true
       return body
-    end
+    end })
   end,
 }
 

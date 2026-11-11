@@ -8,7 +8,7 @@
 | `src/prism-control.lua` | control computer | Touchscreen UI; holds no state the router doesn't have |
 | `src/prism-setup.lua` | both | Guided setup: router or screen, writes `prism.cfg` or `prism-control.cfg` and `.shrc` |
 | `src/prism-discover.lua` | router computer | Lists components and prints config lines |
-| `src/prism-update.lua` | both | Installs and updates from GitHub |
+| `src/prism-update.lua` | both | Installs and updates from GitHub: the latest release by default, or a branch/tag |
 
 Each is a single self-contained file with no project-local `require`s, so it can be copied onto a computer on its own.
 
@@ -116,7 +116,8 @@ match the game first if they differ.
 | `me_interface.setInterfaceConfiguration` (block), transposer reading interface stock and `transferItem` | Reported working (0.3) |
 | `gt_machine` method names (`isMachineActive`, `getWorkProgress`, `getWorkMaxProgress`, `getEUStored`, `getEUMaxStored`, `isWorkAllowed`, `getSensorInformation`, `getCoordinates`) | **Unverified** |
 | Multiblock `Problems:` line format in sensor info | **Unverified** |
-| `internet.request` streaming, `/home/bin` on the OpenOS shell path | **Unverified** |
+| `internet.request` streaming, `/home/bin` on the OpenOS shell path | Reported working |
+| `internet.request(url, nil, headers)` to `api.github.com`; `handle.response()` giving the HTTP status after a failed read | **Unverified** |
 | GT Stocking Input Bus `me_inputbus`: `getSlotSize`, `get/setConfiguration` (`{name, damage}`, no table clears), `isAdvanced`, `get/setAutoPull` (from GTNewHorizons/OpenComputers #222, merged 2026-09-21) | Reported working (stocking-buses branch) |
 | A multiblock with the same item in two stocking buses still runs | **Unverified**; docs say one stocker per multiblock |
 | `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
