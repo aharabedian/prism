@@ -117,7 +117,7 @@ match the game first if they differ.
 | `gt_machine` method names (`isMachineActive`, `getWorkProgress`, `getWorkMaxProgress`, `getEUStored`, `getEUMaxStored`, `isWorkAllowed`, `getSensorInformation`, `getCoordinates`) | **Unverified** |
 | Multiblock `Problems:` line format in sensor info | **Unverified** |
 | `internet.request` streaming, `/home/bin` on the OpenOS shell path | **Unverified** |
-| GT Stocking Input Bus `me_inputbus`: `getSlotSize`, `get/setConfiguration` (`{name, damage}`, no table clears), `isAdvanced`, `get/setAutoPull` (from GTNewHorizons/OpenComputers #222, merged 2026-09-21) | **Unverified** |
+| GT Stocking Input Bus `me_inputbus`: `getSlotSize`, `get/setConfiguration` (`{name, damage}`, no table clears), `isAdvanced`, `get/setAutoPull` (from GTNewHorizons/OpenComputers #222, merged 2026-09-21) | Reported working (stocking-buses branch) |
 | A multiblock with the same item in two stocking buses still runs | **Unverified**; docs say one stocker per multiblock |
 | `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
 | `/home/.shrc` run by the shell at boot (start on boot) | **Unverified** |
