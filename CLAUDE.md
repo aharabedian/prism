@@ -35,19 +35,21 @@ make screens                      # render the control screen from tests to PNGs
   - Wireless packets are ~8 KB max: page or trim.
   - GPU calls are rationed, so redraw only what changed for frequent updates.
 - **Compatibility:**
-  - New config keys get defaults in `loadConfig()`.
+  - Config format compatibility isn't required yet (single user); still give new keys defaults in
+    `loadConfig()` and teach `prism-setup` to write them.
   - Protocol changes add fields rather than renaming them.
-  - Never overwrite the user's `prism.cfg` or `prism-*.cfg` data files.
+  - Only `prism-setup` writes `prism.cfg` / `prism-control.cfg` (after confirmation, keeping a `.bak`);
+    nothing overwrites the `prism-*.cfg` data files.
 - **Docs move with code**, in the same change: see the table in `CONTRIBUTING.md` (config →
   `docs/configuration.md` + `config/prism.example.cfg`; messages → `docs/protocol.md`; behavior →
   `docs/architecture.md`; user-visible → `CHANGELOG.md` Unreleased). Keep docs tight: tables over prose,
   no duplicated explanations; link instead.
-- **Versions:** `VERSION` is in all four `src/*.lua` files; bump them together when releasing.
+- **Versions:** `VERSION` is in every `src/*.lua` file; bump them together when releasing.
 
 ## Layout
 
 ```
-src/        prism.lua (router), prism-control.lua (screen), prism-discover.lua, prism-update.lua
+src/        prism.lua (router), prism-control.lua (screen), prism-setup.lua, prism-discover.lua, prism-update.lua
 config/     prism.example.cfg, the annotated config users start from
 docs/       setup, configuration, architecture, protocol, troubleshooting, images/
 tests/      run.lua, helper.lua, mocks/oc.lua, test_*.lua

@@ -42,8 +42,8 @@ The transposer must touch both the interface and the machine; it's a component o
 
 ## Machine monitoring
 
-Put an adapter against each GT machine (or multiblock controller). `prism-discover` lists them with their
-coordinates; toggle one with a soft mallet to tell which is which (it shows `disabled`).
+Put an adapter against each GT machine (or multiblock controller). `prism-setup` lists them with their
+coordinates and state; toggle one with a soft mallet to tell which is which (it shows `disabled`).
 
 ## The control computer
 
@@ -63,26 +63,57 @@ wget -f https://raw.githubusercontent.com/aharabedian/prism/main/src/prism-updat
 /home/prism-update aharabedian/prism
 ```
 
-This puts `prism`, `prism-control`, `prism-discover` and `prism-update` in `/home/bin` (on the shell path),
-copies `prism.example.cfg` to `/home`, and creates `/home/prism.cfg` if it doesn't exist.
+This puts `prism`, `prism-control`, `prism-setup`, `prism-discover` and `prism-update` in `/home/bin` (on the shell path)
+and the annotated `prism.example.cfg` in `/home` for reference.
 
-Without an Internet Card, copy the files from `src/` into `/home/bin/` and `config/prism.example.cfg`
-to `/home/prism.cfg` by any means you like (pastebin, a floppy, etc.).
+Without an Internet Card, copy the files from `src/` into `/home/bin/` by any means you like (pastebin, a floppy, etc.).
 
 ## First run
 
-1. **Identify your buses:** by hand, put a different marker item in slot 1 of each export bus's filter
-   (cobblestone in the washer bus, dirt in the centrifuge bus...).
-2. **Run `prism-discover`:** it prints config lines for every bus (showing its marker item), interface,
-   transposer and machine.
-3. **Edit `/home/prism.cfg`:** paste the lines into `buses`, `feeders` and `machines`, and set each `process`.
-   See [configuration.md](configuration.md).
-4. **Run `prism`:** it logs each filter change and any item that has no rule.
-5. **Run `prism-control` on the control computer:** it shows **LIVE** in the header once it hears the router.
+Run `prism-setup` on each computer. It first asks whether the computer is the **router** or the
+**control screen** (guessing from what's attached), then walks through that role's settings.
+Defaults are in `[brackets]`: Enter keeps one, `-` removes it, Ctrl+D cancels without saving.
+Run it again any time to change something.
+
+### Router
+
+Before you start, put a different marker item in slot 1 of each export bus's filter by hand
+(cobblestone in the washer bus, dirt in the centrifuge bus...) so you can tell the buses apart.
+
+| Step | You answer |
+|---|---|
+| Processes | which of crush, wash, thermal, centrifuge, sift (or your own names) you have machines for; it writes the matching [starting rules](configuration.md#rules), asking first if you already have rules |
+| ME network, database | which one, only if there are several |
+| Export buses | Capacity Cards per bus, then for each bus (shown with its marker item) a process (number or new name) and optional name, or Enter to skip |
+| Feeders | for each transposer (interface and machine sides found automatically): process and name, or Enter to skip |
+| GT machines | for each machine (shown with state and coordinates): process and name, or Enter to skip |
+| Wireless | port (default 4242, 0 = off) and an optional shared secret |
+| Start on boot | `y` to start `prism` when the computer boots |
+| Review | warnings for processes with no bus/feeder or no rule; `y` saves `/home/prism.cfg` |
+
+It ends by printing the port and secret to enter on the control screen. Settings it doesn't ask about
+(`interval`, `overrides`...) are kept, and the previous file is saved as `prism.cfg.bak`.
+Prefer editing by hand? See [configuration.md](configuration.md); `prism-discover` prints config lines for
+every component.
+
+### Control screen
+
+| Step | You answer |
+|---|---|
+| Wireless | the same port and secret as the router |
+| Alerts | beep on new alerts or not |
+| Start on boot | `y` to start `prism-control` when the computer boots |
+
+It saves `/home/prism-control.cfg`, and warns if there's no tier 3 GPU and screen.
+
+Then run `prism` on the router (it logs each filter change and any item with no rule) and `prism-control`
+on the screen (it shows **LIVE** in the header once it hears the router).
 
 ## Start on boot
 
-Add the program name as a line in `/home/.shrc` on that computer: `prism` on the router, `prism-control` on the display.
+`prism-setup`'s start-on-boot step adds the program's name as a line in `/home/.shrc`, which the OpenOS shell
+runs when the computer boots, and removes the other PRISM program's line if the computer changed role.
+Other lines in `.shrc` are kept. Ctrl+C in the program gets you to the shell.
 
 ## Updating
 
@@ -90,6 +121,6 @@ Coming from a setup that predates the PRISM name (`/home/router.cfg`)? The first
 renames `router.cfg` and `router-*.cfg` to `prism.cfg` / `prism-*.cfg`, keeping your settings and data.
 
 
-Run `prism-update` on each computer, then restart `prism` / `prism-control`. Your `prism.cfg` is kept;
-compare it with `/home/prism.example.cfg` for new options. If the router and screen run different
+Run `prism-update` on each computer, then restart `prism` / `prism-control`. Your config files are kept;
+run `prism-setup` and press Enter through it to rewrite the config with any new options. If the router and screen run different
 versions, the screen's header shows a yellow `router X ≠ screen Y` badge.

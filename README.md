@@ -43,17 +43,17 @@ wget -f https://raw.githubusercontent.com/aharabedian/prism/main/src/prism-updat
 /home/prism-update aharabedian/prism
 ```
 
-Replace `aharabedian` with the GitHub account hosting the repo. This installs `prism`, `prism-control`, `prism-discover`
-and `prism-update` onto the shell path and creates `/home/prism.cfg` from the example.
+Replace `aharabedian` with the GitHub account hosting the repo. This installs `prism`, `prism-control`, `prism-setup`,
+`prism-discover` and `prism-update` onto the shell path.
 Run `prism-update` again any time to update; your config and data are never overwritten.
 
 ## Quick start
 
-1. Run `prism-discover` on the router computer. It prints ready-to-paste config lines for your buses, feeders and machines.
-2. Edit `/home/prism.cfg`: paste the buses in and give each one a `process`.
-3. Run `prism`.
-4. Run `prism-control` on the control computer.
-5. Tap anything under **UNASSIGNED** to route it, or write rules in the **RULES** tab.
+1. Run `prism-setup` on the router computer and choose **router**. It walks through your processes, ME network,
+   export buses, feeders, machines, wireless and start on boot, and saves `/home/prism.cfg`.
+2. Run `prism-setup` on the control computer and choose **control screen** (wireless and start on boot).
+3. Run `prism` on the router and `prism-control` on the screen (or reboot both, if you chose start on boot).
+4. Tap anything under **UNASSIGNED** to route it, or write rules in the **RULES** tab.
 
 ## Documentation
 

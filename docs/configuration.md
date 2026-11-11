@@ -1,8 +1,11 @@
 # Configuration
 
-The router reads `/home/prism.cfg` (or the path given as `prism <path>`). It's a Lua file that
-returns a table; `sides` is available inside it. [config/prism.example.cfg](../config/prism.example.cfg)
-is the annotated starting point. Every option has a default, so an old config keeps working after an update.
+The router reads `/home/prism.cfg` (or the path given as `prism <path>`); the control screen reads
+`/home/prism-control.cfg` (or `prism-control <path>`). Both are Lua files that return a table.
+`prism-setup` writes them (see [setup.md](setup.md#first-run)); you can also edit them by hand.
+When `prism-setup` rewrites a file it keeps every value, including ones it doesn't ask about, and saves the
+previous version as `<file>.bak`, but hand-written comments are lost.
+[config/prism.example.cfg](../config/prism.example.cfg) is an annotated router config.
 
 ## Options
 
@@ -16,8 +19,8 @@ is the annotated starting point. Every option has a default, so an old config ke
 | `slotsPerBus` | `9` | Filter slots per export bus: 1, 5 or 9 (0, 1 or 2 Capacity Cards) |
 | `network` | first found | Address (or prefix) of the `me_controller` / `me_interface` to scan |
 | `database` | first found | Address (or prefix) of the Database Upgrade |
-| `modemPort` | none | Wireless port for the control screen; `nil` disables networking |
-| `token` | none | Shared secret; commands without it are ignored. Set the same `TOKEN` in `prism-control.lua` |
+| `modemPort` | none | Wireless port for the control screen; `nil` or `false` disables networking |
+| `token` | none | Shared secret; commands without it are ignored. Set the same `token` in `prism-control.cfg` |
 | `verbose` | `false` | Log every filter and interface change |
 | `defaultPriority` | `10` | Priority for rules/overrides that don't set one |
 | `buses` | `{}` | Export buses, see below |
@@ -68,6 +71,19 @@ Within a process, items are ranked by **priority** (higher first), then by quant
 
 ## Rules
 
+`prism-setup` writes a starting set for the processes you pick:
+
+| Rule | Goes to (first one you have) |
+|---|---|
+| `^Purified <gem> Ore$` (Diamond, Emerald, Ruby, Sapphire, Green Sapphire, Olivine, Topaz, Tanzanite, Amethyst, Opal) | `sift` |
+| `^Crushed .+ Ore$` | `wash`, `thermal`, `crush` |
+| `^Purified .+ Ore$` | `crush`, `thermal` |
+| `^Centrifuged .+ Ore$` | `crush` |
+| `^Impure Pile of .+ Dust$`, `^Purified Pile of .+ Dust$` | `centrifuge` |
+| `Ore$` (priority 5, catches raw ores) | `crush` |
+
+To write your own:
+
 ```lua
 rules = {
   { pattern = "^Crushed .+ Ore$",         process = "wash",       priority = 10 },
@@ -111,7 +127,7 @@ has batch items but no feeder. A remainder smaller than N waits in the network u
 
 ## Data files
 
-Kept next to the config, never overwritten by `prism-update`:
+Kept next to the config, never touched by `prism-update` or `prism-setup`:
 
 | File | Contents |
 |---|---|
@@ -121,13 +137,13 @@ Kept next to the config, never overwritten by `prism-update`:
 
 ## Control screen settings
 
-At the top of `prism-control.lua`:
+`/home/prism-control.cfg`; every key is optional.
 
-| Setting | Default | Meaning |
+| Key | Default | Meaning |
 |---|---|---|
-| `PORT` | `4242` | Must match `modemPort` |
-| `TOKEN` | `nil` | Must match `token` |
-| `HISTORY` | `60` | Backlog samples kept for the sparklines |
-| `STALE_AFTER` | `3` | Missed router cycles before showing NO SIGNAL |
-| `BEEP` | `true` | Beep when a new alert appears |
-| `BATCHES` | `1 2 3 4 6 8 9 16 32 36 64` | Batch buttons offered on the screen |
+| `modemPort` | `4242` | Must match the router's `modemPort`; `false` turns wireless off |
+| `token` | `nil` | Must match the router's `token` |
+| `beep` | `true` | Beep when a new alert appears |
+| `history` | `60` | Backlog samples kept for the sparklines |
+| `staleAfter` | `3` | Missed router cycles before showing NO SIGNAL |
+| `batches` | `{ 1, 2, 3, 4, 6, 8, 9, 16, 32, 36, 64 }` | Batch buttons offered on the screen |
