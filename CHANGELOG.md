@@ -5,6 +5,14 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **ME interfaces as outputs** (`interfaces` in `prism.cfg`): an ME Interface block on the subnet stocks a
+  stack of each of a process's top 9 items, and another network's Import Bus (with Acceleration Cards) pulls
+  them in. Use it instead of an export bus to send finished items to your main net. Set up by `prism-setup`,
+  listed by `prism-discover`, shown under BUSES as "N stocked".
+- The router refuses to start when two outputs configure the same ME interface slot, or when an output
+  interface is the network it scans.
+
 ### Changed
 - The programs are split into modules, installed into `/home/lib/prism/` next to the programs in `/home/bin`.
   `prism-update` installs whatever the release's `manifest.lua` lists. **Upgrading from 0.5.0: run

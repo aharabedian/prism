@@ -18,13 +18,14 @@ previous version as `<file>.bak`, but hand-written comments are lost.
 | `idleAlert` | `30` | Seconds a monitored machine may sit idle with work waiting before an alert |
 | `slotsPerBus` | `9` | Filter slots per export bus: 1, 5 or 9 (0, 1 or 2 Capacity Cards) |
 | `network` | first found | Address (or prefix) of the `me_controller` / `me_interface` to scan |
-| `database` | first found | Address (or prefix) of the Database Upgrade. Only needed for `buses` and `feeders` |
+| `database` | first found | Address (or prefix) of the Database Upgrade. Only needed for `buses`, `interfaces` and `feeders` |
 | `modemPort` | none | Wireless port for the control screen; `nil` or `false` disables networking |
 | `token` | none | Shared secret; commands without it are ignored. Set the same `token` in `prism-control.cfg` |
 | `verbose` | `false` | Log every filter and interface change |
 | `defaultPriority` | `10` | Priority for rules/overrides that don't set one |
 | `buses` | `{}` | Export buses, see below |
 | `stockers` | `{}` | GT Stocking Input Buses, see below |
+| `interfaces` | `{}` | ME interfaces another network pulls from, see below |
 | `feeders` | `{}` | Batch feeders, see below |
 | `machines` | `{}` | Monitored GT machines, see below |
 | `rules` | `{}` | Pattern rules, see below |
@@ -51,6 +52,18 @@ pulls straight from the network and takes exactly what each recipe needs, so sto
 [batch](#batch-sizes) items and aren't limited by bus or feeder speed. Auto-pull on an Advanced bus is
 switched off at startup. Use one stocker per multiblock: several stockers with the same `process` each hold
 the same top items, like export buses.
+
+### `interfaces`
+
+```lua
+{ address = "2b3c4d5e", process = "export", name = "Main net" },
+```
+
+`address` is an ME Interface **block** on the subnet (the adapter touching it). Another network's import bus
+faces it and takes what it stocks ([layout](setup.md#interfaces-another-network-pulls-the-items)). Each scan
+the router configures its slots to stock a full stack of each of the top items waiting for `process`, batch-1
+items only, as with export buses. Optional `slots` (1 to 9, default 9) limits how many slots it uses. Every slot is
+cleared when the router starts and stops. An interface can't also be the `network` or a feeder's `interface`.
 
 ### `feeders`
 

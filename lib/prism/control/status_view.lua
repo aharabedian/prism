@@ -114,7 +114,7 @@ function StatusView.new(ui, m)
       put(20, y, fit("[" .. tostring(b.process) .. "]", 14), C.info)
       local summary
       if nf == 0 then summary = "idle"
-      elseif b.kind == "stocker" then summary = nf .. " stocked"
+      elseif b.kind == "stocker" or b.kind == "interface" then summary = nf .. " stocked"
       else summary = nf .. (nf == 1 and " filter" or " filters") end
       if compact then
         put(34, y, fit(summary, 11), nf == 0 and C.dim or C.good)

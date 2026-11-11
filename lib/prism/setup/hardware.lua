@@ -4,7 +4,8 @@
 
   network(old) -> address | nil         database(old) -> address | nil
   buses(old, oldSlots, procs) -> buses, slotsPerBus
-  stockers(old, procs) -> stockers      feeders(old, network, procs) -> feeders
+  stockers(old, procs) -> stockers      feeders(old, network, procs, skip?) -> feeders
+  interfaces(old, skip, procs) -> interfaces      skip(address): true for interfaces not to offer
   machines(old, procs) -> machines
 ]]
 
@@ -91,15 +92,17 @@ function Hw.stockers(old, procs)
   return out
 end
 
-function Hw.feeders(old, network, procs)
+function Hw.feeders(old, network, procs, skip)
   input.header("Feeders (ME Interface block -> transposer -> machine, for batch items)")
   local out = {}
   local transposers = probe.addresses("transposer")
   if #transposers == 0 then print("  no transposers - skipping"); return out end
   local ifaces = {}
-  for _, a in ipairs(probe.addresses("me_interface")) do if a ~= network then ifaces[#ifaces + 1] = a end end
+  for _, a in ipairs(probe.addresses("me_interface")) do
+    if a ~= network and not (skip and skip(a)) then ifaces[#ifaces + 1] = a end
+  end
   if #ifaces == 0 then
-    print("  no ME interface with an adapter (other than the network one) - skipping")
+    print("  no ME interface with an adapter (other than the network's and ones other networks pull from) - skipping")
     return out
   end
   input.processHint(procs)
@@ -128,6 +131,24 @@ function Hw.feeders(old, network, procs)
                           machineSide = machineSide, slot = slotsUsed[iface], process = proc, name = name }
       end
     end
+  end
+  return out
+end
+
+function Hw.interfaces(old, skip, procs)
+  input.header("Interfaces another network pulls from (its import bus faces the interface; a marker in slot 1 shows which)")
+  local out, list = {}, {}
+  for _, a in ipairs(probe.addresses("me_interface")) do if not skip(a) then list[#list + 1] = a end end
+  if #list == 0 then
+    print("  none - put an adapter against an ME interface block on the subnet, with the other network's import bus facing it")
+    return out
+  end
+  input.processHint(procs)
+  for _, addr in ipairs(list) do
+    print(("  interface %s - slot 1: %s"):format(addr:sub(1, 8), probe.interfaceMarker(addr)))
+    local prev = findOld(old, function(e) return input.sameAddr(addr, e.address) end)
+    local proc, name = input.askProcess("this interface", prev, procs)
+    if proc then out[#out + 1] = { address = addr, process = proc, name = name, slots = prev and prev.slots } end
   end
   return out
 end

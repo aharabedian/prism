@@ -11,9 +11,10 @@ touchscreen front end. Only the router is required.
 | Wireless Network Card | status and commands for the control screen |
 | Internet Card (optional) | `prism-update` |
 | Adapter touching the subnet's **ME Controller** (or an ME Interface on it) | reads the network |
-| **Database Upgrade** (any tier) inside an adapter | stages items for export bus filters and feeders (not needed for stocking buses) |
+| **Database Upgrade** (any tier) inside an adapter | stages items for export bus filters, interfaces and feeders (not needed for stocking buses) |
 | Adapter touching each **cable block** that has export buses on it | one adapter covers every bus on that block |
 | Adapter touching each **Stocking Input Bus (ME)** | one per stocking bus |
+| Adapter touching each **ME Interface block** used as an output or by a feeder | one per interface |
 | Adapter touching each **GT machine** you want to monitor (optional) | machine status, stall detection |
 | Power Converter | OpenComputers doesn't run on EU directly |
 
@@ -42,6 +43,25 @@ items work because each recipe takes exactly what it needs.
 
 This needs a GTNH build whose OpenComputers includes the stocking bus driver (GTNewHorizons/OpenComputers
 #222). If `prism-discover` lists no stocking buses, your pack is older.
+
+## Interfaces (another network pulls the items)
+
+To send a process's items to another ME network (say, finished dusts to your main net), let the other
+network pull them instead of pushing with an export bus:
+
+```
+subnet ─ [ME Interface BLOCK] ◄ [Import Bus] ─ main net
+              │
+          [Adapter]
+```
+
+1. Put an **ME Interface block** on the subnet, with an **adapter** touching it.
+2. On the main net, put an **Import Bus** facing the interface. Add **Acceleration Cards** for speed.
+3. The bus is the only link: no main-net cable may touch the interface block, or the two networks merge.
+
+PRISM points the interface's 9 slots at the process's top 9 items, a stack each; the interface keeps
+restocking from the subnet as the import bus empties it. Like export buses, only items with a batch size of 1.
+Don't use the same interface block for a feeder.
 
 ## Feeders (batch items)
 
@@ -94,20 +114,21 @@ Run it again any time to change something.
 ### Router
 
 Before you start, put a different marker item in slot 1 of each export bus's filter, and of each
-stocking bus's configuration, by hand (cobblestone in the washer bus, dirt in the centrifuge bus...) so
+stocking bus's and interface's configuration, by hand (cobblestone in the washer bus, dirt in the centrifuge bus...) so
 you can tell the buses apart.
 
 | Step | You answer |
 |---|---|
 | Processes | which of crush, wash, thermal, centrifuge, sift (or your own names) you have machines for; it writes the matching [starting rules](configuration.md#rules), asking first if you already have rules |
-| ME network, database | which one, only if there are several. Without a database, export buses and feeders are skipped |
+| ME network, database | which one, only if there are several. Without a database, export buses, feeders and interfaces are skipped |
 | Export buses | Capacity Cards per bus, then for each bus (shown with its marker item) a process (number or new name) and optional name, or Enter to skip |
 | Stocking input buses | for each one (shown with the item in slot 1): process and name, or Enter to skip |
 | Feeders | for each transposer (interface and machine sides found automatically): process and name, or Enter to skip |
+| Interfaces | for each ME interface block not used by the network or a feeder (shown with the item in its slot 1): process and name, or Enter to skip |
 | GT machines | for each machine (shown with state and coordinates): process and name, or Enter to skip |
 | Wireless | port (default 4242, 0 = off) and an optional shared secret |
 | Start on boot | `y` to start `prism` when the computer boots |
-| Review | warnings for processes with no bus/stocker/feeder or no rule; `y` saves `/home/prism.cfg` |
+| Review | warnings for processes with no bus/stocker/interface/feeder or no rule; `y` saves `/home/prism.cfg` |
 
 It ends by printing the port and secret to enter on the control screen. Settings it doesn't ask about
 (`interval`, `overrides`...) are kept, and the previous file is saved as `prism.cfg.bak`.

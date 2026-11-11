@@ -5,6 +5,7 @@
   marker(stack)           what a "marker" item in slot 1 is called, or "(empty)"
   exportBuses()           { addr, side, stack }[]: every side of every me_exportbus with a bus on it
   stocker(addr)           { addr, marker, advanced } for a GT Stocking Input Bus (me_inputbus)
+  interfaceMarker(addr)   the item configured in an ME interface's slot 1, or "(empty)"
   inventories(transposer) { side, name, size }[]: the inventories a transposer touches
   feederSides(transposer) inventories, interfaceSide?, machineSide? (guessed from inventory names)
   machine(addr)           { addr, state = "working"|"idle"|"disabled", where = " at x y z" | "" }
@@ -44,6 +45,13 @@ function P.stocker(addr)
   local okC, st = pcall(p.getConfiguration, 1)
   local okA, adv = pcall(p.isAdvanced)
   return { addr = addr, marker = P.marker(okC and st or nil), advanced = okA and adv == true }
+end
+
+function P.interfaceMarker(addr)
+  local p = component.proxy(addr)
+  if not p.getInterfaceConfiguration then return "(empty)" end
+  local ok, st = pcall(p.getInterfaceConfiguration, 1)
+  return P.marker(ok and st or nil)
 end
 
 function P.inventories(t)

@@ -65,15 +65,16 @@ function Router:setup()
   self.net = proxyOf("me_controller", cfg.network) or proxyOf("me_interface", cfg.network)
   if not self.net then error("no ME controller/interface found - is an adapter touching it?", 0) end
 
-  -- Only export buses and feeders need the database; stocking buses take item tables directly.
+  -- Outputs set from a database entry need one; stocking buses take item tables directly.
   local dbProxy = proxyOf("database", cfg.database)
   self.db = dbProxy and Database.open(dbProxy, self.net) or nil
-  if not self.db and #cfg.buses + #cfg.feeders > 0 then
-    error("no database found - put a Database Upgrade in an adapter (export buses and feeders need one)", 0)
+  local needDb = outputs.needsDatabase(cfg)
+  if not self.db and needDb then
+    error(("no database found - put a Database Upgrade in an adapter (%s need one)"):format(table.concat(needDb, " and ")), 0)
   end
 
   self.outputs = outputs.open(cfg, {
-    cfg = cfg, db = self.db, stats = self.stats, log = log, proxyOf = proxyOf,
+    cfg = cfg, db = self.db, net = self.net, stats = self.stats, log = log, proxyOf = proxyOf,
     labelOf = function(key) return self.last.labels[key] end,
   })
   self.feeders = outputs.ofKind(self.outputs, "feeder")
@@ -84,14 +85,14 @@ function Router:setup()
 
   local n = {}
   for _, o in ipairs(self.outputs) do n[o.kind] = (n[o.kind] or 0) + 1 end
-  log("router %s - network %s, database %s, %d bus(es), %d stocker(s), %d feeder(s), %d machine(s), %d known items, modem %s",
-    VERSION, self.net.address:sub(1, 8), self.db and (self.db.size .. " slots") or "none",
-    n.bus or 0, n.stocker or 0, n.feeder or 0, #self.machines, U.count(self.store.catalog),
+  log("router %s - network %s, database %s, %d bus(es), %d stocker(s), %d interface(s), %d feeder(s), "
+    .. "%d machine(s), %d known items, modem %s", VERSION, self.net.address:sub(1, 8), self.db and (self.db.size .. " slots") or "none",
+    n.bus or 0, n.stocker or 0, n.interface or 0, n.feeder or 0, #self.machines, U.count(self.store.catalog),
     self.modem and ("port " .. tostring(cfg.modemPort)) or "none")
   if self.store.screenRules then
     log("using %d rule(s) from %s - rules in prism.cfg are ignored", #self.store.screenRules, self.store.paths.rules)
   end
-  if #self.outputs == 0 then log("no buses, stockers or feeders configured yet - run prism-setup") end
+  if #self.outputs == 0 then log("no buses, stockers, interfaces or feeders configured yet - run prism-setup") end
 end
 
 ---------------------------------------------------------------- wireless
@@ -132,7 +133,7 @@ function Router:warn(scan)
   for proc, q in pairs(scan.queues) do
     if not served[proc] and not reported["proc:" .. proc] then
       reported["proc:" .. proc] = true
-      log("items waiting for '%s' but no bus, stocker or feeder is configured for it", proc)
+      log("items waiting for '%s' but no bus, stocker, interface or feeder is configured for it", proc)
     end
     if not batched[proc] then
       for _, e in ipairs(q) do

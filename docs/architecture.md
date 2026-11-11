@@ -36,9 +36,9 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `router/store` | the data files (`overrides`, `catalog`, `screenRules`) and `classify` against them | core, commands, status |
 | `router/planner` | `plan(items, classify)` → queues, backlog, unassigned (pure) | core |
 | `router/outputs` | the **output interface** and `open(cfg, env)`; see below | core |
-| `router/exportbus`, `router/stocker`, `router/feeder` | the three output kinds | outputs |
-| `router/slots` | `apply(slots, n, wanted, write)`: minimal-write slot keeping (pure) | exportbus, stocker |
-| `router/database` | staging items in a Database Upgrade: `stage(key, stack)` | exportbus, feeder |
+| `router/exportbus`, `router/stocker`, `router/interface`, `router/feeder` | the output kinds | outputs |
+| `router/slots` | `apply(slots, n, wanted, write)`: minimal-write slot keeping (pure) | exportbus, stocker, interface |
+| `router/database` | staging items in a Database Upgrade: `stage(key, stack)` | exportbus, interface, feeder |
 | `router/machines` | `open`, `poll`, `summary` for monitored GT machines | core, status |
 | `router/health` | stall detection and alerts, with their state between scans | core |
 | `router/status` | `build()` the `router-status` message | core |
@@ -55,9 +55,16 @@ Shared modules never require role modules, and role modules never require each o
 
 Everything that sends a process's items somewhere implements one interface (`lib/prism/router/outputs.lua`):
 `kind`, `name`, `process`, `takesBatches`, `statusList`, `apply(queue)` after each scan, `step(queue)`
-between scans (feeders), `status(labels)`, `alert()`, `close()`, and `fed` for feeders. The scan, stall
-detection, status and warnings only use this interface, so a new kind of output is one new module plus a
-line in `outputs.lua`.
+between scans (feeders), `status(labels)`, `alert()`, `close()`, `fed` for feeders, and `claims` (the ME
+interface slots it configures; two outputs claiming one slot won't start). The scan, stall detection, status
+and warnings only use this interface, so a new kind of output is one new module plus a line in `outputs.lua`.
+
+| Kind | Config list | Takes | Needs a database |
+|---|---|---|---|
+| `bus` (export bus) | `buses` | top `slotsPerBus` batch-1 items | yes |
+| `stocker` (GT Stocking Input Bus) | `stockers` | top 16 items, any batch | no |
+| `interface` (ME interface another network pulls from) | `interfaces` | top 9 batch-1 items, a stack each | yes |
+| `feeder` (interface + transposer + machine) | `feeders` | one item at a time, exact batches | yes |
 
 ## Router main loop
 
@@ -79,8 +86,7 @@ A command that changes routing (assign, rule edit, reload...) triggers an immedi
    classify each item (screen override → cfg override → rules) into process, priority and batch, and
    rank each process's queue by priority, then quantity.
 2. Add new items to the catalog (`prism-items.cfg`); log new problems once.
-3. `output:apply(queue)` for every output. An export bus takes the top `slotsPerBus` **batch-1** items;
-   a stocker takes the top 16 items of any batch size; feeders do nothing here.
+3. `output:apply(queue)` for every output (what each kind takes: [Outputs](#outputs)); feeders do nothing here.
 4. `health`: detect stalls and build alerts.
 5. `status.build`, then broadcast it.
 
@@ -144,7 +150,7 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 - Item lists are fetched in pages, because wireless packets are limited to about 8 KB.
 - All edits are commands to the router; the screen re-fetches after each `router-ack`.
 - The left column switches to one row per bus and feeder when everything wouldn't otherwise fit.
-- Stockers are listed under BUSES as "N stocked"; export buses show "N filters".
+- Stockers and interfaces are listed under BUSES as "N stocked"; export buses show "N filters".
 
 ## Wireless protocol
 
@@ -172,5 +178,7 @@ match the game first if they differ.
 | `internet.request(url, nil, headers)` to `api.github.com` returning the latest release's `tag_name` | Reported working (0.5.0) |
 | GT Stocking Input Bus `me_inputbus`: `getSlotSize`, `get/setConfiguration` (`{name, damage}`, no table clears), `isAdvanced`, `get/setAutoPull` (from GTNewHorizons/OpenComputers #222, merged 2026-09-21) | Reported working (stocking-buses branch) |
 | A multiblock with the same item in two stocking buses still runs | **Unverified**; docs say one stocker per multiblock |
+| ME interface block as an output: `setInterfaceConfiguration` on slots 2..9, the interface restocking as another network's import bus empties it, clearing a slot handing its stock back | **Unverified** (slot 1 for feeders is verified) |
+| `me_interface.getInterfaceConfiguration(slot)` (only for the slot 1 marker in prism-setup/discover; missing = "(empty)") | **Unverified** |
 | `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
 | `/home/.shrc` run by the shell at boot (start on boot) | **Unverified** |
