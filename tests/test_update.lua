@@ -1,6 +1,7 @@
--- test_update.lua: prism-update installs the latest release of aharabedian/prism by default, can follow a
--- branch, a tag or a fork, falls back to main when a repo has no releases, keeps prism.cfg, refuses broken
--- downloads, and migrates old settings and router*.cfg files.
+-- test_update.lua: prism-update installs what manifest.lua lists from the latest release of aharabedian/prism
+-- by default (or the single-file programs of a release made before it), can follow a branch, a tag or a fork,
+-- falls back to main when a repo has no releases, keeps prism.cfg, refuses broken downloads and manifests,
+-- and migrates old settings and router*.cfg files.
 local H = dofile((debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "./") .. "helper.lua")
 local M = require("oc")
 local check = H.check
@@ -15,18 +16,29 @@ os.exit = function(code) error({ exit = code }) end
 local errors = {}
 io.stderr = { write = function(_, s) errors[#errors + 1] = s end }
 
-local SOURCES = { "src/prism.lua", "src/prism-control.lua", "src/prism-discover.lua", "src/prism-setup.lua",
-                  "src/prism-update.lua", "config/prism.example.cfg" }
+local SOURCES = { "manifest.lua" }
+for _, f in ipairs(dofile(H.ROOT .. "/manifest.lua")) do SOURCES[#SOURCES + 1] = f[1] end
+local LEGACY = { "src/prism.lua", "src/prism-control.lua", "src/prism-discover.lua", "src/prism-setup.lua",
+                 "src/prism-update.lua", "config/prism.example.cfg" }
 local function read(path) local h = io.open(path); if not h then return nil end; local s = h:read("*a"); h:close(); return s end
 
--- Serve the repo's files at repo@ref. `version` replaces VERSION in prism.lua, to tell refs apart.
+-- Serve the repo's files at repo@ref. `version` goes into lib/prism/version.lua, to tell refs apart.
 local function serve(repo, ref, version)
   local base = ("https://raw.githubusercontent.com/%s/%s/"):format(repo, ref)
   for _, f in ipairs(SOURCES) do
     local text = read(H.ROOT .. "/" .. f)
-    if version and f == "src/prism.lua" then text = text:gsub('local VERSION = "[^"]*"', 'local VERSION = "' .. version .. '"') end
+    if version and f == "lib/prism/version.lua" then text = text:gsub('return "[^"]*"', 'return "' .. version .. '"') end
     M.web[base .. f] = text
   end
+  return base
+end
+
+-- Serve a release from before manifest.lua: single-file programs, VERSION in prism.lua.
+local function serveLegacy(repo, ref, version)
+  local base = ("https://raw.githubusercontent.com/%s/%s/"):format(repo, ref)
+  M.web[base .. "manifest.lua"] = nil
+  for _, f in ipairs(LEGACY) do M.web[base .. f] = read(H.ROOT .. "/" .. f) end
+  M.web[base .. "src/prism.lua"] = ('local VERSION = "%s"\nprint("old router")\n'):format(version)
   return base
 end
 local function api(repo) return ("https://api.github.com/repos/%s/releases/latest"):format(repo) end
@@ -45,7 +57,10 @@ local function update(...)
   return ok, (type(err) == "table" and err.exit) or err
 end
 local function has(s) return out:find(s, 1, true) ~= nil end
-local function installedVersion() return (read(prefix .. "/home/bin/prism.lua") or ""):match('local VERSION = "([^"]*)"') end
+local function installedVersion()
+  return (read(prefix .. "/home/bin/prism.lua") or ""):match('local VERSION = "([^"]*)"')
+      or (read(prefix .. "/home/lib/prism/version.lua") or ""):match('return "([^"]*)"')
+end
 local function saved() return H.readTable(prefix .. "/home/.prism-update.cfg") or {} end
 local function fetched(ref)
   for _, r in ipairs(M.requests) do if r.url:find("/" .. ref .. "/src/", 1, true) then return true end end
@@ -68,6 +83,10 @@ check(installedVersion() == "0.5.0", "installs the latest release's files")
 for _, f in ipairs({ "prism", "prism-control", "prism-discover", "prism-setup", "prism-update" }) do
   check(read(prefix .. "/home/bin/" .. f .. ".lua") ~= nil, f .. ".lua installed into /home/bin")
 end
+check(read(prefix .. "/home/lib/prism/router/core.lua") ~= nil and read(prefix .. "/home/lib/prism/version.lua") ~= nil,
+  "modules installed into /home/lib/prism, as manifest.lua lists them")
+check(read(prefix .. "/home/manifest.lua") == nil and read(prefix .. "/home/prism.example.cfg") ~= nil,
+  "the manifest itself isn't installed; the example config is")
 local ua = M.requests[1].headers and M.requests[1].headers["User-Agent"]
 check(M.requests[1].url == api("aharabedian/prism") and ua == "prism-update", "asks the GitHub API with a generic User-Agent")
 check(has("PRISM 0.5.0"), "reports the version it installed")
@@ -89,8 +108,11 @@ check(ok and installedVersion() == "0.7.0-dev" and saved().ref == "main", "prism
 check(M.requests[1].url ~= api("aharabedian/prism"), "a branch doesn't ask for releases")
 ok = update()
 check(ok and fetched("main") and saved().ref == "main", "stays on main until told otherwise")
+serveLegacy("aharabedian/prism", "v0.5.0", "0.5.0")
 ok = update("v0.5.0")
 check(ok and installedVersion() == "0.5.0" and saved().ref == "v0.5.0", "a tag pins that release")
+check(has("PRISM 0.5.0") and read(prefix .. "/home/bin/prism.lua"):find("old router", 1, true),
+  "a release from before manifest.lua installs its single-file programs")
 ok = update("latest")
 check(ok and installedVersion() == "0.6.0" and saved().ref == "latest", "prism-update latest goes back to releases")
 
@@ -127,6 +149,15 @@ M.web[base .. "src/prism-discover.lua"] = nil
 ok = update("me/prism", "dev")
 check(not ok and has("can't download src/prism-discover.lua") and has("HTTP 404"), "missing file reported with its status")
 check(read(prefix .. "/home/.prism-update.cfg") == settingsBefore, "failed update doesn't change saved settings")
+
+M.web[base .. "src/prism-discover.lua"] = read(H.ROOT .. "/src/prism-discover.lua")
+M.web[base .. "manifest.lua"] = 'return { { "src/prism.lua", "../../etc/evil.lua" } }'
+ok = update("me/prism", "dev")
+check(not ok and has("manifest.lua has a bad entry"), "a manifest can't install outside /home")
+M.web[base .. "manifest.lua"] = "<html>500</html>"
+ok = update("me/prism", "dev")
+check(not ok and has("manifest.lua doesn't look right"), "a manifest that isn't Lua is rejected")
+check(read(prefix .. "/home/bin/prism.lua") == before, "nothing replaced after a bad manifest")
 
 ok = update("not a repo/x y")
 check(not ok and has("usage"), "bad arguments print usage")

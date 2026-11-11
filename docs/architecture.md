@@ -2,15 +2,62 @@
 
 ## Programs
 
-| File | Runs on | Role |
+| Program (`src/`) | Runs on | Role |
 |---|---|---|
-| `src/prism.lua` | router computer | Scans, decides, configures buses and feeders, monitors machines, serves the protocol |
-| `src/prism-control.lua` | control computer | Touchscreen UI; holds no state the router doesn't have |
-| `src/prism-setup.lua` | both | Guided setup: router or screen, writes `prism.cfg` or `prism-control.cfg` and `.shrc` |
-| `src/prism-discover.lua` | router computer | Lists components and prints config lines |
-| `src/prism-update.lua` | both | Installs and updates from GitHub: the latest release by default, or a branch/tag |
+| `prism.lua` | router computer | Scans, decides, configures buses and feeders, monitors machines, serves the protocol |
+| `prism-control.lua` | control computer | Touchscreen UI; holds no state the router doesn't have |
+| `prism-setup.lua` | both | Guided setup: router or screen, writes `prism.cfg` or `prism-control.cfg` and `.shrc` |
+| `prism-discover.lua` | router computer | Lists components and prints config lines |
+| `prism-update.lua` | both | Installs and updates from GitHub what [manifest.lua](../manifest.lua) lists: the latest release by default, or a branch/tag |
 
-Each is a single self-contained file with no project-local `require`s, so it can be copied onto a computer on its own.
+Programs are thin: they load modules from `lib/prism/` and wire them together. Installed, programs live in
+`/home/bin` and modules in `/home/lib/prism`. Each program starts with the same three lines: add
+`/home/lib/?.lua` to `package.path`, forget `prism.*` modules cached by an earlier run (OpenOS keeps
+`package.loaded` until reboot, so a restart after an update would otherwise run old code), and stop with
+"run prism-update" if the modules are missing. `prism-update.lua` is the exception: it's the bootstrap, so it
+stays self-contained.
+
+## Modules
+
+Each module starts with a header comment that is its interface: what it exports, the shapes it takes and
+returns. Read that rather than the code. Modules hold no state at load time; state lives in the objects they return.
+
+| Module (`lib/prism/`) | Interface | Used by |
+|---|---|---|
+| `version` | the release string | all |
+| `util` | `keyOf`, `sideName`, `fmtNum`/`fmtSecs`/`fmtTime`/`pct`, `count`, `copy`, `trim` (pure) | all |
+| `log` | `log(fmt, ...)`: one timestamped line | router |
+| `files` | read/write data tables and Lua configs, atomic writes, `.bak` backups | router, setup |
+| `config` | the settings and defaults of both config files (`ROUTER_TUNING`, `CONTROL_TUNING`), `loadRouter`, `loadControl` | router, screen, setup |
+| `protocol` | `encode` (trims to fit without changing the message), `decode`, `feederLevel`, page sizes | router, screen |
+| `rules` | `classify` (screen override → cfg override → rules), `clean`, `fromMsg`, `usage`, `preview` (pure) | router |
+| `probe` | finding and describing components: export buses, stockers, transposer sides, machines | setup, discover |
+| `router/core` | the router object: `setup()`, `cycle()`, `run()`; owns the state below | `prism.lua` |
+| `router/store` | the data files (`overrides`, `catalog`, `screenRules`) and `classify` against them | core, commands, status |
+| `router/planner` | `plan(items, classify)` → queues, backlog, unassigned (pure) | core |
+| `router/outputs` | the **output interface** and `open(cfg, env)`; see below | core |
+| `router/exportbus`, `router/stocker`, `router/feeder` | the three output kinds | outputs |
+| `router/slots` | `apply(slots, n, wanted, write)`: minimal-write slot keeping (pure) | exportbus, stocker |
+| `router/database` | staging items in a Database Upgrade: `stage(key, stack)` | exportbus, feeder |
+| `router/machines` | `open`, `poll`, `summary` for monitored GT machines | core, status |
+| `router/health` | stall detection and alerts, with their state between scans | core |
+| `router/status` | `build()` the `router-status` message | core |
+| `router/commands` | the command table: `{ fields, run }` per wireless command | core |
+| `control/ui` | GPU primitives, colors, layout, buttons and touch targets | screen views |
+| `control/model` | screen state (`S`), actions, handling router messages; no drawing | screen |
+| `control/status_view`, `list_view`, `panel_view` | header + left column; the tabbed list (one descriptor per tab); the panels and footer | screen |
+| `setup/*` | `input` (prompts), `render` (config text), `processes`, `hardware`, `autostart`, `save`, `router`/`control` (the two roles), `paths` | `prism-setup.lua` |
+
+Dependencies point one way: programs → role modules (`router/`, `control/`, `setup/`) → shared modules.
+Shared modules never require role modules, and role modules never require each other's.
+
+### Outputs
+
+Everything that sends a process's items somewhere implements one interface (`lib/prism/router/outputs.lua`):
+`kind`, `name`, `process`, `takesBatches`, `statusList`, `apply(queue)` after each scan, `step(queue)`
+between scans (feeders), `status(labels)`, `alert()`, `close()`, and `fed` for feeders. The scan, stall
+detection, status and warnings only use this interface, so a new kind of output is one new module plus a
+line in `outputs.lua`.
 
 ## Router main loop
 
@@ -26,18 +73,20 @@ A command that changes routing (assign, rule edit, reload...) triggers an immedi
 
 ### Scan cycle
 
-1. `getItemsInNetwork()`; merge stacks of the same `name:damage` (NBT variants).
-2. Add new items to the catalog (`prism-items.cfg`).
-3. Classify each item (screen override → cfg override → rules) into process, priority, batch.
-4. Sort each process's queue by priority, then quantity.
-5. For each export bus: take the top `slotsPerBus` **batch-1** items for its process and apply them (below).
-   For each stocker: take the top 16 items of any batch size and apply them the same way.
-6. Detect stalls and build alerts.
-7. Broadcast status.
+`Router:cycle()` in `router/core`:
+
+1. `getItemsInNetwork()`, then `planner.plan`: merge stacks of the same `name:damage` (NBT variants),
+   classify each item (screen override → cfg override → rules) into process, priority and batch, and
+   rank each process's queue by priority, then quantity.
+2. Add new items to the catalog (`prism-items.cfg`); log new problems once.
+3. `output:apply(queue)` for every output. An export bus takes the top `slotsPerBus` **batch-1** items;
+   a stocker takes the top 16 items of any batch size; feeders do nothing here.
+4. `health`: detect stalls and build alerts.
+5. `status.build`, then broadcast it.
 
 ### Export bus filters
 
-`applyBus` keeps every slot that already holds a wanted item, fills the remaining slots with the
+`slots.apply` keeps every slot that already holds a wanted item, fills the remaining slots with the
 missing ones in priority order, and clears slots holding items no longer wanted. An unchanged network
 causes zero writes, and one item running out rewrites exactly one slot.
 
@@ -47,7 +96,7 @@ A GT Stocking Input Bus (ME) shows the multiblock the network's stock of each co
 multiblock extracts exactly what a recipe needs when it starts. So there is no transfer rate to keep up
 with, and batch sizes take care of themselves. The router configures one with
 `setConfiguration(slot, { name, damage })` (no table clears the slot) and reads back slots with
-`getConfiguration` at startup. No database is involved. It keeps slots stable the same way as `applyBus`.
+`getConfiguration` at startup. No database is involved. It keeps slots stable the same way as export buses (`slots.apply`).
 At startup, auto-pull is switched off on Advanced buses, because it would replace the router's choices.
 
 ### Database staging
@@ -117,6 +166,8 @@ match the game first if they differ.
 | `gt_machine` method names (`isMachineActive`, `getWorkProgress`, `getWorkMaxProgress`, `getEUStored`, `getEUMaxStored`, `isWorkAllowed`, `getSensorInformation`, `getCoordinates`) | **Unverified** |
 | Multiblock `Problems:` line format in sensor info | **Unverified** |
 | `internet.request` streaming, `/home/bin` on the OpenOS shell path | Reported working |
+| `/home/lib/?.lua` appended to `package.path` finds `/home/lib/prism/*.lua`; clearing `package.loaded["prism.*"]` reloads modules on restart | **Unverified** |
+| `filesystem.makeDirectory` creating `/home/lib/prism/router` (prism-update creates each level itself) | **Unverified** |
 | `handle.response()` giving the HTTP status after a failed read (404 for a repo with no releases, a missing tag) | Reported working (0.5.0) |
 | `internet.request(url, nil, headers)` to `api.github.com` returning the latest release's `tag_name` | Reported working (0.5.0) |
 | GT Stocking Input Bus `me_inputbus`: `getSlotSize`, `get/setConfiguration` (`{name, damage}`, no table clears), `isAdvanced`, `get/setAutoPull` (from GTNewHorizons/OpenComputers #222, merged 2026-09-21) | Reported working (stocking-buses branch) |

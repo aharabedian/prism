@@ -12,11 +12,13 @@
     prism-update OWNER/REPO [REF] use a fork: its latest release, or a branch/tag
   The choice is saved for next time. A repo with no releases yet installs from main.
 
-  Installs prism, prism-control, prism-discover, prism-setup and prism-update into /home/bin (on the
-  shell PATH) and prism.example.cfg into /home. Your /home/prism.cfg,
+  Installs what the release's manifest.lua lists: the programs into /home/bin (on the shell PATH),
+  their modules into /home/lib/prism and prism.example.cfg into /home. Your /home/prism.cfg,
   prism-control.cfg and the prism-*.cfg data files are never touched; run
   prism-setup to create or change them. Each download is syntax-checked before
-  it replaces the installed file, so a failed download can't break a computer.
+  any installed file is replaced, so a failed download can't break a computer.
+
+  This file must stay self-contained (no prism.* modules): it's what installs them.
 ]]
 
 local component  = require("component")
@@ -27,7 +29,6 @@ local VERSION = "0.5.0"
 
 local PREFIX   = os.getenv("PRISM_PREFIX") or ""   -- lets the test suite install into a temp dir
 local HOME     = PREFIX .. "/home"
-local BIN      = PREFIX .. "/home/bin"
 local SETTINGS = PREFIX .. "/home/.prism-update.cfg"
 
 local DEFAULT_REPO = "aharabedian/prism"
@@ -40,14 +41,16 @@ usage: prism-update [OWNER/REPO] [latest | BRANCH | TAG]
   prism-update OWNER/REPO [REF] use a fork: its latest release, or a branch/tag
 The choice is saved for next time.]]
 
-local FILES = {
-  { "src/prism.lua",           BIN .. "/prism.lua" },
-  { "src/prism-control.lua",          BIN .. "/prism-control.lua" },
-  { "src/prism-discover.lua",         BIN .. "/prism-discover.lua" },
-  { "src/prism-setup.lua",            BIN .. "/prism-setup.lua" },
-  { "src/prism-update.lua",    BIN .. "/prism-update.lua" },
-  { "config/prism.example.cfg", HOME .. "/prism.example.cfg" },
+-- What releases before manifest.lua (0.5.0 and older) consist of: { repo path, path under /home }.
+local LEGACY_FILES = {
+  { "src/prism.lua",            "bin/prism.lua" },
+  { "src/prism-control.lua",    "bin/prism-control.lua" },
+  { "src/prism-discover.lua",   "bin/prism-discover.lua" },
+  { "src/prism-setup.lua",      "bin/prism-setup.lua" },
+  { "src/prism-update.lua",     "bin/prism-update.lua" },
+  { "config/prism.example.cfg", "prism.example.cfg" },
 }
+local PATH_PATTERN = "^[%w%-_./]+$"
 
 local function fail(msg) io.stderr:write("prism-update: " .. msg .. "\n"); os.exit(1) end
 
@@ -139,17 +142,48 @@ end
 local base = ("https://raw.githubusercontent.com/%s/%s/"):format(repo, source)
 print(("prism-update %s: %s, %s"):format(VERSION, repo, what))
 
+-- The file list: manifest.lua from the same ref, or the legacy list for releases made before it.
+local files = LEGACY_FILES
+do
+  local data, err, status = fetch(base .. "manifest.lua")
+  if data then
+    local chunk = load(data, "=manifest.lua", "t", {})
+    local ok, list = pcall(chunk or error)
+    if not ok or type(list) ~= "table" or #list == 0 then fail("manifest.lua doesn't look right (wrong repo or branch?)") end
+    for _, f in ipairs(list) do
+      if type(f[1]) ~= "string" or type(f[2]) ~= "string" or not f[1]:match(PATH_PATTERN) or not f[2]:match(PATH_PATTERN)
+         or f[1]:find("..", 1, true) or f[2]:find("..", 1, true) then
+        fail("manifest.lua has a bad entry: " .. tostring(f[1]) .. " -> " .. tostring(f[2]))
+      end
+    end
+    files = list
+  elseif status ~= 404 then
+    fail(("can't download manifest.lua from %s@%s: %s"):format(repo, source, err))
+  end
+end
+
 -- Download everything first; only replace installed files once all downloads look right.
 local downloads = {}
-for _, f in ipairs(FILES) do
+for _, f in ipairs(files) do
   local data, err = fetch(base .. f[1])
   if not data then fail(("can't download %s from %s@%s: %s"):format(f[1], repo, source, err)) end
   local chunk, syntax = load(data, "=" .. f[1], "t", {})   -- the config is Lua too
   if not chunk then fail(("%s doesn't look like valid Lua (wrong repo or branch?): %s"):format(f[1], syntax)) end
-  downloads[#downloads + 1] = { path = f[2], data = data, name = f[1] }
+  downloads[#downloads + 1] = { path = HOME .. "/" .. f[2], data = data, name = f[1] }
 end
 
-if not filesystem.exists(BIN) then filesystem.makeDirectory(BIN) end
+-- Create each missing directory on the way to `dir`.
+local function makeDirs(dir)
+  local path = ""
+  for part in dir:gmatch("[^/]+") do
+    path = path .. "/" .. part
+    if not filesystem.exists(path) then filesystem.makeDirectory(path) end
+  end
+end
+
+for _, d in ipairs(downloads) do
+  makeDirs(d.path:match("^(.*)/[^/]*$"))
+end
 for _, d in ipairs(downloads) do
   local tmp = d.path .. ".new"
   local ok, err = writeFile(tmp, d.data)
@@ -177,6 +211,10 @@ if not filesystem.exists(cfg) and not filesystem.exists(HOME .. "/prism-control.
 end
 
 writeFile(SETTINGS, serialization.serialize({ repo = repo, ref = ref }))
-local installed = downloads[1].data:match('local VERSION%s*=%s*"([^"]+)"')
+local installed
+for _, d in ipairs(downloads) do
+  installed = installed or (d.name == "lib/prism/version.lua" and d.data:match('return%s*"([^"]+)"'))
+             or (d.name == "src/prism.lua" and d.data:match('local VERSION%s*=%s*"([^"]+)"')) or nil
+end
 print(("done - PRISM %s installed; restart prism / prism-control to use it"):format(installed or "?"))
 if ref ~= "latest" then print(("  staying on %s; prism-update latest goes back to releases"):format(ref)) end
