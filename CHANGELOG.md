@@ -26,6 +26,11 @@ versions follow [Semantic Versioning](https://semver.org/).
   `staleAfter`, `batches`) instead of constants at the top of the program.
 
 ### Changed
+- `prism-update` installs the **latest release** of `aharabedian/prism` by default, so computers get stable
+  versions instead of whatever is on `main`. `prism-update main` follows the main branch, `prism-update v0.5.0`
+  pins a release, `prism-update latest` goes back to releases, and `prism-update OWNER/REPO [REF]` uses a fork
+  (its latest release, or `main` until it has one). The first install no longer needs the repo name.
+  Computers that were following `main` switch to releases. Errors show the HTTP status.
 - `prism-update` no longer creates `prism.cfg` from the example; it points to `prism-setup`.
 - `prism` without a config says to run `prism-setup`.
 - `prism-update` installs `prism-setup`.

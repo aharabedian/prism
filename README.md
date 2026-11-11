@@ -41,12 +41,13 @@ On each computer, with an Internet Card:
 
 ```
 wget -f https://raw.githubusercontent.com/aharabedian/prism/main/src/prism-update.lua /home/prism-update.lua
-/home/prism-update aharabedian/prism
+/home/prism-update
 ```
 
-Replace `aharabedian` with the GitHub account hosting the repo. This installs `prism`, `prism-control`, `prism-setup`,
-`prism-discover` and `prism-update` onto the shell path.
-Run `prism-update` again any time to update; your config and data are never overwritten.
+This installs the latest release of `prism`, `prism-control`, `prism-setup`, `prism-discover` and `prism-update`
+onto the shell path. Run `prism-update` again any time to update to the newest release; your config and data are
+never overwritten. `prism-update main` follows the development branch instead, and `prism-update OWNER/REPO`
+installs from a fork ([details](docs/setup.md#updating)).
 
 ## Quick start
 

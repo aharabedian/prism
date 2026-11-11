@@ -74,10 +74,10 @@ On each computer with an Internet Card:
 
 ```
 wget -f https://raw.githubusercontent.com/aharabedian/prism/main/src/prism-update.lua /home/prism-update.lua
-/home/prism-update aharabedian/prism
+/home/prism-update
 ```
 
-This puts `prism`, `prism-control`, `prism-setup`, `prism-discover` and `prism-update` in `/home/bin` (on the shell path)
+This installs the latest release. It puts `prism`, `prism-control`, `prism-setup`, `prism-discover` and `prism-update` in `/home/bin` (on the shell path)
 and the annotated `prism.example.cfg` in `/home` for reference.
 
 Without an Internet Card, copy the files from `src/` into `/home/bin/` by any means you like (pastebin, a floppy, etc.).
@@ -133,10 +133,24 @@ Other lines in `.shrc` are kept. Ctrl+C in the program gets you to the shell.
 
 ## Updating
 
+Run `prism-update` on each computer, then restart `prism` / `prism-control`. By default it installs the newest
+release of `aharabedian/prism`. To follow something else:
+
+| Command | Installs | Later `prism-update`s |
+|---|---|---|
+| `prism-update` | the saved choice; the first time, the latest release | same choice |
+| `prism-update latest` | the latest release | newer releases |
+| `prism-update main` | the `main` branch: newest changes, may be unfinished | `main` again |
+| `prism-update v0.5.0` | that release | stays on it |
+| `prism-update OWNER/REPO [REF]` | a fork: its latest release, or a branch/tag | same fork and choice |
+
+The choice is saved in `/home/.prism-update.cfg`. A repo with no releases yet installs from `main`.
+`prism-update --help` lists the options.
+
 Coming from a setup that predates the PRISM name (`/home/router.cfg`)? The first `prism-update`
 renames `router.cfg` and `router-*.cfg` to `prism.cfg` / `prism-*.cfg`, keeping your settings and data.
 
 
-Run `prism-update` on each computer, then restart `prism` / `prism-control`. Your config files are kept;
+Your config files are kept on every update;
 run `prism-setup` and press Enter through it to rewrite the config with any new options. If the router and screen run different
 versions, the screen's header shows a yellow `router X ≠ screen Y` badge.
