@@ -5,7 +5,8 @@
     2. decide each item's process, priority and batch size
        (screen overrides > prism.cfg overrides > rules)
     3. rank waiting items per process (priority, then quantity)
-    4. export buses: rewrite filters to hold the top batch-1 items for their process
+    4. export buses: rewrite filters to hold the top batch-1 items for their process;
+       GT stocking input buses: hold the top items (any batch size) for their process
     5. detect stalls and raise alerts, then broadcast status for the control screen
   Every second (feedInterval), feeders move exact multiples of an item's batch
   size from an ME Interface into a machine through a transposer.
@@ -47,7 +48,7 @@ local SIDE_NAMES = { [0] = "down", "up", "north", "south", "west", "east" }
 
 local cfg, overrides, catalog, screenRules
 local net, db, modem
-local buses, feeders, machines = {}, {}, {}
+local buses, stockers, feeders, machines = {}, {}, {}, {}
 local stats = { cycles = 0, writes = 0, cycleMs = 0, lastError = nil }
 local lastStatus
 local lastLabels  = {}  -- key -> display name from the latest scan
@@ -164,6 +165,7 @@ local function loadConfig()
   c.defaultPriority = c.defaultPriority or 10
   c.overrides       = c.overrides or {}
   c.buses           = c.buses or {}
+  c.stockers        = c.stockers or {}
   c.feeders         = c.feeders or {}
   c.machines        = c.machines or {}
   c.rules           = cleanRules(c.rules, "prism.cfg")
@@ -237,16 +239,21 @@ local function setup()
   net = proxyOf("me_controller", cfg.network) or proxyOf("me_interface", cfg.network)
   if not net then error("no ME controller/interface found - is an adapter touching it?", 0) end
 
+  -- Only export buses and feeders need the database; stocking buses take item tables directly.
   local dbProxy = proxyOf("database", cfg.database)
-  if not dbProxy then error("no database found - put a Database Upgrade in an adapter", 0) end
-  local size
-  for _, n in ipairs({ 81, 25, 9 }) do
-    if pcall(dbProxy.get, n) then size = n; break end
+  db = nil
+  if dbProxy then
+    local size
+    for _, n in ipairs({ 81, 25, 9 }) do
+      if pcall(dbProxy.get, n) then size = n; break end
+    end
+    if not size then error("couldn't work out the database size", 0) end
+    -- Slots 1..size-1 stage items; the last slot stays empty and is used to clear configs.
+    db = { proxy = dbProxy, size = size, emptySlot = size, slotOf = {}, keyIn = {}, nextSlot = 1 }
+    for s = 1, size do pcall(dbProxy.clear, s) end
+  elseif #cfg.buses + #cfg.feeders > 0 then
+    error("no database found - put a Database Upgrade in an adapter (export buses and feeders need one)", 0)
   end
-  if not size then error("couldn't work out the database size", 0) end
-  -- Slots 1..size-1 stage items; the last slot stays empty and is used to clear configs.
-  db = { proxy = dbProxy, size = size, emptySlot = size, slotOf = {}, keyIn = {}, nextSlot = 1 }
-  for s = 1, size do pcall(dbProxy.clear, s) end
 
   buses = {}
   for i, b in ipairs(cfg.buses) do
@@ -263,6 +270,29 @@ local function setup()
       bus.slots[s] = st and keyOf(st) or false
     end
     buses[#buses + 1] = bus
+  end
+
+  stockers = {}
+  for i, sc in ipairs(cfg.stockers) do
+    if not sc.process then error(("stocker #%d has no process"):format(i), 0) end
+    local name = sc.name or (sc.process .. " stocker #" .. i)
+    local p = proxyOf("me_inputbus", sc.address)
+    if not p then error(("%s: no me_inputbus matching %q"):format(name, tostring(sc.address)), 0) end
+    local ok, n = pcall(p.getSlotSize)
+    if not ok or type(n) ~= "number" then error(("%s: can't read the stocking bus: %s"):format(name, tostring(n)), 0) end
+    -- Auto-pull (advanced bus) fills the slots itself and would fight ours.
+    local okAdv, adv = pcall(p.isAdvanced)
+    if okAdv and adv and p.getAutoPull() then
+      p.setAutoPull(false)
+      log("%s: auto-pull switched off - PRISM picks its items", name)
+    end
+    local st = { proxy = p, process = sc.process, name = name, size = math.floor(n), slots = {}, kind = "stocker" }
+    for s = 1, st.size do
+      local okS, c = pcall(p.getConfiguration, s)
+      if not okS then error(("%s: %s"):format(name, tostring(c)), 0) end
+      st.slots[s] = type(c) == "table" and c.name and keyOf(c) or false
+    end
+    stockers[#stockers + 1] = st
   end
 
   feeders = {}
@@ -300,26 +330,34 @@ local function setup()
 
   local known = 0
   for _ in pairs(catalog) do known = known + 1 end
-  log("router %s - network %s, database %d slots, %d bus(es), %d feeder(s), %d machine(s), %d known items, modem %s",
-    VERSION, net.address:sub(1, 8), size, #buses, #feeders, #machines, known,
+  log("router %s - network %s, database %s, %d bus(es), %d stocker(s), %d feeder(s), %d machine(s), %d known items, modem %s",
+    VERSION, net.address:sub(1, 8), db and (db.size .. " slots") or "none", #buses, #stockers, #feeders, #machines, known,
     modem and ("port " .. tostring(cfg.modemPort)) or "none")
   if screenRules then
     log("using %d rule(s) from %s - rules in prism.cfg are ignored", #screenRules, RULES_PATH)
   end
-  if #buses + #feeders == 0 then log("no buses or feeders configured yet - run prism-setup") end
+  if #buses + #stockers + #feeders == 0 then log("no buses, stockers or feeders configured yet - run prism-setup") end
 end
 
 ---------------------------------------------------------------- export buses
 
 local function writeSlot(bus, slot, key, stack, label)
-  local entry, err
-  if key then
-    entry, err = stage(key, stack)
-    if not entry then return false, err end
+  local ok, res
+  if bus.kind == "stocker" then
+    -- Stocking buses take an item table ({name, damage}) directly; no argument clears the slot.
+    if key then ok, res = pcall(bus.proxy.setConfiguration, slot,
+                                   { name = stack.name, damage = math.floor(stack.damage or 0) })
+    else ok, res = pcall(bus.proxy.setConfiguration, slot) end
   else
-    entry = db.emptySlot
+    local entry, err
+    if key then
+      entry, err = stage(key, stack)
+      if not entry then return false, err end
+    else
+      entry = db.emptySlot
+    end
+    ok, res = pcall(bus.proxy.setExportConfiguration, bus.side, slot, db.proxy.address, entry)
   end
-  local ok, res = pcall(bus.proxy.setExportConfiguration, bus.side, slot, db.proxy.address, entry)
   if not ok then return false, tostring(res) end
   bus.slots[slot] = key or false
   stats.writes = stats.writes + 1
@@ -327,13 +365,14 @@ local function writeSlot(bus, slot, key, stack, label)
   return true
 end
 
--- Make a bus's filter hold exactly `wanted` (ordered queue entries), leaving
--- slots that are already right untouched.
+-- Make a bus's filter (or a stocker's slots) hold exactly `wanted` (ordered
+-- queue entries), leaving slots that are already right untouched.
 local function applyBus(bus, wanted)
+  local n = bus.size or cfg.slotsPerBus
   local want = {}
   for _, e in ipairs(wanted) do want[e.key] = e end
   local placed = {}
-  for s = 1, cfg.slotsPerBus do
+  for s = 1, n do
     local k = bus.slots[s]
     if k and want[k] and not placed[k] then placed[k] = true end
   end
@@ -341,7 +380,7 @@ local function applyBus(bus, wanted)
   for _, e in ipairs(wanted) do if not placed[e.key] then todo[#todo + 1] = e end end
 
   local nextTodo = 1
-  for s = 1, cfg.slotsPerBus do
+  for s = 1, n do
     local k = bus.slots[s]
     if k and want[k] and placed[k] == true then
       placed[k] = "kept"            -- a duplicate of k in a later slot gets replaced
@@ -504,6 +543,7 @@ local function knownProcesses()
     if p and p ~= "ignore" and not seen[p] then seen[p] = true; list[#list + 1] = p end
   end
   for _, b in ipairs(buses) do add(b.process) end
+  for _, b in ipairs(stockers) do add(b.process) end
   for _, f in ipairs(feeders) do add(f.process) end
   for _, m in ipairs(machines) do add(m.process) end
   for _, r in ipairs(rulesList()) do add(r.process) end
@@ -556,15 +596,17 @@ local function buildStatus(backlog, labels, unassigned, stalled, alerts)
     p.buses = p.buses + 1
     s.processes[proc] = p
   end
-  for _, bus in ipairs(buses) do
+  local function addBus(bus)
     outputFor(bus.process)
     local filters = {}
-    for i = 1, cfg.slotsPerBus do
+    for i = 1, bus.size or cfg.slotsPerBus do
       local k = bus.slots[i]
       if k then filters[#filters + 1] = labels[k] or k end
     end
-    s.buses[#s.buses + 1] = { name = bus.name, process = bus.process, filters = filters }
+    s.buses[#s.buses + 1] = { name = bus.name, process = bus.process, filters = filters, kind = bus.kind }
   end
+  for _, bus in ipairs(buses) do addBus(bus) end
+  for _, st in ipairs(stockers) do addBus(st) end
   for _, f in ipairs(feeders) do
     outputFor(f.process)
     s.feeders[#s.feeders + 1] = { name = f.name, process = f.process, state = f.state,
@@ -623,6 +665,7 @@ local function detectStalls(queues, backlog, present)
   end
   fedAtScan = fedNow
   for _, b in ipairs(buses) do hasOutput[b.process] = true end
+  for _, b in ipairs(stockers) do hasOutput[b.process] = true end
   for _, m in ipairs(machines) do
     if m.state == "working" then working[m.process or ""] = true end
     local waiting = m.process and backlog[m.process] and backlog[m.process].items > 0
@@ -741,15 +784,16 @@ local function cycle()
     local hasBus, hasFeeder = false, false
     for _, bus in ipairs(buses) do if bus.process == proc then hasBus = true; break end end
     for _, f in ipairs(feeders) do if f.process == proc then hasFeeder = true; break end end
+    for _, st in ipairs(stockers) do if st.process == proc then hasFeeder = true; break end end
     if not hasBus and not hasFeeder and not reported["proc:" .. proc] then
       reported["proc:" .. proc] = true
-      log("items waiting for '%s' but no bus or feeder is configured for it", proc)
+      log("items waiting for '%s' but no bus, stocker or feeder is configured for it", proc)
     end
     if not hasFeeder then
       for _, e in ipairs(q) do
         if e.batch > 1 and not reported["batch:" .. e.key] then
           reported["batch:" .. e.key] = true
-          log("%s needs batches of %d - '%s' has no feeder, so it won't be sent", e.label, e.batch, proc)
+          log("%s needs batches of %d - '%s' has no feeder or stocker, so it won't be sent", e.label, e.batch, proc)
         end
       end
     end
@@ -763,6 +807,17 @@ local function cycle()
       if e.batch == 1 then wanted[#wanted + 1] = e end
     end
     applyBus(bus, wanted)
+  end
+
+  -- Stocking buses expose the network to a multiblock, which takes exactly what each
+  -- recipe needs, so batch items are fine there.
+  for _, st in ipairs(stockers) do
+    local wanted = {}
+    for _, e in ipairs(queues[st.process] or {}) do
+      if #wanted >= st.size then break end
+      wanted[#wanted + 1] = e
+    end
+    applyBus(st, wanted)
   end
 
   local stalled = detectStalls(queues, backlog, present)

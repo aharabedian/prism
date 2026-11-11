@@ -1,7 +1,7 @@
 --[[ prism-control.lua - touchscreen control panel for prism.lua
 
   Runs on the display computer (tier 3 screen + GPU, wireless card).
-  Left:  per-process backlog (stalls flagged), export buses, feeders and
+  Left:  per-process backlog (stalls flagged), export/stocking buses, feeders and
          monitored machines with live progress.
   Right: UNASSIGNED, ITEMS (everything ever seen), OVERRIDES and RULES.
          Tap an item to route it; tap a rule (or + NEW RULE / MAKE RULE) to
@@ -352,7 +352,7 @@ local function drawBuses(y, compact)
   local list = S.status and S.status.buses or {}
   if #list == 0 then return y end
   y = y + 1
-  put(2, y, "EXPORT BUSES", C.accent, C.bg); y = y + 1
+  put(2, y, "BUSES", C.accent, C.bg); y = y + 1
   for i, b in ipairs(list) do
     if y > H - 2 or (not compact and y + 1 > H - 2) then
       put(2, y, ("+%d more"):format(#list - i + 1), C.dim, C.bg); return y + 1
@@ -360,7 +360,10 @@ local function drawBuses(y, compact)
     local nf = b.filters and #b.filters or 0
     put(2, y, fit(b.name, 18), C.text, C.bg)
     put(20, y, fit("[" .. tostring(b.process) .. "]", 14), C.info)
-    local summary = nf == 0 and "idle" or (nf .. (nf == 1 and " filter" or " filters"))
+    local summary
+    if nf == 0 then summary = "idle"
+    elseif b.kind == "stocker" then summary = nf .. " stocked"
+    else summary = nf .. (nf == 1 and " filter" or " filters") end
     if compact then
       put(34, y, fit(summary, 11), nf == 0 and C.dim or C.good)
       put(45, y, fit(b.filters and table.concat(b.filters, ", ") or "", LW - 45), C.dim)

@@ -31,6 +31,7 @@ A command that changes routing (assign, rule edit, reload...) triggers an immedi
 3. Classify each item (screen override → cfg override → rules) into process, priority, batch.
 4. Sort each process's queue by priority, then quantity.
 5. For each export bus: take the top `slotsPerBus` **batch-1** items for its process and apply them (below).
+   For each stocker: take the top 16 items of any batch size and apply them the same way.
 6. Detect stalls and build alerts.
 7. Broadcast status.
 
@@ -39,6 +40,15 @@ A command that changes routing (assign, rule edit, reload...) triggers an immedi
 `applyBus` keeps every slot that already holds a wanted item, fills the remaining slots with the
 missing ones in priority order, and clears slots holding items no longer wanted. An unchanged network
 causes zero writes, and one item running out rewrites exactly one slot.
+
+### Stocking input buses
+
+A GT Stocking Input Bus (ME) shows the multiblock the network's stock of each configured item, and the
+multiblock extracts exactly what a recipe needs when it starts. So there is no transfer rate to keep up
+with, and batch sizes take care of themselves. The router configures one with
+`setConfiguration(slot, { name, damage })` (no table clears the slot) and reads back slots with
+`getConfiguration` at startup. No database is involved. It keeps slots stable the same way as `applyBus`.
+At startup, auto-pull is switched off on Advanced buses, because it would replace the router's choices.
 
 ### Database staging
 
@@ -61,7 +71,7 @@ If the machine already holds a non-multiple of the batch (a leftover from before
 
 ### Stall detection
 
-A process is **stalled** when it has items waiting and at least one bus or feeder, but for `stallAfter`
+A process is **stalled** when it has items waiting and at least one bus, stocker or feeder, but for `stallAfter`
 seconds none of these happened:
 
 - any of its items' quantity dropped, or an item left the network entirely
@@ -85,6 +95,7 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 - Item lists are fetched in pages, because wireless packets are limited to about 8 KB.
 - All edits are commands to the router; the screen re-fetches after each `router-ack`.
 - The left column switches to one row per bus and feeder when everything wouldn't otherwise fit.
+- Stockers are listed under BUSES as "N stocked"; export buses show "N filters".
 
 ## Wireless protocol
 
@@ -106,5 +117,7 @@ match the game first if they differ.
 | `gt_machine` method names (`isMachineActive`, `getWorkProgress`, `getWorkMaxProgress`, `getEUStored`, `getEUMaxStored`, `isWorkAllowed`, `getSensorInformation`, `getCoordinates`) | **Unverified** |
 | Multiblock `Problems:` line format in sensor info | **Unverified** |
 | `internet.request` streaming, `/home/bin` on the OpenOS shell path | **Unverified** |
+| GT Stocking Input Bus `me_inputbus`: `getSlotSize`, `get/setConfiguration` (`{name, damage}`, no table clears), `isAdvanced`, `get/setAutoPull` (from GTNewHorizons/OpenComputers #222, merged 2026-09-21) | **Unverified** |
+| A multiblock with the same item in two stocking buses still runs | **Unverified**; docs say one stocker per multiblock |
 | `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
 | `/home/.shrc` run by the shell at boot (start on boot) | **Unverified** |

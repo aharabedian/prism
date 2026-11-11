@@ -11,8 +11,8 @@ local realGetenv = os.getenv
 os.getenv = function(k) if k == "PRISM_PREFIX" then return H.TMP .. "/root" end return realGetenv(k) end
 local ROUTER_CFG, CONTROL_CFG, SHRC = home .. "/prism.cfg", home .. "/prism-control.cfg", home .. "/.shrc"
 
--- World: one controller, one database, three buses (one with a marker), an interface + transposer
--- feeding a machine, two GT machines and a wireless card.
+-- World: one controller, one database, three buses (one with a marker), a stocking input bus, an
+-- interface + transposer feeding a machine, two GT machines and a wireless card.
 M.busHosts["eb111111-1111"][2][1] = { name = "minecraft:cobblestone", damage = 0.0, label = "Cobblestone" }
 M.proxies["if000000-iiii"] = { address = "if000000-iiii", type = "me_interface",
   setInterfaceConfiguration = function() return true end }
@@ -22,6 +22,8 @@ M.proxies["tp000000-tttt"] = { address = "tp000000-tttt", type = "transposer",
 M.machine("gm010000-aaaa", { isMachineActive = true, isWorkAllowed = true })
 M.proxies["gm010000-aaaa"].getCoordinates = function() return 120, 64, -340 end
 M.machine("gm020000-bbbb", { isMachineActive = false, isWorkAllowed = false })
+local stocker = M.stocker("st010000-ssss", { advanced = true })
+stocker.slots[1] = { name = "minecraft:sand", damage = 0, label = "Sand" }
 
 local function read(path) local f = io.open(path); if not f then return nil end; local s = f:read("*a"); f:close(); return s end
 local function write(path, s) local f = assert(io.open(path, "w")); f:write(s); f:close() end
@@ -71,6 +73,7 @@ out = wizard({
   "2", "Washer 1",             -- eb111111 north (Cobblestone marker): wash, by number
   "",                          -- eb111111 south: skip
   "crush", "",                 -- eb222222 up, by name, no display name
+  "2", "Washer M",             -- stocking bus st010000 (Sand marker): wash
   "centrifuge", "Centrifuge 2",-- feeder through tp000000
   "wash", "Washer 1",          -- gm010000
   "",                          -- gm020000: skip
@@ -86,6 +89,7 @@ check(has("instead of your current 2 rule(s)? (y/n) [n]"), "asks before replacin
 check(has("me000000-cccc") and has("db000000-aaaa"), "only ME controller and database are picked without asking")
 check(has("1) crush  2) wash  3) centrifuge"), "chosen processes offered by number")
 check(has("Cobblestone") and has("120 64 -340") and has("disabled"), "buses show markers, machines state and coordinates")
+check(has("stocking bus st010000, advanced - slot 1: Sand"), "stocking buses show their slot 1 marker")
 check(has("interface on west") and has("machine on east"), "feeder sides found from what the transposer touches")
 check(not has("warning:"), "no coverage warnings when every process has a bus or feeder")
 check(has('port 4242, secret "s3cret"'), "tells the user what to enter on the control computer")
@@ -103,6 +107,8 @@ check(#c.rules == 6 and c.rules[1].process == "wash" and c.rules[6].pattern == "
 check(#c.buses == 2 and c.buses[1].address == "eb111111-1111" and c.buses[1].side == 2
   and c.buses[1].process == "wash" and c.buses[1].name == "Washer 1", "bus process picked by number")
 check(c.buses[2].side == 1 and c.buses[2].process == "crush" and c.buses[2].name == nil, "blank name left out")
+check(#c.stockers == 1 and c.stockers[1].address == "st010000-ssss" and c.stockers[1].process == "wash"
+  and c.stockers[1].name == "Washer M", "stocking bus saved")
 local f = c.feeders[1]
 check(#c.feeders == 1 and f.interface == "if000000-iiii" and f.transposer == "tp000000-tttt" and f.interfaceSide == 4
   and f.machineSide == 5 and f.process == "centrifuge" and f.name == "Centrifuge 2", "feeder saved")
@@ -124,6 +130,7 @@ check(M.busHosts["eb111111-1111"][2][1] and M.busHosts["eb111111-1111"][2][1].la
 check(M.busHosts["eb222222-2222"][1][1] and M.busHosts["eb222222-2222"][1][1].label == "Copper Ore",
   "raw ore goes to the macerator by the catch-all rule")
 check(#M.sent > 0 and M.sent[#M.sent].port == 4242, "router broadcasts on the chosen port")
+check(stocker.slots[1] and stocker.slots[1].label == "Crushed Copper Ore", "router stocks crushed ore in the stocking bus")
 
 local okMissing, errMissing = pcall(H.run, "prism.lua", home .. "/nothing.cfg")
 check(not okMissing and tostring(errMissing):find("run prism-setup", 1, true), "router without a config says to run prism-setup")
@@ -136,6 +143,7 @@ out = wizard({
   "", "",                      -- north: keep wash / Washer 1
   "smelt", "",                 -- south: a new process name
   "-",                         -- up: was crush, now removed
+  "", "",                      -- stocking bus: keep
   "", "",                      -- feeder: keep
   "", "",                      -- gm01: keep
   "",                          -- gm02: skip
@@ -146,13 +154,24 @@ out = wizard({
 check(has("[1 2 4]") and has("Capacity Cards per bus: 0, 1 or 2 [2]"), "previous processes and cards are the defaults")
 check(has("the 6 standard rules") and not has("instead of your current"), "unchanged rules need no question")
 check(has("[wash]") and has("[Washer 1]") and has("[4242]") and has("[s3cret]"), "previous answers offered as defaults")
-check(has('warning: no bus or feeder for "crush"'), "warns when a routed process has nowhere to go")
+check(has('warning: no bus, stocker or feeder for "crush"'), "warns when a routed process has nowhere to go")
 check(has('warning: no rule sends anything to "smelt"'), "warns when a bus has a process no rule uses")
 check(not has(".shrc will be"), ".shrc left alone when nothing changes")
 c = loadCfg(ROUTER_CFG)
 check(c.slotsPerBus == 5, "1 Capacity Card = 5 filter slots")
 check(#c.buses == 2 and c.buses[1].process == "wash" and c.buses[2].process == "smelt", "kept one bus, added a custom process")
-check(#c.rules == 6 and c.token == "s3cret" and #c.feeders == 1 and #c.machines == 1 and c.myNote == "keep me", "the rest kept")
+check(#c.rules == 6 and c.token == "s3cret" and #c.feeders == 1 and #c.machines == 1 and #c.stockers == 1
+  and c.myNote == "keep me", "the rest kept")
+
+---------------------------------------------------------------- no Database Upgrade: stocking buses still work
+local db = M.proxies["db000000-aaaa"]
+M.proxies["db000000-aaaa"] = nil
+local cfgBefore = read(ROUTER_CFG)
+out = wizard(answers({ "", "" }, 8, { "n" }))   -- 8 = stocking bus, machines, wireless, boot
+check(has("only export buses and feeders need one") and not has("Capacity Cards"), "no database: bus and feeder steps skipped")
+check(has("stocking bus st010000"), "no database: stocking buses still asked about")
+check(read(ROUTER_CFG) == cfgBefore, "declined: nothing saved")
+M.proxies["db000000-aaaa"] = db
 
 ---------------------------------------------------------------- other processes get other rules; cancelling saves nothing
 local before, shrcBefore = read(ROUTER_CFG), read(SHRC)
@@ -160,19 +179,19 @@ out = wizard({ "", "3 5", "y" })       -- thermal + sift, then input ends (Ctrl+
 check(has("^Purified Diamond Ore$") and has("-> sift"), "sifter gets gem ore rules")
 check(out:find("%^Crushed %.%+ Ore%$%s+%-> thermal") ~= nil, "crushed ore falls back to the thermal centrifuge without a washer")
 check(has("nothing saved") and read(ROUTER_CFG) == before, "Ctrl+D cancels without saving")
-out = wizard(answers({}, 16, { "n" }))   -- every default, then decline
+out = wizard(answers({}, 18, { "n" }))   -- every default, then decline
 check(has("nothing saved") and read(ROUTER_CFG) == before and read(SHRC) == shrcBefore, "answering n at the end saves nothing")
 
 ---------------------------------------------------------------- several candidates; wireless off; boot off
 M.proxies["me999999-cccc"] = { address = "me999999-cccc", type = "me_controller", getItemsInNetwork = function() return { n = 0 } end }
-out = wizard(answers({ "", "", "2" }, 11, { "0", "n", "y" }))   -- 11 = cards, bus, feeder and machine prompts
+out = wizard(answers({ "", "", "2" }, 13, { "0", "n", "y" }))   -- 13 = cards, bus, stocker, feeder and machine prompts
 check(has("1) me000000-cccc") and has("2) me999999-cccc"), "lists ME controllers to choose from")
 c = loadCfg(ROUTER_CFG)
 check(c.network == "me999999-cccc", "chosen controller saved")
 check(c.modemPort == false and c.token == nil, "port 0 turns wireless off")
 check(not has("On the control computer"), "no control screen instructions with wireless off")
 check(read(SHRC) == "echo hello\n", "start on boot turned off removes the line")
-out = wizard(answers({ "", "", "7", "1" }, 11, { "", "", "y" }))
+out = wizard(answers({ "", "", "7", "1" }, 13, { "", "", "y" }))
 check(has("enter a number") and has("[0]"), "re-asks on an invalid choice; wireless off is the new default")
 check(loadCfg(ROUTER_CFG).network == "me000000-cccc", "valid answer after a bad one is used")
 check(read(SHRC) == "echo hello\nprism\n", "start on boot added back")

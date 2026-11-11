@@ -4,7 +4,8 @@
 
   Asks whether this computer is the router or the control screen, then:
     router:  processes and starting rules, ME network, database, export buses,
-             feeders, GT machines, wireless, start on boot  -> /home/prism.cfg
+             stocking input buses, feeders, GT machines, wireless, start on boot
+             -> /home/prism.cfg
     screen:  wireless, beep, start on boot                -> /home/prism-control.cfg
   Start on boot adds (or removes) the program in /home/.shrc, which the OpenOS
   shell runs when the computer boots.
@@ -16,6 +17,7 @@
 
   Tip: to tell export buses apart, drop a different "marker" item into slot 1
   of each bus's filter by hand first (cobblestone in the washer bus, ...).
+  Stocking input buses: the same, in slot 1 of their configuration.
 ]]
 
 local component  = require("component")
@@ -233,7 +235,7 @@ local function renderRouter(c)
   setting(L, "token", c.token, "shared secret the screen must send; nil = none")
   setting(L, "slotsPerBus", c.slotsPerBus or 9, "filter slots per export bus: 1, 5 or 9")
   for _, k in ipairs({ "network", "database", "modemPort", "token", "slotsPerBus",
-                       "buses", "feeders", "machines", "rules", "overrides" }) do known[k] = true end
+                       "buses", "stockers", "feeders", "machines", "rules", "overrides" }) do known[k] = true end
 
   local function opt(name) return name and (", name = " .. q(name)) or "" end
   L[#L + 1] = ""
@@ -241,6 +243,11 @@ local function renderRouter(c)
   for _, b in ipairs(c.buses or {}) do
     L[#L + 1] = ("    { address = %s, side = %s, process = %s%s },")
       :format(q(b.address), sideRef(b.side), q(b.process), opt(b.name))
+  end
+  L[#L + 1] = "  },"
+  L[#L + 1] = "  stockers = {"
+  for _, b in ipairs(c.stockers or {}) do
+    L[#L + 1] = ("    { address = %s, process = %s%s },"):format(q(b.address), q(b.process), opt(b.name))
   end
   L[#L + 1] = "  },"
   L[#L + 1] = "  feeders = {"
@@ -374,7 +381,7 @@ local function processesIn(old)
   local function add(p)
     if type(p) == "string" and p ~= "ignore" and not seen[p] then seen[p] = true; list[#list + 1] = p end
   end
-  for _, key in ipairs({ "rules", "buses", "feeders", "machines" }) do
+  for _, key in ipairs({ "rules", "buses", "stockers", "feeders", "machines" }) do
     for _, e in ipairs(old[key] or {}) do add(e.process) end
   end
   return list
@@ -461,7 +468,8 @@ local function stepDatabase(old)
   header("Database Upgrade")
   local list = addresses("database")
   if #list == 0 then
-    print("  none found - put a Database Upgrade inside an adapter, then run this again")
+    print("  none found - only export buses and feeders need one; skipping them")
+    print("  (put a Database Upgrade inside an adapter and run this again to set them up)")
     return nil
   end
   local addr = pickOne(list, old)
@@ -504,6 +512,28 @@ local function stepBuses(old, oldSlots, procs)
     if proc then out[#out + 1] = { address = b.addr, side = b.side, process = proc, name = name } end
   end
   return out, slots
+end
+
+local function stepStockers(old, procs)
+  header("Stocking input buses (GT multiblocks; a marker in slot 1 shows which one it is)")
+  local out = {}
+  local list = addresses("me_inputbus")
+  if #list == 0 then
+    print("  none - put an adapter against each Stocking Input Bus (ME) you want PRISM to fill")
+    return out
+  end
+  processHint(procs)
+  for _, addr in ipairs(list) do
+    local p = component.proxy(addr)
+    local okC, st = pcall(p.getConfiguration, 1)
+    local marker = okC and type(st) == "table" and (st.label or st.name) or "(empty)"
+    local okA, adv = pcall(p.isAdvanced)
+    print(("  stocking bus %s%s - slot 1: %s"):format(addr:sub(1, 8), okA and adv and ", advanced" or "", marker))
+    local prev = findOld(old, function(e) return sameAddr(addr, e.address) end)
+    local proc, name = askProcess("this stocking bus", prev, procs)
+    if proc then out[#out + 1] = { address = addr, process = proc, name = name } end
+  end
+  return out
 end
 
 -- Which transposer sides face the ME interface and the machine, from inventory names.
@@ -606,14 +636,14 @@ end
 -- Processes that something will route but nothing receives, and the other way round.
 local function coverage(c, procs)
   local served, routed = {}, {}
-  for _, key in ipairs({ "buses", "feeders" }) do
-    for _, e in ipairs(c[key]) do served[e.process] = true end
+  for _, key in ipairs({ "buses", "stockers", "feeders" }) do
+    for _, e in ipairs(c[key] or {}) do served[e.process] = true end
   end
   for _, r in ipairs(c.rules or {}) do routed[r.process] = true end
   local warnings = {}
   for _, p in ipairs(procs) do
     if routed[p] and not served[p] then
-      warnings[#warnings + 1] = ("no bus or feeder for %q - its items will wait in the network"):format(p)
+      warnings[#warnings + 1] = ("no bus, stocker or feeder for %q - its items will wait in the network"):format(p)
     elseif served[p] and not routed[p] then
       warnings[#warnings + 1] = ("no rule sends anything to %q - route items on the control screen"):format(p)
     end
@@ -674,7 +704,7 @@ local function commit(path, text, shrc)
 end
 
 local function setupRouter()
-  steps = 8
+  steps = 9
   local old = loadLua(ROUTER_CFG) or {}
   if filesystem.exists(ROUTER_CFG) then print("Editing " .. ROUTER_CFG) end
   local c = {}
@@ -685,9 +715,18 @@ local function setupRouter()
   c.network = stepNetwork(old.network)
   if not c.network then return end
   c.database = stepDatabase(old.database)
-  if not c.database then return end
-  c.buses, c.slotsPerBus = stepBuses(old.buses, old.slotsPerBus, procs)
-  c.feeders = stepFeeders(old.feeders, c.network, procs)
+  -- Without a database, export buses and feeders can't be configured: keep what was there.
+  if c.database then
+    c.buses, c.slotsPerBus = stepBuses(old.buses, old.slotsPerBus, procs)
+  else
+    c.buses = old.buses or {}; step = step + 1
+  end
+  c.stockers = stepStockers(old.stockers, procs)
+  if c.database then
+    c.feeders = stepFeeders(old.feeders, c.network, procs)
+  else
+    c.feeders = old.feeders or {}; step = step + 1
+  end
   c.machines = stepMachines(old.machines, procs)
 
   header("Wireless link to the control screen")
@@ -699,9 +738,13 @@ local function setupRouter()
   local text = renderRouter(c)
   review(ROUTER_CFG, text, shrc)
   for _, w in ipairs(coverage(c, procs)) do print("warning: " .. w) end
+  if not c.database and #c.buses + #c.feeders > 0 then
+    print("warning: export buses and feeders need a Database Upgrade - the router won't start without one")
+  end
   if not yes("Save?", true) then print("nothing saved"); return end
   if not commit(ROUTER_CFG, text, shrc) then return end
-  print(("saved %d bus(es), %d feeder(s), %d machine(s), %d rule(s)."):format(#c.buses, #c.feeders, #c.machines, #c.rules))
+  print(("saved %d bus(es), %d stocker(s), %d feeder(s), %d machine(s), %d rule(s)."):format(
+    #c.buses, #c.stockers, #c.feeders, #c.machines, #c.rules))
   if c.modemPort then
     print(("On the control computer, run prism-setup and choose the control screen: port %d, secret %s.")
       :format(c.modemPort, c.token and q(c.token) or "none"))
@@ -746,7 +789,7 @@ local function main()
   print("What is this computer?")
   -- Guess from what's attached: the router has adapters on ME parts.
   local router = false
-  for _, t in ipairs({ "me_controller", "me_interface", "me_exportbus", "database" }) do
+  for _, t in ipairs({ "me_controller", "me_interface", "me_exportbus", "me_inputbus", "database" }) do
     if component.isAvailable(t) then router = true end
   end
   local role = choose({

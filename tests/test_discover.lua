@@ -1,4 +1,4 @@
--- test_discover.lua: discover lists networks, databases, buses (with marker items), interfaces, transposers and GT machines.
+-- test_discover.lua: discover lists networks, databases, buses and stocking buses (with marker items), interfaces, transposers and GT machines.
 local H = dofile((debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "./") .. "helper.lua")
 local M = require("oc")
 local check = H.check
@@ -12,6 +12,8 @@ M.proxies["tp000000-tttt"] = { address = "tp000000-tttt", type = "transposer",
 M.machine("gm010000-aaaa", { isMachineActive = true, isWorkAllowed = true })
 M.proxies["gm010000-aaaa"].getCoordinates = function() return 120, 64, -340 end
 M.machine("gm020000-bbbb", { isMachineActive = false, isWorkAllowed = false })
+M.stocker("st010000-aaaa", { advanced = true }).slots[1] = { name = "minecraft:dirt", damage = 0, label = "Dirt" }
+M.stocker("st020000-bbbb")
 
 local lines = {}
 local realPrint = print
@@ -35,4 +37,6 @@ check(has("if000000-iiii"), "lists ME interfaces")
 check(has("sides.west   appliedenergistics2:tile.BlockInterface") and has("9 slots"), "transposer shows what each side touches")
 check(has('{ address = "gm010000", process = "?", name = "?" }, -- working  at 120 64 -340'), "machine with state and coordinates")
 check(has('{ address = "gm020000", process = "?", name = "?" }, -- disabled'), "soft-malleted machine shows disabled (false is not nil)")
+check(has('{ address = "st010000", process = "?" }, -- advanced, slot 1: Dirt'), "stocking bus with its slot 1 marker")
+check(has('{ address = "st020000", process = "?" }, -- slot 1: (empty)'), "empty stocking bus")
 H.done()
