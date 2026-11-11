@@ -16,7 +16,7 @@ local here = debug.getinfo(1, "S").source:match("^@(.*)[/\\]") or "."
 H.TESTS = here
 H.ROOT  = here .. "/.."
 H.SRC   = H.ROOT .. "/src"
-package.path = here .. "/?.lua;" .. here .. "/mocks/?.lua;" .. package.path
+package.path = here .. "/?.lua;" .. here .. "/mocks/?.lua;" .. here .. "/../lib/?.lua;" .. package.path
 
 local name = (arg and arg[0] or "test"):match("([^/\\]+)%.lua$") or "test"
 H.NAME = name

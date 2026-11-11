@@ -5,6 +5,15 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- The programs are split into modules, installed into `/home/lib/prism/` next to the programs in `/home/bin`.
+  `prism-update` installs whatever the release's `manifest.lua` lists. **Upgrading from 0.5.0: run
+  `prism-update` twice** (the 0.5.0 updater doesn't know about modules; the new one it installs does).
+  A program started without its modules says to run `prism-update`.
+- Restarting a program after an update always loads the new modules (no reboot needed).
+- `router-status` feeders carry a `level` (`ok`, `idle`, `warn`, `bad`); the screen colors feeders by it.
+- A status message trimmed to fit a packet no longer loses those rows for later `status` replies.
+
 ## [0.5.0] - 2026-11-11
 
 ### Added

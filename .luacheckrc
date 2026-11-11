@@ -8,6 +8,10 @@ files["src/"] = {
   -- OpenOS globals that aren't in plain Lua
   read_globals = { "os.sleep" },
 }
+files["lib/"] = {
+  -- OpenOS globals that aren't in plain Lua
+  read_globals = { "os.sleep" },
+}
 
 files["tests/"] = {
   -- tests deliberately swap these to capture output / trap exits

@@ -1,4 +1,5 @@
---[[ prism-discover.lua - find the components the PRISM router needs.
+--[[ prism-discover.lua - list the components the PRISM router can use, as prism.cfg lines.
+  prism-setup does the same interactively; this is for writing prism.cfg by hand.
 
   Tip: to tell your export buses apart, drop a different "marker" item into
   slot 1 of each bus's filter by hand (cobblestone in the washer bus, dirt in
@@ -7,112 +8,78 @@
   same way: put a marker in slot 1 of their configuration.
 ]]
 
+-- Modules live in /home/lib/prism (prism-update installs them). Forget copies cached by an earlier
+-- run, so restarting after an update loads the new ones.
+if not package.path:find("/home/lib/?.lua", 1, true) then package.path = package.path .. ";/home/lib/?.lua" end
+for name in pairs(package.loaded) do if name:find("^prism%.") then package.loaded[name] = nil end end
+if not pcall(require, "prism.version") then error("PRISM's modules are missing from /home/lib/prism - run prism-update", 0) end
+
 local component = require("component")
+local VERSION   = require("prism.version")
+local U         = require("prism.util")
+local probe     = require("prism.probe")
 
-local VERSION = "0.5.0"
+-- Print a section: a heading, a line per item from `lines`, or `none` when there are none.
+local function section(heading, lines, none)
+  print("")
+  print(heading)
+  for _, l in ipairs(lines) do print(l) end
+  if #lines == 0 then print("  " .. none) end
+end
 
-local SIDE_NAMES = { [0] = "down", "up", "north", "south", "west", "east" }
-
-local function header(text) print(""); print(text) end
+local function map(list, fn)
+  local out = {}
+  for _, x in ipairs(list) do
+    local r = fn(x)
+    if type(r) == "table" then for _, l in ipairs(r) do out[#out + 1] = l end else out[#out + 1] = r end
+  end
+  return out
+end
 
 print("prism-discover " .. VERSION)
 
-header("ME networks (prism.cfg 'network'):")
-local found = false
-for addr, ctype in component.list() do
-  if ctype == "me_controller" or ctype == "me_interface" then
-    print(string.format("  %-14s %s", ctype, addr)); found = true
+local networks = {}
+for _, ctype in ipairs({ "me_controller", "me_interface" }) do
+  for _, addr in ipairs(probe.addresses(ctype)) do networks[#networks + 1] = ("  %-14s %s"):format(ctype, addr) end
+end
+section("ME networks (prism.cfg 'network'):", networks,
+  "none - put an adapter against the subnet's controller or ME interface")
+
+section("Databases (prism.cfg 'database'):", map(probe.addresses("database"), function(a) return "  " .. a end),
+  "none - put a Database Upgrade inside an adapter")
+
+section("Wireless/network cards:", map(probe.addresses("modem"), function(a)
+  local m = component.proxy(a)
+  return ("  %s  wireless=%s"):format(a, tostring(m.isWireless and m.isWireless()))
+end), "none")
+
+section("Export buses - paste into prism.cfg 'buses' and set each process:", map(probe.exportBuses(), function(b)
+  return ('  { address = "%s", side = sides.%s, process = "?" }, -- slot 1: %s'):format(
+    b.addr:sub(1, 8), U.sideName(b.side), probe.marker(b.stack))
+end), "none - put an adapter against the cable block your export buses are on")
+
+section("GT Stocking Input Buses (ME) - paste into prism.cfg 'stockers' and set each process:",
+  map(probe.addresses("me_inputbus"), function(a)
+    local s = probe.stocker(a)
+    return ('  { address = "%s", process = "?" }, -- %sslot 1: %s'):format(
+      a:sub(1, 8), s.advanced and "advanced, " or "", s.marker)
+  end), "none - put an adapter against each stocking input bus (needs a GTNH build with its OC driver)")
+
+section("ME interfaces (feeder 'interface'):", map(probe.addresses("me_interface"), function(a) return "  " .. a end),
+  "none")
+
+section("Transposers (feeder 'transposer') and what they touch:", map(probe.addresses("transposer"), function(a)
+  local out = { "  " .. a }
+  for _, inv in ipairs(probe.inventories(component.proxy(a))) do
+    out[#out + 1] = ("    sides.%-6s %-40s %d slots"):format(U.sideName(inv.side), inv.name, inv.size)
   end
-end
-if not found then print("  none - put an adapter against the subnet's controller or ME interface") end
+  return out
+end), "none")
 
-header("Databases (prism.cfg 'database'):")
-found = false
-for addr in component.list("database") do print("  " .. addr); found = true end
-if not found then print("  none - put a Database Upgrade inside an adapter") end
-
-header("Wireless/network cards:")
-found = false
-for addr in component.list("modem") do
-  local m = component.proxy(addr)
-  print(string.format("  %s  wireless=%s", addr, tostring(m.isWireless and m.isWireless())))
-  found = true
-end
-if not found then print("  none") end
-
-header("Export buses - paste into prism.cfg 'buses' and set each process:")
-found = false
-for addr in component.list("me_exportbus") do
-  local p = component.proxy(addr)
-  for side = 0, 5 do
-    -- No bus on a side either throws or returns nil, "reason".
-    local ok, stack, err = pcall(p.getExportConfiguration, side, 1)
-    if ok and not (stack == nil and err) then
-      local marker = stack and (stack.label or stack.name) or "(empty)"
-      print(string.format('  { address = "%s", side = sides.%s, process = "?" }, -- slot 1: %s',
-        addr:sub(1, 8), SIDE_NAMES[side], marker))
-      found = true
-    end
-  end
-end
-if not found then print("  none - put an adapter against the cable block your export buses are on") end
-
-header("GT Stocking Input Buses (ME) - paste into prism.cfg 'stockers' and set each process:")
-found = false
-for addr in component.list("me_inputbus") do
-  local p = component.proxy(addr)
-  local okC, stack = pcall(p.getConfiguration, 1)
-  local marker = okC and type(stack) == "table" and (stack.label or stack.name) or "(empty)"
-  local okA, adv = pcall(p.isAdvanced)
-  print(string.format('  { address = "%s", process = "?" }, -- %sslot 1: %s',
-    addr:sub(1, 8), okA and adv and "advanced, " or "", marker))
-  found = true
-end
-if not found then print("  none - put an adapter against each stocking input bus (needs a GTNH build with its OC driver)") end
-
-header("ME interfaces (feeder 'interface'):")
-found = false
-for addr in component.list("me_interface") do print("  " .. addr); found = true end
-if not found then print("  none") end
-
-header("Transposers (feeder 'transposer') and what they touch:")
-found = false
-for addr in component.list("transposer") do
-  local t = component.proxy(addr)
-  print("  " .. addr)
-  for side = 0, 5 do
-    local ok, size = pcall(t.getInventorySize, side)
-    if ok and type(size) == "number" then
-      local okName, name = pcall(t.getInventoryName, side)
-      print(string.format("    sides.%-6s %-40s %d slots", SIDE_NAMES[side],
-        okName and tostring(name) or "?", size))
-    end
-  end
-  found = true
-end
-if not found then print("  none") end
-
-header("GT machines (prism.cfg 'machines') - toggle one with a soft mallet to spot it:")
-found = false
-for addr in component.list("gt_machine") do
-  local m = component.proxy(addr)
-  local function try(fn)
-    if m[fn] == nil then return nil end
-    local ok, v = pcall(m[fn])
-    if ok then return v end
-    return nil
-  end
-  local where = ""
-  if m.getCoordinates then
-    local ok, x, y, z = pcall(m.getCoordinates)
-    if ok and x then where = ("  at %s %s %s"):format(tostring(x), tostring(y), tostring(z)) end
-  end
-  local active = try("isMachineActive")
-  local allowed = try("isWorkAllowed")
-  local state = allowed == false and "disabled" or (active and "working" or "idle")
-  print(string.format('  { address = "%s", process = "?", name = "?" }, -- %s%s',
-    addr:sub(1, 8), state, where))
-  found = true
-end
-if not found then print("  none - put an adapter against each GT machine you want to watch") end
+section("GT machines (prism.cfg 'machines') - toggle one with a soft mallet to spot it:",
+  map(probe.addresses("gt_machine"), function(a)
+    local m = probe.machine(a)
+    return ('  { address = "%s", process = "?", name = "?" }, -- %s%s'):format(a:sub(1, 8), m.state,
+      m.where ~= "" and (" " .. m.where) or "")
+  end), "none - put an adapter against each GT machine you want to watch")
 print("")

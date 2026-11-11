@@ -8,7 +8,9 @@ a status, and broadcasts before that.
 If `token` is set in `prism.cfg`, every command must carry the same `token` field or it's ignored.
 
 Packets are limited to about 8 KB (`modem.maxPacketSize()`). The router trims `unassigned` / `list`
-until a message fits and sets `truncated = true` when it had to. That's why items and previews are paged.
+until a message fits and sets `truncated = true` when it had to, then drops `buses[].filters`. That's why
+items and previews are paged. Encoding and decoding live in `lib/prism/protocol.lua`; the router's command
+handlers are the table in `lib/prism/router/commands.lua` (a test checks it matches the table below).
 
 ## Commands (screen → router)
 
@@ -40,7 +42,7 @@ until a message fits and sets `truncated = true` when it had to. That's why item
 | `lastError` | string? | Problem during the last scan |
 | `processes` | `{ [name] = { types, items, buses, stalled? } }` | Backlog per process. `buses` counts buses, stockers and feeders; `stalled` is seconds |
 | `buses` | `{ name, process, filters = { label... }, kind? }[]` | Export buses, then stockers (`kind = "stocker"`; `filters` are the stocked items). `filters` may be dropped to fit the packet |
-| `feeders` | `{ name, process, state, label?, batch?, fed }[]` | |
+| `feeders` | `{ name, process, state, level, label?, batch?, fed }[]` | `level`: `ok`, `idle`, `warn` or `bad` (added after 0.5.0; for older routers the screen reads `state`) |
 | `machines` | `{ name, process, state, progress?, eu?, idle? }[]` | `progress`/`eu` are 0..1; `idle` is seconds idle with work waiting |
 | `unassigned` | `{ key, label, size }[]` | Top 25 by quantity |
 | `unassignedCount`, `catalogCount` | number | |

@@ -25,15 +25,16 @@
 
 ## Code conventions
 
-- **Each program is one self-contained file.** No `require` of project files, so any file can be
-  copied to a computer on its own.
+- **Programs are thin; modules do the work.** See the module map in [docs/architecture.md](docs/architecture.md).
+  Each module's header comment is its interface. `prism-update.lua` stays self-contained: it installs the rest.
+  A new file in `src/` or `lib/` needs a line in [manifest.lua](manifest.lua).
 - **Target OpenComputers' Lua 5.3.** No 5.4-only features. Use OpenOS's `unicode` library for text width,
   not `utf8`.
 - **Don't block.** The router must keep yielding (`event.pull*`) between steps; long work without yielding
   crashes OpenComputers programs ("too long without yielding").
 - **Wireless packets are about 8 KB.** Page or trim lists; never send unbounded data.
 - **Never overwrite user files** except through `prism-setup` (which asks and keeps a `.bak`). New config
-  keys get a default in `loadConfig()` and are written by `prism-setup`; data files (`prism-*.cfg`) stay
+  keys get a default in `lib/prism/config.lua` (which `prism-setup` writes from); data files (`prism-*.cfg`) stay
   backward compatible.
 - **Protocol changes add fields; they don't rename them**, so router and screen can be one version apart.
 - 2-space indent, `local` everything, short functions with a comment saying *why* when it isn't obvious.
@@ -42,7 +43,8 @@
 
 | You changed | Update |
 |---|---|
-| A config option | `config/prism.example.cfg`, `docs/configuration.md`, the matching render in `src/prism-setup.lua` |
+| A config option | `lib/prism/config.lua` (default), `config/prism.example.cfg`, `docs/configuration.md`; `lib/prism/setup/render.lua` if it isn't a plain tuning value |
+| A module's interface | its header comment, and the module map in `docs/architecture.md` if its role changed |
 | A wireless message or command | `docs/protocol.md` |
 | How routing, feeders, stalls or the loop work | `docs/architecture.md` |
 | Hardware or build steps | `docs/setup.md` |
@@ -52,7 +54,7 @@
 ## Releasing
 
 1. Move **Unreleased** in `CHANGELOG.md` to a new version heading with the date.
-2. Bump `VERSION` in every `src/*.lua` file (`grep -n 'local VERSION' src/`).
+2. Bump the version in `lib/prism/version.lua` and `VERSION` in `src/prism-update.lua`.
 3. `make check`, commit and push to `main`.
 4. Publish a GitHub **release** (a bare tag isn't enough: `prism-update` asks for the latest release):
    `gh release create vX.Y.Z --title "PRISM X.Y.Z" --notes-file <the changelog section>`.

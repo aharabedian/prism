@@ -77,10 +77,12 @@ wget -f https://raw.githubusercontent.com/aharabedian/prism/main/src/prism-updat
 /home/prism-update
 ```
 
-This installs the latest release. It puts `prism`, `prism-control`, `prism-setup`, `prism-discover` and `prism-update` in `/home/bin` (on the shell path)
-and the annotated `prism.example.cfg` in `/home` for reference.
+This installs the latest release. It puts `prism`, `prism-control`, `prism-setup`, `prism-discover` and `prism-update` in `/home/bin` (on the shell path),
+the modules they share in `/home/lib/prism/`, and the annotated `prism.example.cfg` in `/home` for reference.
+[manifest.lua](../manifest.lua) lists every file and where it goes.
 
-Without an Internet Card, copy the files from `src/` into `/home/bin/` by any means you like (pastebin, a floppy, etc.).
+Without an Internet Card, copy the files from `src/` into `/home/bin/` and `lib/prism/` into `/home/lib/prism/` by any means
+you like (pastebin, a floppy, etc.). A program started without its modules says so.
 
 ## First run
 

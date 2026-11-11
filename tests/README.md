@@ -25,6 +25,8 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_setup.lua` | prism-setup for router and screen: rules, hardware, wireless, start on boot, re-runs, backups, cancelling; both programs running on its output |
 | `test_update.lua` | prism-update install/update, keeping config, pointing to prism-setup, rejecting bad downloads, migrating old `router*.cfg` |
 | `test_example_config.lua` | The shipped example config loads and routes with its default rules |
+| `test_units.lua` | Pure modules on their own: `rules`, `router/planner`, `router/slots`, `protocol` |
+| `test_modules.lua` | Packaging and contracts: `manifest.lua` lists every file, one version, docs list every setting and command, the program bootstrap |
 | `helper.lua` | Shared setup (`H`) |
 | `mocks/oc.lua` | The mock world (`M`) |
 
@@ -50,6 +52,9 @@ H.run("prism.lua", cfg)
 check(M.busHosts["eb111111-1111"][2][1].label == "Crushed Copper Ore", "copper goes to the washer bus")
 H.done()
 ```
+
+Pure modules can also be tested directly, without running a program: `require("prism.rules")` and so on
+(the helper puts `lib/` on `package.path`). See `test_units.lua`.
 
 Key ideas:
 
