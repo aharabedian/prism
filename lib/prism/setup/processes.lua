@@ -60,7 +60,7 @@ local function processesIn(old)
   local function add(p)
     if type(p) == "string" and p ~= "ignore" and not seen[p] then seen[p] = true; list[#list + 1] = p end
   end
-  for _, key in ipairs({ "rules", "buses", "stockers", "feeders", "machines" }) do
+  for _, key in ipairs({ "rules", "buses", "stockers", "interfaces", "feeders", "machines" }) do
     for _, e in ipairs(old[key] or {}) do add(e.process) end
   end
   return list
@@ -129,14 +129,14 @@ end
 
 function P.coverage(c, procs)
   local served, routed = {}, {}
-  for _, key in ipairs({ "buses", "stockers", "feeders" }) do
+  for _, key in ipairs({ "buses", "stockers", "interfaces", "feeders" }) do
     for _, e in ipairs(c[key] or {}) do served[e.process] = true end
   end
   for _, r in ipairs(c.rules or {}) do routed[r.process] = true end
   local warnings = {}
   for _, p in ipairs(procs) do
     if routed[p] and not served[p] then
-      warnings[#warnings + 1] = ("no bus, stocker or feeder for %q - its items will wait in the network"):format(p)
+      warnings[#warnings + 1] = ("no bus, stocker, interface or feeder for %q - its items will wait in the network"):format(p)
     elseif served[p] and not routed[p] then
       warnings[#warnings + 1] = ("no rule sends anything to %q - route items on the control screen"):format(p)
     end

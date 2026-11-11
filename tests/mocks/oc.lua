@@ -11,6 +11,7 @@
     M.proxies[addr]         every component; add your own (machines, transposers...)
     M.machine(addr, fields) add a gt_machine whose methods return `fields` values
     M.stocker(addr, opts)   add a GT Stocking Input Bus (me_inputbus); returns { slots, autoPull }
+    M.iface(addr, opts)     add an ME Interface block; returns { config, stock, exported, restock(), drain() }
     M.web[url] = text       content served by internet.request (missing -> HTTP 404,
                             { status = N } -> HTTP N); M.requests logs every request
     M.onPull(n)             called on every event.pullMultiple; return an event
@@ -156,6 +157,65 @@ function M.machine(addr, fields)
     end
   end })
   return fields
+end
+
+---------------------------------------------------------------- ME interface blocks
+-- An ME Interface block (component "me_interface") with 9 config slots. setInterfaceConfiguration(slot,
+-- database, entry, size) stocks the item in that database entry (size defaults to 64); an empty entry
+-- clears the slot. Slots outside 1..9 throw. getInterfaceConfiguration(slot) returns the configured item. Returns { config, stock, exported } plus:
+--   restock()  the interface pulls each configured item from the subnet (M.items) up to its size, and
+--              hands back stock that is no longer configured
+--   drain()    an import bus on another network takes everything stocked (counted in `exported`)
+-- opts.broken: every call throws (chunk unloaded).
+function M.iface(addr, opts)
+  opts = opts or {}
+  local i = { config = {}, stock = {}, exported = {} }
+  local function key(t) return t.name .. ":" .. math.floor(t.damage) end
+  local function giveBack(st)
+    local it = findItem(st.name, math.floor(st.damage))
+    if it then it.size = it.size + st.size
+    else M.items[#M.items + 1] = { name = st.name, damage = math.floor(st.damage), label = st.label, size = st.size } end
+  end
+  function i.restock()
+    for slot = 1, 9 do
+      local c, st = i.config[slot], i.stock[slot]
+      if st and (not c or key(c) ~= key(st)) then giveBack(st); i.stock[slot], st = nil, nil end
+      if c then
+        local it = findItem(c.name, math.floor(c.damage))
+        local have = st and st.size or 0
+        if it and have < c.want then
+          local take = math.min(c.want - have, it.size)
+          it.size = it.size - take
+          for n, x in ipairs(M.items) do if x == it and x.size == 0 then table.remove(M.items, n) end end
+          i.stock[slot] = { name = c.name, damage = c.damage, label = c.label, size = have + take }
+        end
+      end
+    end
+  end
+  function i.drain()
+    for slot, st in pairs(i.stock) do
+      i.exported[key(st)] = (i.exported[key(st)] or 0) + st.size
+      i.stock[slot] = nil
+    end
+  end
+  proxies[addr] = {
+    address = addr, type = "me_interface",
+    getInterfaceConfiguration = function(slot)
+      if opts.broken then error("chunk unloaded") end
+      local c = i.config[slot or 1]
+      return c and { name = c.name, damage = c.damage + 0.0, label = c.label, size = c.want, maxSize = 64 } or nil
+    end,
+    setInterfaceConfiguration = function(slot, dbAddr, entry, size)
+      if opts.broken then error("chunk unloaded") end
+      if math.type(slot) == nil or slot < 1 or slot > 9 then error("invalid slot") end
+      assert(dbAddr == database.address, "bad db address")
+      local st = dbSlots[entry]
+      i.config[slot] = st and { name = st.name, damage = st.damage, label = st.label, want = size or 64 } or nil
+      M.setCalls = M.setCalls + 1
+      return true
+    end,
+  }
+  return i
 end
 
 ---------------------------------------------------------------- GT stocking input buses

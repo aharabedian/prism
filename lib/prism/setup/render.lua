@@ -71,7 +71,7 @@ function R.router(c)
   setting(L, "token", c.token, "shared secret the screen must send; nil = none")
   setting(L, "slotsPerBus", c.slotsPerBus or config.ROUTER_DEFAULTS.slotsPerBus, "filter slots per export bus: 1, 5 or 9")
   for _, k in ipairs({ "network", "database", "modemPort", "token", "slotsPerBus",
-                       "buses", "stockers", "feeders", "machines", "rules", "overrides" }) do known[k] = true end
+                       "buses", "stockers", "interfaces", "feeders", "machines", "rules", "overrides" }) do known[k] = true end
 
   local function opt(name) return name and (", name = " .. q(name)) or "" end
   L[#L + 1] = ""
@@ -84,6 +84,12 @@ function R.router(c)
   L[#L + 1] = "  stockers = {"
   for _, b in ipairs(c.stockers or {}) do
     L[#L + 1] = ("    { address = %s, process = %s%s },"):format(q(b.address), q(b.process), opt(b.name))
+  end
+  L[#L + 1] = "  },"
+  L[#L + 1] = "  interfaces = {"
+  for _, b in ipairs(c.interfaces or {}) do
+    L[#L + 1] = ("    { address = %s, process = %s%s%s },"):format(q(b.address), q(b.process), opt(b.name),
+      b.slots and (", slots = " .. b.slots) or "")
   end
   L[#L + 1] = "  },"
   L[#L + 1] = "  feeders = {"

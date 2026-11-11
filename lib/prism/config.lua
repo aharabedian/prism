@@ -23,7 +23,7 @@ C.ROUTER_TUNING = {
   { "verbose",         false, "log every filter and interface change" },
 }
 C.ROUTER_DEFAULTS = { slotsPerBus = 9 }
-C.ROUTER_LISTS = { "overrides", "buses", "stockers", "feeders", "machines" }
+C.ROUTER_LISTS = { "overrides", "buses", "stockers", "interfaces", "feeders", "machines" }
 
 C.CONTROL_TUNING = {
   { "history",    60, "backlog samples kept for the sparklines" },

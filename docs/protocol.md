@@ -41,7 +41,7 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `uptime`, `interval`, `cycles`, `cycleMs`, `writes` | number | Housekeeping |
 | `lastError` | string? | Problem during the last scan |
 | `processes` | `{ [name] = { types, items, buses, stalled? } }` | Backlog per process. `buses` counts buses, stockers and feeders; `stalled` is seconds |
-| `buses` | `{ name, process, filters = { label... }, kind? }[]` | Export buses, then stockers (`kind = "stocker"`; `filters` are the stocked items). `filters` may be dropped to fit the packet |
+| `buses` | `{ name, process, filters = { label... }, kind? }[]` | Export buses, then stockers (`kind = "stocker"`), then interfaces (`kind = "interface"`); for those two `filters` are the stocked items. `filters` may be dropped to fit the packet |
 | `feeders` | `{ name, process, state, level, label?, batch?, fed }[]` | `level`: `ok`, `idle`, `warn` or `bad` (added after 0.5.0; for older routers the screen reads `state`) |
 | `machines` | `{ name, process, state, progress?, eu?, idle? }[]` | `progress`/`eu` are 0..1; `idle` is seconds idle with work waiting |
 | `unassigned` | `{ key, label, size }[]` | Top 25 by quantity |

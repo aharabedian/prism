@@ -65,8 +65,10 @@ section("GT Stocking Input Buses (ME) - paste into prism.cfg 'stockers' and set 
       a:sub(1, 8), s.advanced and "advanced, " or "", s.marker)
   end), "none - put an adapter against each stocking input bus (needs a GTNH build with its OC driver)")
 
-section("ME interfaces (feeder 'interface'):", map(probe.addresses("me_interface"), function(a) return "  " .. a end),
-  "none")
+section("ME interface blocks (a feeder's 'interface', or prism.cfg 'interfaces' for another network to pull from):",
+  map(probe.addresses("me_interface"), function(a)
+    return ('  { address = "%s", process = "?" }, -- %s, slot 1: %s'):format(a:sub(1, 8), a, probe.interfaceMarker(a))
+  end), "none")
 
 section("Transposers (feeder 'transposer') and what they touch:", map(probe.addresses("transposer"), function(a)
   local out = { "  " .. a }

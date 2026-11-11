@@ -56,7 +56,8 @@ function Feeder.open(spec, i, env)
   end
   local f = setmetatable({ iface = iface, tp = tp, ifaceSide = spec.interfaceSide, machineSide = spec.machineSide,
                            process = spec.process, name = name, slot = spec.slot or 1, env = env,
-                           item = "?", fed = 0, state = "starting" }, Feeder)
+                           item = "?", fed = 0, state = "starting",
+                           claims = { { address = iface.address, slot = spec.slot or 1 } } }, Feeder)
   local ok, err = f:setIface(nil)
   if not ok then error(name .. ": can't configure the interface: " .. tostring(err), 0) end
   return f

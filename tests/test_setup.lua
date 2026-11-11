@@ -154,7 +154,7 @@ out = wizard({
 check(has("[1 2 4]") and has("Capacity Cards per bus: 0, 1 or 2 [2]"), "previous processes and cards are the defaults")
 check(has("the 6 standard rules") and not has("instead of your current"), "unchanged rules need no question")
 check(has("[wash]") and has("[Washer 1]") and has("[4242]") and has("[s3cret]"), "previous answers offered as defaults")
-check(has('warning: no bus, stocker or feeder for "crush"'), "warns when a routed process has nowhere to go")
+check(has('warning: no bus, stocker, interface or feeder for "crush"'), "warns when a routed process has nowhere to go")
 check(has('warning: no rule sends anything to "smelt"'), "warns when a bus has a process no rule uses")
 check(not has(".shrc will be"), ".shrc left alone when nothing changes")
 c = loadCfg(ROUTER_CFG)
@@ -195,6 +195,46 @@ out = wizard(answers({ "", "", "7", "1" }, 13, { "", "", "y" }))
 check(has("enter a number") and has("[0]"), "re-asks on an invalid choice; wireless off is the new default")
 check(loadCfg(ROUTER_CFG).network == "me000000-cccc", "valid answer after a bad one is used")
 check(read(SHRC) == "echo hello\nprism\n", "start on boot added back")
+
+---------------------------------------------------------------- an interface another network pulls from
+-- Answer by prompt instead of position: fn(prompt) -> answer. Returns everything printed.
+local function wizardBy(fn)
+  local printed, last, n = {}, "", 0
+  local oldPrint, oldWrite, oldRead = print, io.write, io.read
+  print = function(...)
+    local parts = {}
+    for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
+    printed[#printed + 1] = table.concat(parts, "\t") .. "\n"
+  end
+  io.write = function(...) for _, s in ipairs({ ... }) do last = tostring(s); printed[#printed + 1] = last end end
+  io.read = function() n = n + 1; assert(n < 200, "wizard looped"); return fn(last) end
+  local ok, err = pcall(H.run, "prism-setup.lua")
+  print, io.write, io.read = oldPrint, oldWrite, oldRead
+  if not ok then error(err, 0) end
+  return table.concat(printed)
+end
+local mainIface = M.iface("if222222-2222")
+mainIface.config[1] = { name = "minecraft:sand", damage = 0, label = "Sand", want = 1 }   -- marker
+local naming = false
+out = wizardBy(function(prompt)
+  if prompt:find("process for this interface", 1, true) then naming = true; return "export" end
+  if naming and prompt:find("name (optional)", 1, true) then naming = false; return "Main net" end
+  if prompt:find("Save?", 1, true) then return "y" end
+  return ""
+end)
+check(has("which ME interface block") and has("Interfaces another network pulls from"),
+  "a second interface block: the feeder asks which it uses, then the interfaces step")
+check(has("interface if222222 - slot 1: Sand") and not has("interface if000000 - slot 1"),
+  "offers the new interface with its marker, not the feeder's")
+c = loadCfg(ROUTER_CFG)
+check(#c.interfaces == 1 and c.interfaces[1].address == "if222222-2222" and c.interfaces[1].process == "export"
+  and c.interfaces[1].name == "Main net", "interface saved")
+check(c.feeders[1].interface == "if000000-iiii", "the feeder keeps its own interface")
+check(has('warning: no rule sends anything to "export"'), "coverage counts interfaces as outputs")
+out = wizardBy(function(prompt) if prompt:find("Save?", 1, true) then return "y" end return "" end)
+check(not has("which ME interface block") and has("[export]") and has("[Main net]"),
+  "re-run: the feeder no longer offers the output interface; its answers are the defaults")
+check(#loadCfg(ROUTER_CFG).interfaces == 1, "interface kept")
 
 ---------------------------------------------------------------- control screen
 out = wizard({ "2", "5555", "abc", "n", "", "y" })
