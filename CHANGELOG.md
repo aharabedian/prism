@@ -5,6 +5,14 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Setup editor**: on a router that already has `prism.cfg` and a tier 2 screen or better, `prism-setup`
+  opens a full-screen editor. Tabs list every export bus, stocking bus, interface, transposer and GT machine
+  found, plus configured ones that weren't; tap one to set its process or name, drop it, or change a feeder's
+  interface and sides. GENERAL covers the network, database, Capacity Cards, wireless and start on boot.
+  SAVE lists the changes and warnings before writing (keeping `prism.cfg.bak`). `prism-setup --text` (or TEXT
+  SETUP) runs the guided questions as before.
+
 ## [1.0.0] - 2026-11-11
 
 ### Added

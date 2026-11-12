@@ -30,6 +30,7 @@ docs-images: screens
 	cp build/screens/route-assign.png docs/images/route-item.png
 	cp build/screens/fallback-process.png docs/images/fallbacks.png
 	cp build/screens/fallback-route.png docs/images/fallback-items.png
+	cp build/screens/setup-bus-named.png docs/images/setup-editor.png
 
 clean:
 	rm -rf build

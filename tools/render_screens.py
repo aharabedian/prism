@@ -3,7 +3,8 @@
 
 Usage: python3 tools/render_screens.py <dump dir> <output dir> [name ...]
 
-Each dump has one "char<TAB>fg<TAB>bg" line per cell of the 160x50 screen.
+Each dump starts with "size<TAB>W<TAB>H" (older dumps: 160x50), then has one "char<TAB>fg<TAB>bg"
+line per cell.
 Block characters are drawn as shapes so bars and sparklines look right with any font.
 Requires Pillow: `make dev` installs it into .venv (see requirements.txt).
 """
@@ -12,7 +13,7 @@ import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
-W, H, CW, CH = 160, 50, 8, 16
+CW, CH = 8, 16
 SPARK = "▁▂▃▄▅▆▇"
 FONTS = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
@@ -30,10 +31,14 @@ def load_font():
 
 
 def render(src, dst, font):
-    img = Image.new("RGB", (W * CW, H * CH))
-    draw = ImageDraw.Draw(img)
     with open(src, encoding="utf-8") as f:
         cells = f.read().split("\n")
+    W, H = 160, 50
+    if cells and cells[0].startswith("size\t"):
+        _, w, h = cells.pop(0).split("\t")
+        W, H = int(w), int(h)
+    img = Image.new("RGB", (W * CW, H * CH))
+    draw = ImageDraw.Draw(img)
     for i, line in enumerate(cells):
         if not line:
             continue

@@ -42,7 +42,8 @@ function C.run()
     print("warning: no GPU found - prism-control needs a tier 3 GPU and screen")
   end
   if not input.yes("Save?", true) then print("nothing saved"); return end
-  if not save.commit(cfgPath, text, shrc) then return end
+  local saved, why = save.commit(cfgPath, text, shrc)
+  if not saved then print(why); return end
   print("saved. Start prism-control to use it.")
 end
 

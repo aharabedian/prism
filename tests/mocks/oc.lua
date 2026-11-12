@@ -260,14 +260,19 @@ function M.stocker(addr, opts)
 end
 
 ---------------------------------------------------------------- GPU + screen
-local GW, GH = 160, 50
-M.W, M.H = GW, GH
-local buf, fgb, bgb = {}, {}, {}
-for y = 1, GH do
-  buf[y], fgb[y], bgb[y] = {}, {}, {}
-  for x = 1, GW do buf[y][x], fgb[y][x], bgb[y][x] = " ", 0xffffff, 0 end
+local GW, GH, buf, fgb, bgb
+-- A blank w x h screen (160x50 = tier 3, 80x25 = tier 2). The GPU's maxResolution follows it.
+function M.resize(w, h)
+  GW, GH = w, h
+  M.W, M.H = GW, GH
+  buf, fgb, bgb = {}, {}, {}
+  for y = 1, GH do
+    buf[y], fgb[y], bgb[y] = {}, {}, {}
+    for x = 1, GW do buf[y][x], fgb[y][x], bgb[y][x] = " ", 0xffffff, 0 end
+  end
+  M.buf, M.fgb, M.bgb = buf, fgb, bgb
 end
-M.buf, M.fgb, M.bgb = buf, fgb, bgb
+M.resize(160, 50)
 local cf, cb = 0xffffff, 0
 local function cell(x, y, ch)
   if x >= 1 and x <= GW and y >= 1 and y <= GH then
@@ -308,9 +313,11 @@ function M.find(text, minY, minX)
   end
 end
 
--- One "char<TAB>fg<TAB>bg" line per cell; tools/render_screens.py turns it into a PNG.
+-- A "size<TAB>W<TAB>H" line, then one "char<TAB>fg<TAB>bg" line per cell; tools/render_screens.py
+-- turns it into a PNG.
 function M.dump(path)
   local f = assert(io.open(path, "w"))
+  f:write(string.format("size\t%d\t%d\n", GW, GH))
   for y = 1, GH do
     for x = 1, GW do f:write(string.format("%s\t%06x\t%06x\n", buf[y][x], fgb[y][x], bgb[y][x])) end
   end

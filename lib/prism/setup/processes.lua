@@ -3,6 +3,7 @@
   step(old) -> procs, rules     ask which processes there are machines for; offer standard rules
   rulesFor(has) -> rules        standard ore-processing rules for a set { [process] = true }
   coverage(c, procs) -> warnings[]   processes routed to but not served, and the other way round
+  inConfig(c) -> names[]        every process a config's rules and hardware mention, first-seen order
 ]]
 
 local filesystem = require("filesystem")
@@ -55,7 +56,7 @@ local function sameRules(a, b)
 end
 
 -- Every process the current config mentions, in first-seen order.
-local function processesIn(old)
+function P.inConfig(old)
   local seen, list = {}, {}
   local function add(p)
     if type(p) == "string" and p ~= "ignore" and not seen[p] then seen[p] = true; list[#list + 1] = p end
@@ -74,7 +75,7 @@ function P.step(old)
     options[#options + 1] = { id = s.id, label = ("%-11s %s"):format(s.id, s.machine) }
     isOption[s.id] = true
   end
-  local previous = processesIn(old)
+  local previous = P.inConfig(old)
   for _, p in ipairs(previous) do
     if not isOption[p] then
       options[#options + 1] = { id = p, label = ("%-11s (from your config)"):format(p) }

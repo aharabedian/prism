@@ -63,6 +63,9 @@ installs from a fork ([details](docs/setup.md#updating)).
 3. Run `prism` on the router and `prism-control` on the screen (or reboot both, if you chose start on boot).
 4. Tap anything under **UNASSIGNED** to route it, or write rules in the **RULES** tab.
 
+Added a bus or a machine later? Run `prism-setup` on the router again: with a screen attached (tier 2 or
+better) it opens an [editor](docs/setup.md#changing-hardware-later) where you tap what each component is for.
+
 ## Documentation
 
 | Doc | What's in it |

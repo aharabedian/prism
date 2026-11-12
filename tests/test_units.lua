@@ -1,5 +1,5 @@
 -- test_units.lua: the pure modules on their own, without running a program: rules, the planner,
--- slot keeping and the wire format.
+-- slot keeping, the wire format and prism-setup's editor.
 local H = dofile((debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "./") .. "helper.lua")
 local M = require("oc")
 local check = H.check
@@ -8,6 +8,7 @@ local rules    = require("prism.rules")
 local planner  = require("prism.router.planner")
 local slots    = require("prism.router.slots")
 local protocol = require("prism.protocol")
+local Editor   = require("prism.setup.editor")
 
 ---------------------------------------------------------------- rules
 local cfg = { defaultPriority = 10, overrides = { ["b:0"] = { process = "crush" } } }
@@ -142,6 +143,74 @@ check(#msg.unassigned == 200 and msg.truncated == nil, "encode leaves the origin
 check(protocol.decode("not lua {") == nil and protocol.decode(nil) == nil, "decode rejects garbage")
 check(protocol.feederLevel("blocked: 3 in machine") == "bad" and protocol.feederLevel("feeding") == "ok"
   and protocol.feederLevel("stocking") == "warn", "feeder states map to levels")
+
+---------------------------------------------------------------- setup editor
+local old = {
+  network = "me000000", database = "db000000", modemPort = 4242, interval = 7,
+  rules = { { pattern = "Ore$", process = "crush" } },
+  processes = { chembath = { overflow = 10 } },
+  buses = { { address = "eb11", side = 2, process = "wash", name = "Washer 1" },
+            { address = "eb99", side = 3, process = "crush" } },                 -- not attached any more
+  feeders = {}, machines = {}, stockers = {}, interfaces = {},
+}
+local snap = {
+  networks = { "me000000-0000" }, databases = { "db000000-0000" },
+  buses = { { addr = "eb111111-1111", side = 2, marker = "Cobblestone" }, { addr = "eb111111-1111", side = 1, marker = "(empty)" } },
+  stockers = { { addr = "st010000-ssss", marker = "Sand", advanced = true } },
+  interfaces = { { addr = "me000000-0000", marker = "(empty)" }, { addr = "if000000-iiii", marker = "(empty)" },
+                 { addr = "if222222-iiii", marker = "Glass" } },
+  transposers = { { addr = "tp000000-tttt", inv = { { side = 4, name = "Interface", size = 9 }, { side = 5, name = "Machine", size = 3 } },
+                    ifaceSide = 4, machineSide = 5 },
+                  { addr = "tp999999-tttt", inv = { { side = 0, name = "Chest", size = 27 } } } },
+  machines = { { addr = "gm010000-aaaa", state = "idle", where = "" } },
+}
+old.network = "me000000-0000"
+local ed = Editor.new(old, snap)
+local rows = ed.rows("buses")
+check(#rows == 3 and rows[1].key == "eb111111-1111|2" and rows[1].entry.process == "wash"
+  and rows[2].entry == nil and rows[3].found == nil and rows[3].entry.address == "eb99",
+  "editor: found buses matched to entries by address prefix and side, then entries not found")
+check(#ed.changes() == 0, "editor: no changes before any edit")
+check(ed.processes()[1] == "crush" and ed.processes()[2] == "wash" and ed.processes()[3] == "chembath",
+  "editor: processes from rules, hardware and the processes table")
+
+check(ed.assign("buses", "eb111111-1111|1", "crush") and #ed.c.buses == 3 and ed.c.buses[3].address == "eb111111-1111"
+  and ed.c.buses[3].side == 1, "editor: assigning an unused bus adds an entry with its full address")
+ed.rename("buses", "eb111111-1111|1", "Mac 1")
+ed.assign("buses", "eb111111-1111|2", "chembath")
+ed.rename("buses", "eb111111-1111|2", "")
+ed.drop("buses", "eb99|3")
+check(old.buses[1].process == "wash" and #old.buses == 2, "editor: the old config is never changed")
+local ch = table.concat(ed.changes(), "\n")
+check(ch:find("+ bus eb111111 up: crush (Mac 1)", 1, true) and ch:find("~ bus eb11 north: wash (Washer 1) -> chembath\n", 1, true)
+  and ch:find("- bus eb99 south: crush", 1, true), "editor: changes list added, changed and removed entries")
+
+local irows = ed.rows("interfaces")
+check(#irows == 2 and irows[1].key == "if000000-iiii", "editor: the network's interface isn't offered as an output")
+local assigned, why = ed.assign("feeders", "tp999999-tttt", "crush")
+check(not assigned and why:find("fewer than two"), "editor: a transposer touching one inventory can't be a feeder")
+check(ed.assign("feeders", "tp000000-tttt", "centrifuge"), "editor: feeder added")
+local f = ed.c.feeders[1]
+check(f.interface == "if000000-iiii" and f.interfaceSide == 4 and f.machineSide == 5, "editor: feeder gets a free interface and the guessed sides")
+check(#ed.rows("interfaces") == 1 and ed.rows("interfaces")[1].key == "if222222-iiii", "editor: a feeder's interface leaves the interface list")
+ed.setFeeder("tp000000-tttt", "machineSide", 4)
+check(ed.c.feeders[1].machineSide == 4, "editor: feeder sides can be changed")
+check(ed.feederChoices("tp000000-tttt").interfaces[1] == "if000000-iiii", "editor: feeder interface choices include its own")
+ed.assign("interfaces", "if222222-iiii", "export")
+check(#ed.feederChoices("tp000000-tttt").interfaces == 1, "editor: an interface another network pulls from isn't offered to feeders")
+check(ed.result().feeders[1].slot == 1, "editor: feeder slots numbered per interface")
+ed.addProcess("ebf")
+check(ed.processes()[#ed.processes()] == "ebf" and ed.assign("stockers", "st010000-ssss", "ebf"), "editor: new processes can be added and used")
+ed.set("database", nil)
+local w = table.concat(ed.warnings(), "\n")
+check(w:find("Database Upgrade", 1, true), "editor: warns that buses need a database")
+check(w:find('"export"', 1, true) and w:find("no rule sends"), "editor: warns about processes no rule sends items to")
+check(table.concat(ed.changes(), "\n"):find("~ database: db000000 -> none", 1, true), "editor: general settings show in changes")
+ed.rescan({ networks = {}, databases = {}, buses = {}, stockers = {}, interfaces = {}, transposers = {}, machines = {} })
+check(#ed.rows("buses") == 2 and not ed.rows("buses")[1].found, "editor: a rescan keeps edits; entries not found are flagged")
+check(Editor.new({}, snap).processes()[1] == "crush", "editor: standard processes offered when the config names none")
+check(Editor.new(old, snap, { { pattern = "x", process = "smelt" } }).processes()[3] == "smelt",
+  "editor: processes from prism-rules.cfg are offered")
 
 local _ = M
 H.done()
