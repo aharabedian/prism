@@ -5,6 +5,11 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Reporting to LENS**, the base-wide monitoring hub: with `lensPort` set, the router broadcasts its
+  backlog, machine states (running / idle / down) and alerts after every scan, on its own port and secret
+  (`lensNode`, `lensToken`). Off by default. See "Reporting to LENS" in docs/configuration.md.
+
 ## [1.1.0] - 2026-11-11
 
 ### Added
