@@ -32,6 +32,8 @@ function ListView.new(ui, m)
 
   local function batchText(r) return (r.batch or 1) > 1 and ("×" .. r.batch) or "" end
   local function processColor(p) return p == "ignore" and C.dim or C.info end
+  -- "chembath›wash" when the row has a fallback
+  local function processText(r) return r.fallback and (r.process .. "›" .. r.fallback) or r.process end
 
   -- A confirm-on-second-tap button on the action row.
   local function dangerButton(x, y, what, label, again, fn)
@@ -58,13 +60,14 @@ function ListView.new(ui, m)
     filter = true,
     rows = function() return S.items or {} end,
     header = function()
-      return fit("item", RW - 30) .. rfit("qty", 7) .. " " .. fit("process", 11) .. rfit("batch", 5) .. rfit("from", 6)
+      return fit("item", RW - 34) .. rfit("qty", 7) .. " " .. fit("process", 15) .. rfit("batch", 5) .. rfit("from", 6)
     end,
     row = function(y, r, rb)
       local present = (r.size or 0) > 0
-      put(RX, y, fit(r.label or r.key, RW - 30), present and C.text or C.dim, rb)
-      put(RX + RW - 30, y, rfit(present and U.fmtNum(r.size) or "absent", 7) .. " ", present and C.text or C.dim, rb)
-      put(RX + RW - 22, y, fit(r.process or "unassigned", 11), r.process == nil and C.warn or processColor(r.process), rb)
+      put(RX, y, fit(r.label or r.key, RW - 34), present and C.text or C.dim, rb)
+      put(RX + RW - 34, y, rfit(present and U.fmtNum(r.size) or "absent", 7) .. " ", present and C.text or C.dim, rb)
+      local pc = r.process == nil and C.warn or (r.spilled and C.warn) or processColor(r.process)
+      put(RX + RW - 26, y, fit(r.process and processText(r) or "unassigned", 15), pc, rb)
       put(RX + RW - 11, y, rfit(batchText(r), 5), C.accent, rb)
       put(RX + RW - 6, y, rfit(r.source or "", 6), C.dim, rb)
     end,
@@ -81,11 +84,11 @@ function ListView.new(ui, m)
     filter = true,
     rows = function() return S.overrides or {} end,
     header = function()
-      return fit("item", RW - 30) .. fit("process", 12) .. rfit("batch", 6) .. rfit("prio", 6) .. rfit("from", 6)
+      return fit("item", RW - 34) .. fit("process", 16) .. rfit("batch", 6) .. rfit("prio", 6) .. rfit("from", 6)
     end,
     row = function(y, r, rb)
-      put(RX, y, fit(r.label or r.key, RW - 30), C.text, rb)
-      put(RX + RW - 30, y, fit(r.process, 12), processColor(r.process), rb)
+      put(RX, y, fit(r.label or r.key, RW - 34), C.text, rb)
+      put(RX + RW - 34, y, fit(processText(r), 16), processColor(r.process), rb)
       put(RX + RW - 18, y, rfit(batchText(r), 6), C.accent, rb)
       put(RX + RW - 12, y, rfit(r.priority or "-", 6), C.text, rb)
       put(RX + RW - 6, y, rfit(r.source or "", 6), C.dim, rb)
@@ -98,11 +101,11 @@ function ListView.new(ui, m)
     filter = true,
     rows = function() return S.rules or {} end,
     header = function()
-      return fit("  # pattern", RW - 30) .. fit("process", 12) .. rfit("batch", 6) .. rfit("prio", 6) .. rfit("used", 6)
+      return fit("  # pattern", RW - 34) .. fit("process", 16) .. rfit("batch", 6) .. rfit("prio", 6) .. rfit("used", 6)
     end,
     row = function(y, r, rb)
-      put(RX, y, rfit(r.index, 3) .. " " .. fit(r.pattern, RW - 34), C.text, rb)
-      put(RX + RW - 30, y, fit(r.process, 12), processColor(r.process), rb)
+      put(RX, y, rfit(r.index, 3) .. " " .. fit(r.pattern, RW - 38), C.text, rb)
+      put(RX + RW - 34, y, fit(processText(r), 16), processColor(r.process), rb)
       put(RX + RW - 18, y, rfit(batchText(r), 6), C.accent, rb)
       put(RX + RW - 12, y, rfit(r.priority or "-", 6), C.text, rb)
       put(RX + RW - 6, y, rfit(r.used or 0, 6), (r.used or 0) == 0 and C.dim or C.text, rb)

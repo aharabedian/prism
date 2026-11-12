@@ -28,6 +28,7 @@ previous version as `<file>.bak`, but hand-written comments are lost.
 | `interfaces` | `{}` | ME interfaces another network pulls from, see below |
 | `feeders` | `{}` | Batch feeders, see below |
 | `machines` | `{}` | Monitored GT machines, see below |
+| `processes` | `{}` | Per-process settings: `overflow`, see [Fallbacks and overflow](#fallbacks-and-overflow) |
 | `rules` | `{}` | Pattern rules, see below |
 | `overrides` | `{}` | Per-item overrides, see below |
 
@@ -96,6 +97,33 @@ First match wins:
 
 Within a process, items are ranked by **priority** (higher first), then by quantity waiting.
 
+## Fallbacks and overflow
+
+A rule or override may name a `fallback` process that its items are **shared** with when their own process
+has too much waiting: the item stays in its own process's outputs and is added to the fallback's, so both
+pull from the same stock. Without a `fallback`, an item only ever waits for its own process.
+
+```lua
+processes = { chembath = { overflow = 2000 } },
+rules = {
+  { pattern = "^Crushed Platinum Ore$", process = "chembath" },                    -- always waits
+  { pattern = "^Crushed .+ Ore$",       process = "chembath", fallback = "wash" },
+},
+```
+
+| Trigger | Set by | Effect |
+|---|---|---|
+| `overflow = N` | `processes` in `prism.cfg` | While more than N items wait unshared, items with a fallback are shared, lowest-ranked (priority, then quantity) first, until N or fewer are left unshared. Whole items are shared, even the biggest stack if it's the only one with a fallback. Sharing stops once the unshared items plus it fit under 3/4 of N, so items don't flip back and forth |
+| Always share | Tap the process on the screen → ALWAYS SHARE (saved in `prism-always-share.cfg`) | Every item with a fallback is shared until SHARE ON OVERFLOW; then `overflow` decides again |
+
+- Items without a fallback count toward `overflow` but are never shared.
+- Shared items keep their priority and batch, and aren't shared again from the fallback (no chains).
+- A shared item waits in both processes' backlogs. Either process using it counts as movement for both, so
+  stall detection can't tell which one is stuck; [monitored machines](#machines) can.
+- The router logs when a process starts and stops sharing items with fallbacks. On the screen, the process is
+  marked `↷`, and lists show `process›fallback`.
+- A process whose machines have stopped still raises its stall alert for the items it keeps.
+
 ## Rules
 
 `prism-setup` writes a starting set for the processes you pick:
@@ -116,6 +144,7 @@ rules = {
   { pattern = "^Crushed .+ Ore$",         process = "wash",       priority = 10 },
   { pattern = "^Impure Pile of .+ Dust$", process = "centrifuge" },
   { pattern = "^Cinnabar Dust$",          process = "centrifuge", batch = 2 },
+  { pattern = "^Crushed Nickel Ore$",      process = "chembath",   fallback = "wash" },
   { pattern = "Ore$",                     process = "crush",      priority = 5 },
 },
 ```
@@ -162,6 +191,7 @@ Kept next to the config, never touched by `prism-update` or `prism-setup`:
 | `prism-overrides.cfg` | Overrides made on the control screen |
 | `prism-items.cfg` | The catalog of every item seen (key → name) |
 | `prism-rules.cfg` | Rules edited on the screen; replaces `rules` in `prism.cfg`. **RESET** on the screen deletes it |
+| `prism-always-share.cfg` | Processes set to ALWAYS SHARE on the screen |
 
 ## Control screen settings
 

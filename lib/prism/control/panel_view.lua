@@ -1,7 +1,8 @@
 --[[ prism.control.panel_view: the panel under the list and the footer.
 
   PanelView.new(ui, m) -> v
-  v.draw()        the rule editor while a rule is edited, else ROUTE ITEM (or the RULES help)
+  v.draw()        the process panel while a process is selected, the rule editor while a rule is
+                  edited, else ROUTE ITEM (or the RULES help)
   v.drawFooter()  flash message / router error / rotating alerts, RELOAD CFG and QUIT
 ]]
 
@@ -24,6 +25,25 @@ function PanelView.new(ui, m)
       if y > y0 + 1 then break end
       x = button(x, y, p, { on = current == p, fn = function() m.pickProcess(p) end })
     end
+  end
+
+  -- Who shares the item when `process` has too much waiting (or always shares): none, or another process.
+  local function fallbackButtons(y, process, current)
+    put(RX + 1, y, "Fallback", C.dim, C.panel)
+    if not process or process == "ignore" then
+      put(RX + 11, y, "-", C.dim, C.panel)
+      return
+    end
+    local x = button(RX + 11, y, "none", { on = current == nil, fn = function() m.pickFallback(nil) end })
+    local listed = current == nil
+    for _, p in ipairs(S.status and S.status.knownProcesses or {}) do
+      if p ~= process then
+        if p == current then listed = true end
+        if x + len(p) + 2 > W then break end
+        x = button(x, y, p, { on = current == p, fn = function() m.pickFallback(p) end })
+      end
+    end
+    if not listed and x + len(current) + 2 <= W then button(x, y, current, { on = true }) end
   end
 
   local function batchButtons(y, current)
@@ -61,7 +81,8 @@ function PanelView.new(ui, m)
     end
 
     processButtons(P + 4, r.process)
-    batchButtons(P + 7, r.batch)
+    fallbackButtons(P + 7, r.process, r.fallback)
+    batchButtons(P + 8, r.batch)
     priorityButtons(P + 9, r.priority)
 
     local nRules = S.rules and #S.rules or 0
@@ -101,7 +122,8 @@ function PanelView.new(ui, m)
     put(RX + 1, P + 2, fit(info, RW - 2), C.dim, C.panel)
 
     processButtons(P + 4, S.selProc)
-    batchButtons(P + 7, S.selBatch)
+    fallbackButtons(P + 7, S.selProc, S.selFallback)
+    batchButtons(P + 8, S.selBatch)
     priorityButtons(P + 9, S.selPrio)
 
     local x = RX + 1
@@ -112,10 +134,40 @@ function PanelView.new(ui, m)
     button(x, P + 11, "CANCEL", { fn = m.cancelSelection })
   end
 
+  local function drawProcessPanel()
+    local name = S.procSel
+    local p = S.status and S.status.processes and S.status.processes[name] or {}
+    fill(RX, P, RW, H - 1 - P, C.panel)
+    put(RX, P, " PROCESS " .. name, C.accent, C.panel)
+    put(RX + 1, P + 2, fit(("%s items waiting (%d types)  ·  %d output(s)"):format(
+      U.fmtNum(p.items or 0), p.types or 0, p.buses or 0), RW - 2), C.text, C.panel)
+    if p.alwaysShare then
+      put(RX + 1, P + 3, fit("Fallbacks: always shared", RW - 2), C.warn, C.panel)
+    elseif p.overflow then
+      put(RX + 1, P + 3, fit(("Fallbacks: shared on overflow (past %s waiting)"):format(U.fmtNum(p.overflow)), RW - 2), C.text, C.panel)
+    else
+      put(RX + 1, P + 3, fit(("Fallbacks: never shared (set processes.%s.overflow in prism.cfg)"):format(name), RW - 2),
+        C.dim, C.panel)
+    end
+    if (p.spilled or 0) > 0 then
+      put(RX + 1, P + 4, fit(("↷ %s items shared with their fallbacks"):format(U.fmtNum(p.spilled)), RW - 2), C.warn, C.panel)
+    else
+      put(RX + 1, P + 4, "nothing going to fallbacks", C.dim, C.panel)
+    end
+    put(RX + 1, P + 7, fit("Fallbacks are set per rule or override (the Fallback row).", RW - 2), C.dim, C.panel)
+    put(RX + 1, P + 8, fit("Items without one always wait for this process.", RW - 2), C.dim, C.panel)
+
+    local x = RX + 1
+    x = button(x, P + 11, "SHARE ON OVERFLOW", { on = not p.alwaysShare, fn = function() m.setAlwaysShare(false) end })
+    x = button(x, P + 11, "ALWAYS SHARE", { on = p.alwaysShare == true, fn = function() m.setAlwaysShare(true) end })
+    button(x, P + 11, "CLOSE", { fn = m.cancelProcess })
+  end
+
   local v = {}
 
   function v.draw()
-    if S.ruleEdit then drawRulePanel() else drawItemPanel() end
+    if S.procSel then drawProcessPanel()
+    elseif S.ruleEdit then drawRulePanel() else drawItemPanel() end
   end
 
   function v.drawFooter()

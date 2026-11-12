@@ -2,7 +2,7 @@
 
   build(r, scan, stalled, alerts) -> router-status table
     r = the router (prism.router.core): version, cfg, stats, store, outputs, machines
-  knownProcesses(r) -> sorted process names named by outputs, machines, rules or overrides
+  knownProcesses(r) -> sorted process names named by outputs, machines, rules, overrides or `processes`
 ]]
 
 local computer = require("computer")
@@ -19,9 +19,10 @@ function S.knownProcesses(r)
   end
   for _, o in ipairs(r.outputs) do add(o.process) end
   for _, m in ipairs(r.machines) do add(m.process) end
-  for _, rule in ipairs(r.store:rules()) do add(rule.process) end
-  for _, o in pairs(r.cfg.overrides) do add(o.process) end
-  for _, o in pairs(r.store.overrides) do add(o.process) end
+  for _, rule in ipairs(r.store:rules()) do add(rule.process); add(rule.fallback) end
+  for _, o in pairs(r.cfg.overrides) do add(o.process); add(o.fallback) end
+  for _, o in pairs(r.store.overrides) do add(o.process); add(o.fallback) end
+  for p in pairs(r.cfg.processes) do add(p) end
   table.sort(list)
   return list
 end
@@ -36,6 +37,16 @@ function S.build(r, scan, stalled, alerts)
   }
   for proc, b in pairs(scan.backlog) do
     s.processes[proc] = { types = b.types, items = b.items, buses = 0, stalled = stalled[proc] }
+  end
+  local function proc(name)
+    local p = s.processes[name] or { types = 0, items = 0, buses = 0 }
+    s.processes[name] = p
+    return p
+  end
+  for name, sp in pairs(scan.spilled or {}) do proc(name).spilled = sp.items end
+  for name, lim in pairs(r.store:limits()) do
+    local p = proc(name)
+    p.overflow, p.alwaysShare = lim.overflow, lim.alwaysShare
   end
   for _, o in ipairs(r.outputs) do
     local p = s.processes[o.process] or { types = 0, items = 0, buses = 0 }

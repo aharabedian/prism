@@ -10,7 +10,8 @@
     r.store      data files + classification (prism.router.store)
     r.outputs    export buses, stockers, feeders (prism.router.outputs)
     r.machines   monitored GT machines (prism.router.machines)
-    r.last       { labels, present, queues } from the latest scan
+    r.last       { labels, present, queues } from the latest scan (queues after spilling to fallbacks)
+    r.spilled    { [key] = true }: items shared with their fallback in the latest scan
     r.stats      { cycles, writes, cycleMs, lastError }
     r.reported   things already warned about, so the log isn't spammed
     r.lastStatus the latest router-status
@@ -61,6 +62,7 @@ function Router:setup()
   self.store = Store.open(self.configPath, cfg, log)
   self.reported = {}
   self.health = Health.new(cfg, log)
+  self.spilled = {}
 
   self.net = proxyOf("me_controller", cfg.network) or proxyOf("me_interface", cfg.network)
   if not self.net then error("no ME controller/interface found - is an adapter touching it?", 0) end
@@ -146,12 +148,31 @@ function Router:warn(scan)
   end
 end
 
+-- Share items with their fallbacks (planner.spill) and log when a process starts and stops sharing.
+function Router:spill(scan)
+  local before = self.spilling or {}
+  self.spilled = planner.spill(scan, self.store:limits(), self.spilled or {})
+  local now = {}
+  for proc, s in pairs(scan.spilled) do
+    now[proc] = true
+    if not before[proc] then log("%s: sharing %d item type(s) with fallbacks", proc, s.types) end
+  end
+  for proc in pairs(before) do
+    if not now[proc] then log("%s: no longer sharing with fallbacks", proc) end
+  end
+  self.spilling = now
+end
+
 function Router:cycle()
   local t0 = computer.uptime()
   local store = self.store
   self.stats.lastError = nil               -- only report problems from this cycle
 
-  local scan = planner.plan(self.net.getItemsInNetwork() or {}, function(label, key) return store:classify(label, key) end)
+  local scan = planner.plan(self.net.getItemsInNetwork() or {}, function(label, key)
+    local proc, prio, batch, _, _, fallback = store:classify(label, key)
+    return proc, prio, batch, fallback
+  end)
+  self:spill(scan)
 
   local changed = false
   for _, key in ipairs(scan.order) do

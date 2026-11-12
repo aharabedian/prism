@@ -28,13 +28,16 @@ COMMANDS.assign = { fields = { key = "string", process = "string" }, run = funct
   local store = r.store
   local label = type(msg.label) == "string" and msg.label or nameOf(r, msg.key)
   local batch = math.max(1, math.floor(tonumber(msg.batch) or 1))
+  local fallback = rules.validFallback(msg.process, msg.fallback)
   store.overrides[msg.key] = { process = msg.process, priority = tonumber(msg.priority),
-                               batch = batch > 1 and batch or nil, label = label }
+                               batch = batch > 1 and batch or nil, fallback = fallback, label = label }
   store:saveOverrides()
   if not store.catalog[msg.key] then store.catalog[msg.key] = { label = label }; store:saveCatalog() end
   r.reported[msg.key], r.reported["batch:" .. msg.key] = nil, nil
-  r.log("override: %s -> %s (priority %s, batch %d)", label, msg.process, tostring(msg.priority or "default"), batch)
-  acker(reply)(true, ("%s -> %s%s"):format(label, msg.process, batch > 1 and (" in batches of " .. batch) or ""))
+  r.log("override: %s -> %s (priority %s, batch %d, fallback %s)", label, msg.process,
+    tostring(msg.priority or "default"), batch, fallback or "none")
+  acker(reply)(true, ("%s -> %s%s%s"):format(label, msg.process, batch > 1 and (" in batches of " .. batch) or "",
+    fallback and (", overflow to " .. fallback) or ""))
   return true
 end }
 
@@ -92,7 +95,7 @@ COMMANDS.setRule = { run = function(r, msg, reply)
   if index and list[index] then list[index] = rule
   else table.insert(list, 1, rule); index = 1 end
   r.store:saveRules()
-  r.log("rule #%d: %s -> %s", index, rule.pattern, rule.process)
+  r.log("rule #%d: %s -> %s%s", index, rule.pattern, rule.process, rule.fallback and (" (fallback " .. rule.fallback .. ")") or "")
   acker(reply)(true, ("rule #%d saved: %s -> %s"):format(index, rule.pattern, rule.process))
   return true
 end }
@@ -127,6 +130,21 @@ COMMANDS.resetRules = { run = function(r, _, reply)
   return true
 end }
 
+---------------------------------------------------------------- processes
+
+COMMANDS.alwaysShare = { fields = { process = "string", on = "boolean" }, run = function(r, msg, reply)
+  local store = r.store
+  store.alwaysShare[msg.process] = msg.on or nil
+  store:saveAlwaysShare()
+  if not msg.on then   -- forget what was shared, so only the overflow decides from now on
+    for _, e in ipairs(r.last.queues[msg.process] or {}) do r.spilled[e.key] = nil end
+  end
+  r.log("%s: %s", msg.process, msg.on and "always sharing items with a fallback" or "sharing on overflow")
+  acker(reply)(true, msg.process .. (msg.on and ": every item with a fallback is shared"
+                                            or ": items with a fallback are shared on overflow"))
+  return true
+end }
+
 COMMANDS.reload = { run = function(r, _, reply)
   local ok, err = pcall(r.setup, r)
   if not ok then r.stats.lastError = tostring(err); r.log("reload failed: %s", tostring(err)) end
@@ -144,6 +162,7 @@ COMMANDS.overrides = { run = function(r, _, reply)
   local store, list = r.store, {}
   local function add(key, o, source)
     list[#list + 1] = { key = key, process = o.process, priority = o.priority, batch = o.batch,
+                        fallback = rules.validFallback(o.process, o.fallback),
                         label = o.label or store:labelOf(key, r.last.labels[key]), source = source }
   end
   for key, o in pairs(r.cfg.overrides) do if not store.overrides[key] then add(key, o, "cfg") end end
@@ -159,7 +178,7 @@ COMMANDS.rules = { run = function(r, _, reply)
   local out = {}
   for i, rule in ipairs(list) do
     out[i] = { index = i, pattern = rule.pattern, process = rule.process, priority = rule.priority,
-               batch = rule.batch, used = used[i] or 0 }
+               batch = rule.batch, fallback = rules.validFallback(rule.process, rule.fallback), used = used[i] or 0 }
   end
   reply({ type = "router-rules", source = store.screenRules and "screen" or "config", list = out })
 end }
@@ -175,9 +194,10 @@ COMMANDS.items = { run = function(r, msg, reply)
   local all = {}
   for key, c in pairs(r.store.catalog) do
     local label = c.label or key
-    local proc, prio, batch, src = r.store:classify(label, key)
+    local proc, prio, batch, src, _, fallback = r.store:classify(label, key)
     all[#all + 1] = { key = key, label = label, size = r.last.present[key] or 0,
-                      process = proc, priority = prio, batch = batch, source = src }
+                      process = proc, priority = prio, batch = batch, source = src, fallback = fallback,
+                      spilled = r.spilled[key] ~= nil }
   end
   table.sort(all, function(a, b) return a.label:lower() < b.label:lower() end)
   local offset = math.max(0, math.floor(tonumber(msg.offset) or 0))

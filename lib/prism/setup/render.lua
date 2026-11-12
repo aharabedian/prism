@@ -1,7 +1,7 @@
 --[[ prism.setup.render: prism.cfg and prism-control.cfg as Lua source.
 
   router(c) -> text     every setting (tuning defaults from prism.config), then buses, stockers,
-                        feeders, machines, rules and overrides; unknown keys are kept at the end
+                        feeders, machines, processes, rules and overrides; unknown keys are kept at the end
   control(c) -> text
   lua(v) -> text        any plain value as Lua source, keys sorted so the output is stable
 ]]
@@ -71,7 +71,9 @@ function R.router(c)
   setting(L, "token", c.token, "shared secret the screen must send; nil = none")
   setting(L, "slotsPerBus", c.slotsPerBus or config.ROUTER_DEFAULTS.slotsPerBus, "filter slots per export bus: 1, 5 or 9")
   for _, k in ipairs({ "network", "database", "modemPort", "token", "slotsPerBus",
-                       "buses", "stockers", "interfaces", "feeders", "machines", "rules", "overrides" }) do known[k] = true end
+                       "buses", "stockers", "interfaces", "feeders", "machines", "processes", "rules", "overrides" }) do
+    known[k] = true
+  end
 
   local function opt(name) return name and (", name = " .. q(name)) or "" end
   L[#L + 1] = ""
@@ -107,12 +109,20 @@ function R.router(c)
   L[#L + 1] = "  },"
 
   L[#L + 1] = ""
+  L[#L + 1] = "  -- Per process: overflow = N shares items with a fallback with it while more than N items wait."
+  L[#L + 1] = "  processes = {"
+  local procs = {}
+  for k in pairs(c.processes or {}) do procs[#procs + 1] = k end
+  table.sort(procs)
+  for _, k in ipairs(procs) do L[#L + 1] = ("    %s = %s,"):format(keyRef(k), R.lua(c.processes[k])) end
+  L[#L + 1] = "  },"
   L[#L + 1] = "  -- Matched against item names, first match wins. Editing rules on the control screen"
   L[#L + 1] = "  -- saves prism-rules.cfg, which replaces this list until RESET TO prism.cfg."
   L[#L + 1] = "  rules = {"
   for _, r in ipairs(c.rules or {}) do
-    L[#L + 1] = ("    { pattern = %s, process = %s%s%s },"):format(q(r.pattern), q(r.process),
-      r.priority and (", priority = " .. r.priority) or "", r.batch and (", batch = " .. r.batch) or "")
+    L[#L + 1] = ("    { pattern = %s, process = %s%s%s%s },"):format(q(r.pattern), q(r.process),
+      r.priority and (", priority = " .. r.priority) or "", r.batch and (", batch = " .. r.batch) or "",
+      r.fallback and (", fallback = " .. q(r.fallback)) or "")
   end
   L[#L + 1] = "  },"
   L[#L + 1] = "  -- Per-item overrides beat the rules. Key = \"itemname:damage\" (the router logs these)."

@@ -2,7 +2,7 @@
 
   StatusView.new(ui, m) -> v
   v.drawHeader()          the top bar: LIVE / NO SIGNAL, alerts, router stats, version mismatch
-  v.draw()                the whole left column
+  v.draw()                the whole left column; tapping a process row selects it (m.selectProcess)
   v.redrawMachines() -> false if the machine rows aren't on screen (then redraw everything)
   The column switches to one row per bus and feeder when everything wouldn't otherwise fit.
 ]]
@@ -77,8 +77,14 @@ function StatusView.new(ui, m)
       local items = p.items or 0
       local none = (p.buses or 0) == 0 and items > 0
       local stalled = p.stalled ~= nil
+      local spilling = p.alwaysShare or (p.spilled or 0) > 0
+      local rowBg = S.procSel == name and C.sel or C.bg
+      if rowBg ~= C.bg then fill(1, y, LW, 1, rowBg) end
+      ui.hit(1, y, LW, y, function() m.selectProcess(name) end)
       local x = 2
-      put(x, y, fit(stalled and ("⚠ " .. name) or name, NW), (none or stalled) and C.bad or C.text, C.bg); x = x + NW
+      local label = stalled and ("⚠ " .. name) or (spilling and ("↷ " .. name)) or name
+      local color = (none or stalled) and C.bad or (p.alwaysShare and C.warn) or C.text
+      put(x, y, fit(label, NW), color, rowBg); x = x + NW
       put(x, y, rfit(none and "NONE" or p.buses, 6), none and C.bad or C.dim); x = x + 6
       put(x, y, rfit(p.types or 0, 7), C.text);                              x = x + 7
       put(x, y, rfit(U.fmtNum(items), 8), C.text);                           x = x + 8 + 2

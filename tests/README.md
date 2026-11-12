@@ -16,6 +16,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | File | Covers |
 |---|---|
 | `test_router.lua` | Filter selection, stable slots, clearing, remote assign, status |
+| `test_fallbacks.lua` | Sharing with fallbacks on overflow, items never shared, always share (persisted), status/list fields, and the screen: process panel, ALWAYS SHARE, Fallback row |
 | `test_stockers.lua` | GT stocking input buses: top items incl. batch items, stable slots, auto-pull off, no database, unloaded bus, screen row |
 | `test_interfaces.lua` | ME interfaces another network pulls from: top batch-1 items, clearing at start and exit, one rewrite per item running out, status, screen row, configuration errors |
 | `test_feeders.lua` | Exact-batch feeding against a machine that only consumes full batches; catalog paging, forget |
@@ -26,7 +27,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_setup.lua` | prism-setup for router and screen: rules, hardware, wireless, start on boot, re-runs, backups, cancelling; both programs running on its output |
 | `test_update.lua` | prism-update install/update, keeping config, pointing to prism-setup, rejecting bad downloads, migrating old `router*.cfg` |
 | `test_example_config.lua` | The shipped example config loads and routes with its default rules |
-| `test_units.lua` | Pure modules on their own: `rules`, `router/planner`, `router/slots`, `protocol` |
+| `test_units.lua` | Pure modules on their own: `rules` (incl. fallbacks), `router/planner` (incl. spill and its hysteresis), `router/slots`, `protocol` |
 | `test_modules.lua` | Packaging and contracts: `manifest.lua` lists every file, one version, docs list every setting and command, the program bootstrap |
 | `helper.lua` | Shared setup (`H`) |
 | `mocks/oc.lua` | The mock world (`M`) |
