@@ -77,13 +77,13 @@ function StatusView.new(ui, m)
       local items = p.items or 0
       local none = (p.buses or 0) == 0 and items > 0
       local stalled = p.stalled ~= nil
-      local spilling = p.diverted or (p.spilled or 0) > 0
+      local spilling = p.alwaysShare or (p.spilled or 0) > 0
       local rowBg = S.procSel == name and C.sel or C.bg
       if rowBg ~= C.bg then fill(1, y, LW, 1, rowBg) end
       ui.hit(1, y, LW, y, function() m.selectProcess(name) end)
       local x = 2
       local label = stalled and ("⚠ " .. name) or (spilling and ("↷ " .. name)) or name
-      local color = (none or stalled) and C.bad or (p.diverted and C.warn) or C.text
+      local color = (none or stalled) and C.bad or (p.alwaysShare and C.warn) or C.text
       put(x, y, fit(label, NW), color, rowBg); x = x + NW
       put(x, y, rfit(none and "NONE" or p.buses, 6), none and C.bad or C.dim); x = x + 6
       put(x, y, rfit(p.types or 0, 7), C.text);                              x = x + 7

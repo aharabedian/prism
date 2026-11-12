@@ -16,7 +16,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | File | Covers |
 |---|---|
 | `test_router.lua` | Filter selection, stable slots, clearing, remote assign, status |
-| `test_fallbacks.lua` | Overflow to fallbacks, items that never spill, divert (persisted), status/list fields, and the screen: process panel, DIVERT, Fallback row |
+| `test_fallbacks.lua` | Sharing with fallbacks on overflow, items never shared, always share (persisted), status/list fields, and the screen: process panel, ALWAYS SHARE, Fallback row |
 | `test_stockers.lua` | GT stocking input buses: top items incl. batch items, stable slots, auto-pull off, no database, unloaded bus, screen row |
 | `test_interfaces.lua` | ME interfaces another network pulls from: top batch-1 items, clearing at start and exit, one rewrite per item running out, status, screen row, configuration errors |
 | `test_feeders.lua` | Exact-batch feeding against a machine that only consumes full batches; catalog paging, forget |

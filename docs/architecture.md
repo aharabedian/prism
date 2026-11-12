@@ -33,7 +33,7 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `rules` | `classify` (screen override → cfg override → rules), `clean`, `fromMsg`, `usage`, `preview` (pure) | router |
 | `probe` | finding and describing components: export buses, stockers, transposer sides, machines | setup, discover |
 | `router/core` | the router object: `setup()`, `cycle()`, `run()`; owns the state below | `prism.lua` |
-| `router/store` | the data files (`overrides`, `catalog`, `screenRules`, `diverts`), `classify` against them, `limits` | core, commands, status |
+| `router/store` | the data files (`overrides`, `catalog`, `screenRules`, `alwaysShare`), `classify` against them, `limits` | core, commands, status |
 | `router/planner` | `plan(items, classify)` → queues, backlog, unassigned; `spill` to fallbacks (pure) | core |
 | `router/outputs` | the **output interface** and `open(cfg, env)`; see below | core |
 | `router/exportbus`, `router/stocker`, `router/interface`, `router/feeder` | the output kinds | outputs |
@@ -85,7 +85,7 @@ A command that changes routing (assign, rule edit, reload...) triggers an immedi
 1. `getItemsInNetwork()`, then `planner.plan`: merge stacks of the same `name:damage` (NBT variants),
    classify each item (screen override → cfg override → rules) into process, priority and batch, and
    rank each process's queue by priority, then quantity.
-   Then `planner.spill` shares items with a `fallback` from a process past its `overflow` or diverted:
+   Then `planner.spill` shares items with a `fallback` from a process past its `overflow` or set to always share:
    a copy joins the fallback's queue ([Fallbacks and overflow](configuration.md#fallbacks-and-overflow)).
    Which items are shared is kept until the next scan, for the hysteresis. Everything after this step
    sees the queues after sharing.
@@ -155,7 +155,7 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 - All edits are commands to the router; the screen re-fetches after each `router-ack`.
 - The left column switches to one row per bus and feeder when everything wouldn't otherwise fit.
 - Stockers and interfaces are listed under BUSES as "N stocked"; export buses show "N filters".
-- Tapping a process row opens its panel (overflow, what's shared, DIVERT / STOP DIVERTING).
+- Tapping a process row opens its panel (overflow, what's shared, SHARE ON OVERFLOW / ALWAYS SHARE).
 
 ## Wireless protocol
 

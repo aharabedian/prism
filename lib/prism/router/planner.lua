@@ -20,7 +20,7 @@
   spill(scan, limits, held) -> sharedKeys   { [key] = true }
     Shares items with a fallback with that process when theirs has too much waiting: the item stays in
     its own queue and backlog, and a copy joins its fallback's, so both pull from the same stock.
-    limits  { [process] = { overflow = items?, diverted = bool? } }   diverted: as overflow = 0
+    limits  { [process] = { overflow = items?, alwaysShare = bool? } }   alwaysShare: as overflow = 0
     held    what was shared last scan (pass the previous result; {} at first)
     While the unshared items add up to more than `overflow`, items with a fallback are shared,
     lowest-ranked first (the top one too, if it's the one that can be). A shared item stops being
@@ -83,7 +83,7 @@ function P.spill(scan, limits, held)
   local shares, shared = {}, {}
   for proc, q in pairs(scan.queues) do
     local lim = limits[proc] or {}
-    local overflow = lim.diverted and 0 or tonumber(lim.overflow)
+    local overflow = lim.alwaysShare and 0 or tonumber(lim.overflow)
     if overflow then
       local function wasShared(e) return e.fallback and held[e.key] end
       local unshared = 0

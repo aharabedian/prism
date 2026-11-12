@@ -29,7 +29,7 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `moveRule` | `index`, `dir` (`-1` up, `1` down) | → `router-ack` |
 | `resetRules` | | Delete `prism-rules.cfg`, back to `prism.cfg` rules → `router-ack` |
 | `previewRule` | `pattern`, `index?`, `process?`, `req` | `router-preview` |
-| `divert` | `process`, `on` (boolean) | Share every item of a process that has a fallback, or stop; saved in `prism-diverts.cfg` → `router-ack`, rescan |
+| `alwaysShare` | `process`, `on` (boolean) | Share every item of a process that has a fallback (`on`), or only on overflow; saved in `prism-always-share.cfg` → `router-ack`, rescan |
 | `reload` | | Re-read `prism.cfg` → `router-ack` |
 
 ## Messages (router → screen)
@@ -41,7 +41,7 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `version` | string | Router version |
 | `uptime`, `interval`, `cycles`, `cycleMs`, `writes` | number | Housekeeping |
 | `lastError` | string? | Problem during the last scan |
-| `processes` | `{ [name] = { types, items, buses, stalled?, spilled?, overflow?, diverted? } }` | Backlog per process, after [spilling](configuration.md#fallbacks-and-overflow). `buses` counts outputs; `stalled` is seconds; `spilled` is items shared with fallbacks this scan; `overflow` and `diverted` are its limits |
+| `processes` | `{ [name] = { types, items, buses, stalled?, spilled?, overflow?, alwaysShare? } }` | Backlog per process, after [spilling](configuration.md#fallbacks-and-overflow). `buses` counts outputs; `stalled` is seconds; `spilled` is items shared with fallbacks this scan; `overflow` and `alwaysShare` are its settings |
 | `buses` | `{ name, process, filters = { label... }, kind? }[]` | Export buses, then stockers (`kind = "stocker"`), then interfaces (`kind = "interface"`); for those two `filters` are the stocked items. `filters` may be dropped to fit the packet |
 | `feeders` | `{ name, process, state, level, label?, batch?, fed }[]` | `level`: `ok`, `idle`, `warn` or `bad` (since 0.6.0; for older routers the screen reads `state`) |
 | `machines` | `{ name, process, state, progress?, eu?, idle? }[]` | `progress`/`eu` are 0..1; `idle` is seconds idle with work waiting |

@@ -10,7 +10,7 @@
   actions: switchTab, selectRow, editRule, newRule, makeRule, saveRule, deleteRule, moveRule,
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
            reloadRouter, pickProcess, pickFallback, pickBatch, pickPriority, setScroll, clearFilter, quit,
-           selectProcess, cancelProcess, divert(on),
+           selectProcess, cancelProcess, setAlwaysShare(on),
            askConfirm(what, fn), confirming(what)
 
   S.status      latest router-status (S.statusAt: when it arrived; S.router: its address)
@@ -20,7 +20,7 @@
   S.sel         the item being routed: { key, label, size, list, source, process },
                 with the choices S.selProc, S.selFallback, S.selPrio, S.selBatch
   S.ruleEdit    the rule being edited: { index?, pattern, process, fallback?, priority, batch }; S.preview
-  S.procSel     the process tapped in the PROCESSES list (its panel: overflow, divert)
+  S.procSel     the process tapped in the PROCESSES list (its panel: overflow, ALWAYS SHARE)
   S.msg/msgOk   the flash message in the footer; S.confirm: an action waiting for a second tap
 ]]
 
@@ -175,10 +175,10 @@ function Model.new(settings, modem)
 
   function m.cancelProcess() S.procSel = nil end
 
-  function m.divert(on)
+  function m.setAlwaysShare(on)
     if not S.procSel then return end
-    m.send({ cmd = "divert", process = S.procSel, on = on })
-    m.flash((on and "diverting %s ..." or "restoring %s ..."):format(S.procSel), true)
+    m.send({ cmd = "alwaysShare", process = S.procSel, on = on })
+    m.flash((on and "%s: always sharing ..." or "%s: sharing on overflow ..."):format(S.procSel), true)
   end
 
   ---------------------------------------------------------------- rules

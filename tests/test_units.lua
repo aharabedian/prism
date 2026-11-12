@@ -91,13 +91,13 @@ s1 = fbScan()
 held = planner.spill(s1, { chembath = { overflow = 1600 } }, { ["b:0"] = true })
 check(not held["b:0"] and keysOf(s1.queues.wash) == "d:0", "then it stops being shared")
 
--- divert: share everything with a fallback, as overflow = 0
+-- always share: everything with a fallback, as overflow = 0
 s1 = fbScan()
-planner.spill(s1, { chembath = { diverted = true, overflow = 5000 } }, {})
+planner.spill(s1, { chembath = { alwaysShare = true, overflow = 5000 } }, {})
 check(keysOf(s1.queues.chembath) == "a:0 c:0 b:0" and keysOf(s1.queues.wash) == "a:0 d:0 b:0"
-  and s1.backlog.chembath.items == 1200, "diverted: everything with a fallback is shared, whatever the overflow")
+  and s1.backlog.chembath.items == 1200, "always share: everything with a fallback is shared, whatever the overflow")
 s1 = fbScan()
-planner.spill(s1, { chembath = { diverted = true }, wash = { overflow = 0 } }, {})
+planner.spill(s1, { chembath = { alwaysShare = true }, wash = { overflow = 0 } }, {})
 check(keysOf(s1.queues.wash) == "a:0 d:0 b:0", "copies are never shared again from the fallback")
 
 -- the in-game case: the biggest stack is the one with a fallback, the rest can't move

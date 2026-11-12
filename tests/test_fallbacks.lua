@@ -1,4 +1,4 @@
--- test_fallbacks.lua: overflow to a fallback process, items that never spill, diverting a process from the
+-- test_fallbacks.lua: sharing with a fallback process on overflow, items never shared, ALWAYS SHARE from the
 -- screen (persisted), and the fields status, items, rules and overrides carry.
 local H = dofile((debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "./") .. "helper.lua")
 local M = require("oc")
@@ -47,7 +47,7 @@ local cp = {}
 M.onPull = function(n)
   if n == 1 then
     cp[1] = { bath = stocked(bath), washer = stocked(washer), status = lastOf("router-status") }
-    return cmd({ cmd = "divert", process = "chembath", on = true })
+    return cmd({ cmd = "alwaysShare", process = "chembath", on = true })
   elseif n == 2 then
     cp[2] = { bath = stocked(bath), washer = stocked(washer), status = lastOf("router-status"), ack = lastOf("router-ack") }
     return cmd({ cmd = "items", offset = 0, req = 1 })
@@ -65,15 +65,15 @@ local p1 = cp[1].status.processes
 check(p1.chembath.overflow == 1500 and p1.chembath.spilled == 300 and p1.chembath.items == 1800
   and p1.wash.items == 300, "status: overflow, items shared, and the shared item waiting for both")
 check(cp[2].ack.ok and cp[2].bath == "5001 5002 5003" and cp[2].washer == "5002 5003",
-  "diverted: everything with a fallback is shared; items without one stay")
-check(cp[2].status.processes.chembath.diverted == true, "status says the process is diverted")
+  "always share: everything with a fallback is shared; items without one stay")
+check(cp[2].status.processes.chembath.alwaysShare == true, "status says the process always shares")
 local byKey = {}
 for _, it in ipairs(cp[3].items.list) do byKey[it.key] = it end
 check(byKey[GT .. ":5002"].fallback == "wash" and byKey[GT .. ":5002"].spilled
   and byKey[GT .. ":5001"].fallback == nil and not byKey[GT .. ":5001"].spilled, "items carry fallback and spilled")
-check(H.readTable(H.TMP .. "/fb-diverts.cfg").chembath == true, "the divert is saved in prism-diverts.cfg")
+check(H.readTable(H.TMP .. "/fb-always-share.cfg").chembath == true, "it is saved in prism-always-share.cfg")
 
------------------------------------------------- restart: still diverted; undo; assign with a fallback
+------------------------------------------------ restart: still always sharing; undo; assign with a fallback
 M.sent = {}
 cp = {}
 local pulls = 0
@@ -82,7 +82,7 @@ M.onPull = function()
   local n = pulls
   if n == 1 then
     cp[1] = { bath = stocked(bath), washer = stocked(washer) }
-    return cmd({ cmd = "divert", process = "chembath", on = false })
+    return cmd({ cmd = "alwaysShare", process = "chembath", on = false })
   elseif n == 2 then
     cp[2] = { bath = stocked(bath), washer = stocked(washer) }
     return cmd({ cmd = "assign", key = GT .. ":5001", process = "chembath", fallback = "wash", label = "Crushed Platinum Ore" })
@@ -100,14 +100,14 @@ H.run("prism.lua", cfg)
 io.write = realWrite
 local log = table.concat(logged)
 
-check(cp[1].washer == "5002 5003", "a divert survives a restart")
+check(cp[1].washer == "5002 5003", "always share survives a restart")
 check(cp[2].bath == "5001 5002 5003" and cp[2].washer == "5003", "undoing it goes back to overflow only")
 check(cp[4].ov.list[1].fallback == "wash", "a screen override keeps its fallback")
 check(cp[5].rules.list[2].fallback == "wash" and cp[5].rules.list[1].fallback == nil, "rules carry their fallback")
-check(log:find("chembath: sharing 1 item type(s) with fallbacks", 1, true) and log:find("chembath diverted: sharing", 1, true)
-  and log:find("chembath no longer diverted", 1, true), "sharing and diverting are logged")
+check(log:find("chembath: sharing 1 item type(s) with fallbacks", 1, true) and log:find("chembath: always sharing", 1, true)
+  and log:find("chembath: sharing on overflow", 1, true), "sharing and switching modes are logged")
 
------------------------------------------------- control screen: process panel, divert, fallback row
+------------------------------------------------ control screen: process panel, ALWAYS SHARE, fallback row
 M.sent = {}
 local stderr = {}
 io.stderr = { write = function(_, s) stderr[#stderr + 1] = s end }
@@ -120,8 +120,8 @@ local function tap(text, minY, minX)
 end
 local function lastSent() return ser.unserialize(M.sent[#M.sent].data) end
 local function msg(t) return { "modem_message", "x", "router-addr", 4242, 4, ser.serialize(t) } end
-local spilling, diverted, items = cp1.status, cp2.status, cp3.items
-spilling.cycles, diverted.cycles = 501, 502
+local spilling, always, items = cp1.status, cp2.status, cp3.items
+spilling.cycles, always.cycles = 501, 502
 
 local steps = {
   function() return msg(spilling) end,
@@ -132,22 +132,24 @@ local steps = {
   end,
   function()
     H.screen("fallback-process")
-    check(M.find("PROCESS chembath", PT) and M.find("Overflow: past 1500", PT) and M.find("↷ 300 items shared with their fallbacks", PT),
-      "tapping a process shows its overflow and what's spilling")
-    return tap(" DIVERT TO FALLBACKS ", PT + 11)
+    check(M.find("PROCESS chembath", PT) and M.find("Fallbacks: shared on overflow (past 1500 waiting)", PT)
+      and M.find("↷ 300 items shared with their fallbacks", PT), "tapping a process shows its overflow and what's shared")
+    return tap(" ALWAYS SHARE ", PT + 11)
   end,
   function()
     local s = lastSent()
-    check(s.cmd == "divert" and s.process == "chembath" and s.on == true, "DIVERT sent divert on")
-    return msg(diverted)
+    check(s.cmd == "alwaysShare" and s.process == "chembath" and s.on == true, "ALWAYS SHARE sent alwaysShare on")
+    return msg(always)
   end,
   function()
-    check(M.find("DIVERTED", PT) and M.find(" STOP DIVERTING ", PT + 11), "a diverted process offers STOP DIVERTING")
-    check(M.find("↷ 900 items shared with their fallbacks", PT), "diverted items are shared too")
-    return tap(" STOP DIVERTING ", PT + 11)
+    local x, y = M.find(" ALWAYS SHARE ", PT + 11)
+    check(M.find("Fallbacks: always shared", PT) and M.bgb[y][x] == require("prism.control.ui").C.btnOn,
+      "the panel shows the process always shares")
+    check(M.find("↷ 900 items shared with their fallbacks", PT), "everything with a fallback is shared")
+    return tap(" SHARE ON OVERFLOW ", PT + 11)
   end,
   function()
-    check(lastSent().cmd == "divert" and lastSent().on == false, "STOP DIVERTING sent divert off")
+    check(lastSent().cmd == "alwaysShare" and lastSent().on == false, "SHARE ON OVERFLOW sent alwaysShare off")
     return tap(" CLOSE ", PT + 11)
   end,
   function()
