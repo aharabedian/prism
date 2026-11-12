@@ -5,7 +5,8 @@ using **OpenComputers**, built for **GregTech: New Horizons** ore processing but
 "send these items to that machine" job.
 
 Instead of hand-managing ore dictionary cards, a computer scans an AE2 subnet, decides where each
-item should go from pattern rules and per-item overrides, and rewrites export bus filters to match.
+item should go from pattern rules and per-item overrides, and configures export buses, stocking buses and
+interfaces to match. When a machine falls behind, items can be shared with a fallback process.
 A second computer runs a touchscreen control panel.
 
 ![Control screen](docs/images/dashboard.png)
@@ -15,6 +16,9 @@ A second computer runs a touchscreen control panel.
 - **Rule-based routing**: Lua patterns on item names (`^Crushed .+ Ore$` → `wash`), per-item overrides, priorities.
 - **Export buses** that always hold the 9 highest-priority items waiting for their machine.
 - **GT Stocking Input Buses** on multiblocks, configured directly: no bus speed limit, and batch items just work.
+- **ME interfaces** that another network pulls from, to send finished items to your main net.
+- **Fallbacks**: past a backlog limit, items are shared with a second process (chemical bath short on acid →
+  ore washer), per item. Or set a process to always share from the screen.
 - **Batch feeders** that send exact multiples (2, 9, 36…) for recipes that would otherwise clog on leftovers.
 - **Item catalog**: every item ever seen, so you can set up routing before you have any in stock.
 - **Machine monitoring**: GT machines' working/idle state, progress, power and maintenance.
@@ -25,6 +29,8 @@ A second computer runs a touchscreen control panel.
 | Routing an item | Editing a rule |
 |---|---|
 | ![Routing an item](docs/images/route-item.png) | ![Rule editor](docs/images/rule-editor.png) |
+| **A process sharing with its fallback** | **Items and their fallbacks** |
+| ![Process panel](docs/images/fallbacks.png) | ![Items with fallbacks](docs/images/fallback-items.png) |
 
 ## Requirements
 
@@ -62,7 +68,7 @@ installs from a fork ([details](docs/setup.md#updating)).
 | Doc | What's in it |
 |---|---|
 | [docs/setup.md](docs/setup.md) | Hardware, in-game build, first run |
-| [docs/configuration.md](docs/configuration.md) | Every `prism.cfg` option, rules and patterns, data files |
+| [docs/configuration.md](docs/configuration.md) | Every `prism.cfg` option, rules and patterns, fallbacks and overflow, data files |
 | [docs/architecture.md](docs/architecture.md) | How routing, feeders and stall detection work; in-game verification status |
 | [docs/protocol.md](docs/protocol.md) | Wireless messages between the router and the control screen |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Common problems and fixes |

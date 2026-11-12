@@ -28,6 +28,8 @@ docs-images: screens
 	cp build/screens/rules-dashboard.png docs/images/dashboard.png
 	cp build/screens/rules-rule.png docs/images/rule-editor.png
 	cp build/screens/route-assign.png docs/images/route-item.png
+	cp build/screens/fallback-process.png docs/images/fallbacks.png
+	cp build/screens/fallback-route.png docs/images/fallback-items.png
 
 clean:
 	rm -rf build

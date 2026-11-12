@@ -31,6 +31,9 @@ alert and error. `prism-discover` shows what the computer can actually see.
 | Feeder `blocked: N in machine, not a multiple of B` | A leftover from before the feeder. Take it out of the machine by hand once |
 | Feeder `machine not accepting` | The machine's input holds a different item, or the machine refuses insertion from that side |
 | Bus filters change constantly | Two items of equal priority are trading the last slot; give one a higher priority |
+| Nothing is shared with the fallback | Only items whose rule or override has a `fallback` are shared, and only past the process's `overflow` (tap the process to see it) or with ALWAYS SHARE. A fallback in an override beats the rule's |
+| Fallback process shows **NONE** in red | Items are shared with it but it has no bus, stocker, interface or feeder |
+| A stuck process isn't flagged stalled | Its items are shared and the fallback is using them, which counts as progress for both. Monitor its machines to catch it ([machines](configuration.md#machines)) |
 
 ## Control screen
 
