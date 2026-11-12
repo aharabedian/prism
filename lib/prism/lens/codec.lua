@@ -5,9 +5,13 @@
   codec.DEFAULT_PORT    4243
   codec.LIMIT           7168: the most bytes one serialized message may take
 
+  codec.newBoot() -> integer   a random boot id. Use this, not math.random(m, n): in OpenComputers that
+                               doesn't return an integer.
+
   Sending (agents, and the hub for hello):
     local enc = codec.encoder{ node, role, boot, interval?, version?, token?, limit? }
-      boot: a random integer chosen once at program start; interval: seconds between snapshots (agents)
+      boot: chosen once at program start (codec.newBoot()); any whole number is taken as an integer.
+      interval: seconds between snapshots (agents)
     enc:hello()           -> { data }
     enc:describe(d)       -> { data, ... }   d = metrics:describe()
     enc:snapshot(s)       -> { data, ... }   s = metrics:snapshot()
@@ -18,7 +22,8 @@
 
   Receiving (the hub, and agents for hello):
     codec.decode(data, token?) -> msg | nil, reason
-      reason: "garbled", "proto", "token", "kind", "envelope"
+      reason: "garbled", "proto", "token", "kind", "envelope". Whole-number floats in boot, seq, sid, part
+      and parts are turned into integers.
     local asm = codec.assembler()
     asm:add(msg, now) -> whole message | nil
       hello and one-part messages come straight back. Parts are kept until all have arrived, then come back
@@ -39,6 +44,16 @@ local KINDS = { hello = true, describe = true, snapshot = true }
 local LIST = { snapshot = "samples", describe = "metrics" }
 local SEVERITY = { bad = 2, warn = 1 }
 
+-- A whole number as an integer (2.0 -> 2); anything else unchanged.
+local function asInteger(v)
+  if type(v) == "number" and math.type(v) == "float" and v == math.floor(v) then return math.tointeger(v) or v end
+  return v
+end
+
+function codec.newBoot()
+  return math.tointeger(math.floor(math.random() * 0x7ffffffe)) + 1
+end
+
 local function shallow(t)
   local c = {}
   for k, v in pairs(t) do c[k] = v end
@@ -51,9 +66,10 @@ Encoder.__index = Encoder
 
 function codec.encoder(o)
   assert(type(o) == "table" and type(o.node) == "string" and type(o.role) == "string", "encoder needs node and role")
-  assert(math.type(o.boot) == "integer", "encoder needs an integer boot")
+  local boot = asInteger(o.boot)
+  assert(math.type(boot) == "integer", "encoder needs a whole-number boot, got " .. tostring(o.boot))
   return setmetatable({
-    node = o.node, role = o.role, boot = o.boot, interval = o.interval, version = o.version,
+    node = o.node, role = o.role, boot = boot, interval = o.interval, version = o.version,
     token = o.token, limit = o.limit or codec.LIMIT, seq = 0,
   }, Encoder)
 end
@@ -177,6 +193,7 @@ function codec.decode(data, token)
   if msg.proto ~= codec.PROTO then return nil, "proto" end
   if token and msg.token ~= token then return nil, "token" end
   if not KINDS[msg.kind] then return nil, "kind" end
+  for _, k in ipairs({ "boot", "seq", "sid", "part", "parts" }) do msg[k] = asInteger(msg[k]) end
   if type(msg.node) ~= "string" or math.type(msg.boot) ~= "integer" or math.type(msg.seq) ~= "integer" then
     return nil, "envelope"
   end

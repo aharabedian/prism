@@ -43,7 +43,7 @@ function Telemetry.open(cfg, modem, log)
   t.scanSeconds  = m:gauge("prism_scan_seconds", "How long the latest scan took", "s")
   t.scans        = m:counter("prism_scans_total", "Scans since the router started", "scans")
   t.writes       = m:counter("prism_writes_total", "Filter and interface writes since the router started", "writes")
-  t.enc = codec.encoder{ node = cfg.lensNode or "prism", role = "prism", boot = math.random(1, 0x7fffffff),
+  t.enc = codec.encoder{ node = cfg.lensNode or "prism", role = "prism", boot = codec.newBoot(),
     interval = cfg.interval, token = cfg.lensToken, version = require("prism.version") }
   modem.open(port)
   log("reporting to LENS as %s on port %d", cfg.lensNode or "prism", port)
