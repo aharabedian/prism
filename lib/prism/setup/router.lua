@@ -64,7 +64,8 @@ function R.run()
     print("warning: export buses, interfaces and feeders need a Database Upgrade - the router won't start without one")
   end
   if not input.yes("Save?", true) then print("nothing saved"); return end
-  if not save.commit(cfgPath, text, shrc) then return end
+  local saved, why = save.commit(cfgPath, text, shrc)
+  if not saved then print(why); return end
   print(("saved %d bus(es), %d stocker(s), %d interface(s), %d feeder(s), %d machine(s), %d rule(s)."):format(
     #c.buses, #c.stockers, #c.interfaces, #c.feeders, #c.machines, #c.rules))
   if c.modemPort then

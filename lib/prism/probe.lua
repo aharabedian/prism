@@ -10,6 +10,11 @@
   feederSides(transposer) inventories, interfaceSide?, machineSide? (guessed from inventory names)
   machine(addr)           { addr, state = "working"|"idle"|"disabled", where = " at x y z" | "" }
   isWireless()            true if a wireless network card is installed
+  snapshot()              everything prism-setup's editor shows, as plain tables:
+                          { networks = addr[], databases = addr[], buses = { addr, side, marker }[],
+                            stockers = { addr, marker, advanced }[], interfaces = { addr, marker }[],
+                            transposers = { addr, inv, ifaceSide?, machineSide? }[],
+                            machines = { addr, state, where }[] }
 ]]
 
 local component = require("component")
@@ -103,6 +108,26 @@ function P.isWireless()
     if m.isWireless and m.isWireless() then return true end
   end
   return false
+end
+
+function P.snapshot()
+  local networks = P.addresses("me_controller")
+  if #networks == 0 then networks = P.addresses("me_interface") end
+  local s = { networks = networks, databases = P.addresses("database"), buses = {}, stockers = {},
+              interfaces = {}, transposers = {}, machines = {} }
+  for _, b in ipairs(P.exportBuses()) do
+    s.buses[#s.buses + 1] = { addr = b.addr, side = b.side, marker = P.marker(b.stack) }
+  end
+  for _, a in ipairs(P.addresses("me_inputbus")) do s.stockers[#s.stockers + 1] = P.stocker(a) end
+  for _, a in ipairs(P.addresses("me_interface")) do
+    s.interfaces[#s.interfaces + 1] = { addr = a, marker = P.interfaceMarker(a) }
+  end
+  for _, a in ipairs(P.addresses("transposer")) do
+    local inv, ifaceSide, machineSide = P.feederSides(component.proxy(a))
+    s.transposers[#s.transposers + 1] = { addr = a, inv = inv, ifaceSide = ifaceSide, machineSide = machineSide }
+  end
+  for _, a in ipairs(P.addresses("gt_machine")) do s.machines[#s.machines + 1] = P.machine(a) end
+  return s
 end
 
 return P

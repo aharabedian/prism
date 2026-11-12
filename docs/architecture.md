@@ -6,7 +6,7 @@
 |---|---|---|
 | `prism.lua` | router computer | Scans, decides, configures buses and feeders, monitors machines, serves the protocol |
 | `prism-control.lua` | control computer | Touchscreen UI; holds no state the router doesn't have |
-| `prism-setup.lua` | both | Guided setup: router or screen, writes `prism.cfg` or `prism-control.cfg` and `.shrc` |
+| `prism-setup.lua` | both | Guided setup: router or screen, writes `prism.cfg` or `prism-control.cfg` and `.shrc`; on a router that has `prism.cfg` and a tier 2+ screen, a full-screen hardware editor instead (`--text` for the questions) |
 | `prism-discover.lua` | router computer | Lists components and prints config lines |
 | `prism-update.lua` | both | Installs and updates from GitHub what [manifest.lua](../manifest.lua) lists: the latest release by default, or a branch/tag |
 
@@ -31,7 +31,8 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `config` | the settings and defaults of both config files (`ROUTER_TUNING`, `CONTROL_TUNING`), `loadRouter`, `loadControl` | router, screen, setup |
 | `protocol` | `encode` (trims to fit without changing the message), `decode`, `feederLevel`, page sizes | router, screen |
 | `rules` | `classify` (screen override → cfg override → rules), `clean`, `fromMsg`, `usage`, `preview` (pure) | router |
-| `probe` | finding and describing components: export buses, stockers, transposer sides, machines | setup, discover |
+| `probe` | finding and describing components: export buses, stockers, transposer sides, machines; `snapshot()` of all of them | setup, discover |
+| `gui` | GPU primitives, colors, buttons and touch targets | screen, setup |
 | `router/core` | the router object: `setup()`, `cycle()`, `run()`; owns the state below | `prism.lua` |
 | `router/store` | the data files (`overrides`, `catalog`, `screenRules`, `alwaysShare`), `classify` against them, `limits` | core, commands, status |
 | `router/planner` | `plan(items, classify)` → queues, backlog, unassigned; `spill` to fallbacks (pure) | core |
@@ -43,10 +44,10 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `router/health` | stall detection and alerts, with their state between scans | core |
 | `router/status` | `build()` the `router-status` message | core |
 | `router/commands` | the command table: `{ fields, run }` per wireless command | core |
-| `control/ui` | GPU primitives, colors, layout, buttons and touch targets | screen views |
+| `control/ui` | the control screen's layout on top of `gui`, sparklines | screen views |
 | `control/model` | screen state (`S`), actions, handling router messages; no drawing | screen |
 | `control/status_view`, `list_view`, `panel_view` | header + left column; the tabbed list (one descriptor per tab); the panels and footer | screen |
-| `setup/*` | `input` (prompts), `render` (config text), `processes`, `hardware`, `autostart`, `save`, `router`/`control` (the two roles), `paths` | `prism-setup.lua` |
+| `setup/*` | `input` (prompts), `render` (config text), `processes`, `hardware`, `autostart`, `save`, `router`/`control` (the two roles), `paths`; the editor: `editor` (found vs configured hardware and the edits, pure) and `screen` (drawing, touch, keys) | `prism-setup.lua` |
 
 Dependencies point one way: programs → role modules (`router/`, `control/`, `setup/`) → shared modules.
 Shared modules never require role modules, and role modules never require each other's.
@@ -190,3 +191,4 @@ match the game first if they differ.
 | `me_interface.getInterfaceConfiguration(slot)` (only for the slot 1 marker in prism-setup/discover; missing = "(empty)") | **Unverified** |
 | `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
 | `/home/.shrc` run by the shell at boot (start on boot) | **Unverified** |
+| prism-setup's editor: `touch` and `scroll` events from a tier 2 screen, `component.isAvailable("screen")`, `key_down` codes (Enter 28, Esc 1, Backspace 14, arrows 200/208/203/205) | **Unverified** |

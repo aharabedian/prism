@@ -25,9 +25,10 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_control_rules.lua` | Screen: machines, alerts, beep, rule editor, MAKE RULE, compact layout, version badge |
 | `test_discover.lua` | prism-discover output |
 | `test_setup.lua` | prism-setup for router and screen: rules, hardware, wireless, start on boot, re-runs, backups, cancelling; both programs running on its output |
+| `test_setup_screen.lua` | prism-setup's editor on 80x25 and 160x50 screens: assigning, naming, dropping, feeders, general settings, review and save, quitting, falling back to the text setup |
 | `test_update.lua` | prism-update install/update, keeping config, pointing to prism-setup, rejecting bad downloads, migrating old `router*.cfg` |
 | `test_example_config.lua` | The shipped example config loads and routes with its default rules |
-| `test_units.lua` | Pure modules on their own: `rules` (incl. fallbacks), `router/planner` (incl. spill and its hysteresis), `router/slots`, `protocol` |
+| `test_units.lua` | Pure modules on their own: `rules` (incl. fallbacks), `router/planner` (incl. spill and its hysteresis), `router/slots`, `protocol`, `setup/editor` |
 | `test_modules.lua` | Packaging and contracts: `manifest.lua` lists every file, one version, docs list every setting and command, the program bootstrap |
 | `helper.lua` | Shared setup (`H`) |
 | `mocks/oc.lua` | The mock world (`M`) |
@@ -67,6 +68,8 @@ Key ideas:
 - **Inspect state directly:** `M.busHosts`, `M.stocker(...).slots`, `M.iface(...).config`, `M.dbSlots`, `M.sent` (every wireless message), and files in `H.TMP`.
 - **Screen tests:** `M.find(text, minY, minX)` locates text, so tap it with `{ "touch", "screen", x + 1, y }`.
   `M.row(y)`, `M.fgb` / `M.bgb` (colors), `M.oob` (draws off-screen) and `M.beeps` cover the rest.
+  The screen is 160x50; `M.resize(80, 25)` makes it tier 2. Programs that check for a screen need
+  `M.proxies[addr] = { type = "screen" }`.
 - **Run the router first to get real messages** for screen tests, rather than hand-writing status tables.
 - Add machines with `M.machine(addr, fields)`, and other components by putting a table in `M.proxies`.
   See `test_feeders.lua` for a simulated interface, transposer and machine.

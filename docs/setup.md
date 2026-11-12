@@ -135,6 +135,24 @@ It ends by printing the port and secret to enter on the control screen. Settings
 Prefer editing by hand? See [configuration.md](configuration.md); `prism-discover` prints config lines for
 every component.
 
+### Changing hardware later
+
+Once `/home/prism.cfg` exists, `prism-setup` on a router with a GPU and screen of tier 2 or better (80×25)
+opens a full-screen editor instead of the questions. Stop `prism` first (Ctrl+C), since both use the screen.
+
+![Setup editor](images/setup-editor.png)
+
+| Tab | Shows | Tap |
+|---|---|---|
+| BUSES, STOCKERS, INTERFACES, FEEDERS, MACHINES | every component found (with its slot 1 marker, or a machine's state and coordinates), plus configured ones that weren't found, marked `!` in red | a row, then a process (or **+ NEW** and type a name), **NOT USED**, or the name field. Feeders: tap the interface or a side to cycle it. Missing ones: **DROP** |
+| GENERAL | ME network, database, Capacity Cards, wireless port and secret, start on boot; current warnings below | the setting |
+
+Keys: type into the field you tapped (Enter keeps it, Esc cancels); otherwise Up/Down pick a row and
+Left/Right switch tabs. **RESCAN** looks for components again and keeps your edits. **SAVE** lists every change
+and warning, then writes `prism.cfg` (keeping `prism.cfg.bak`). **QUIT** with unsaved changes asks again.
+Rules and processes aren't edited here: use the control screen's RULES tab, or **TEXT SETUP** /
+`prism-setup --text` for the guided setup above.
+
 ### Control screen
 
 | Step | You answer |
@@ -175,5 +193,5 @@ renames `router.cfg` and `router-*.cfg` to `prism.cfg` / `prism-*.cfg`, keeping 
 
 
 Your config files are kept on every update;
-run `prism-setup` and press Enter through it to rewrite the config with any new options. If the router and screen run different
+run `prism-setup` and SAVE in the editor (or press Enter through `prism-setup --text`) to rewrite the config with any new options. If the router and screen run different
 versions, the screen's header shows a yellow `router X ≠ screen Y` badge.

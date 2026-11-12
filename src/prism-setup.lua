@@ -1,8 +1,13 @@
 --[[ prism-setup.lua - guided setup for either PRISM computer.
 
-  Usage: prism-setup
+  Usage: prism-setup [--text]
 
-  Asks whether this computer is the router or the control screen, then:
+  On a router that already has /home/prism.cfg and a tier 2 screen or better, it opens a full-screen
+  editor: tabs for export buses, stocking buses, interfaces, feeders and GT machines (everything found,
+  tap one to give it a process or a name), and GENERAL for network, database, wireless and start on
+  boot. SAVE shows what changes before writing. TEXT SETUP (or --text) runs the guided setup below.
+
+  Otherwise it asks whether this computer is the router or the control screen, then:
     router:  processes and starting rules, ME network, database, export buses,
              stocking input buses, feeders, GT machines, wireless, start on boot
              -> /home/prism.cfg
@@ -31,7 +36,7 @@ local component = require("component")
 local VERSION   = require("prism.version")
 local input     = require("prism.setup.input")
 
-local function main()
+local function wizard()
   print("prism-setup " .. VERSION .. " - Enter keeps the [default], - skips, Ctrl+D cancels")
   print("")
   print("What is this computer?")
@@ -47,7 +52,18 @@ local function main()
   require(role == 1 and "prism.setup.router" or "prism.setup.control").run()
 end
 
-local ok, err = pcall(main)
+local function main(...)
+  local args = { ... }
+  local text = args[1] == "--text"
+  local files, paths = require("prism.files"), require("prism.setup.paths")
+  if not text and files.exists(paths.ROUTER_CFG) then
+    local screen = require("prism.setup.screen")
+    if screen.available() and screen.run() ~= "text" then return end
+  end
+  wizard()
+end
+
+local ok, err = pcall(main, ...)
 if not ok then
   if err == input.CANCEL then print(""); print("cancelled - nothing saved")
   else error(err, 0) end
