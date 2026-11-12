@@ -24,7 +24,7 @@ local cfg = H.config("fb", [[
 return { modemPort = 4242,
   stockers = { { address = "st11", process = "chembath", name = "Bath" },
                { address = "st22", process = "wash", name = "Washer" } },
-  processes = { chembath = { overflow = 1200 } },
+  processes = { chembath = { overflow = 1500 } },
   rules = { { pattern = "^Crushed Platinum Ore$", process = "chembath" },
             { pattern = "^Crushed .+ Ore$", process = "chembath", fallback = "wash" } } }
 ]])
@@ -62,7 +62,7 @@ local cp1, cp2, cp3 = cp[1], cp[2], cp[3]
 check(cp[1].bath == "5001 5002" and cp[1].washer == "5003",
   "over the overflow, the lowest-ranked item with a fallback goes to the fallback")
 local p1 = cp[1].status.processes
-check(p1.chembath.overflow == 1200 and p1.chembath.spilled == 300 and p1.chembath.items == 1500
+check(p1.chembath.overflow == 1500 and p1.chembath.spilled == 300 and p1.chembath.items == 1500
   and p1.wash.items == 300, "status: overflow, items spilled, and backlogs after spilling")
 check(cp[2].ack.ok and cp[2].bath == "5001" and cp[2].washer == "5002 5003",
   "diverted: everything with a fallback goes there; items without one stay")
@@ -132,7 +132,7 @@ local steps = {
   end,
   function()
     H.screen("fallback-process")
-    check(M.find("PROCESS chembath", PT) and M.find("Overflow: past 1200", PT) and M.find("↷ 300 items", PT),
+    check(M.find("PROCESS chembath", PT) and M.find("Overflow: past 1500", PT) and M.find("↷ 300 items", PT),
       "tapping a process shows its overflow and what's spilling")
     return tap(" DIVERT TO FALLBACKS ", PT + 11)
   end,

@@ -112,7 +112,7 @@ rules = {
 
 | Trigger | Set by | Effect |
 |---|---|---|
-| `overflow = N` | `processes` in `prism.cfg` | Going down the process's queue (priority, then quantity), an item with a fallback goes there once the items ranked above it reach N. It comes back when it fits under 3/4 of N, so items don't bounce between processes |
+| `overflow = N` | `processes` in `prism.cfg` | While more than N items wait, items with a fallback go there, lowest-ranked (priority, then quantity) first, until N or fewer are left. A whole item moves, even the biggest stack if it's the only one with a fallback. It comes back once the process's items plus it fit under 3/4 of N, so items don't bounce between processes |
 | Divert | Tap the process on the screen → DIVERT TO FALLBACKS (saved in `prism-diverts.cfg`) | Every item with a fallback goes there until STOP DIVERTING |
 
 - Items without a fallback count toward `overflow` but never move.

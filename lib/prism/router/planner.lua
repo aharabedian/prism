@@ -20,12 +20,12 @@
     Moves items with a fallback out of a process that has too much waiting, into their fallback's queue.
     limits  { [process] = { overflow = items?, diverted = bool? } }
     held    what spilled last scan (pass the previous result; {} at first)
-    Walking a process's queue in rank order, an item with a fallback spills when the items ranked above
-    it reach `overflow`, and comes back only once it fits entirely under 3/4 of `overflow`, so items
-    don't bounce between processes. Diverted: every item with a fallback spills; when that stops, only
-    overflow decides again. Items without a
-    fallback never move but count towards `overflow`. Spilled items keep their priority and batch,
-    and never spill again from the fallback.
+    Overflow: while more than `overflow` items would wait for the process, items with a fallback spill,
+    lowest-ranked first (whole items: the top one too, if it's the one that can move). A spilled item
+    comes back only once the process's items plus it fit under 3/4 of `overflow`, highest-ranked first,
+    so items don't bounce between processes. Diverted: every item with a fallback spills; when that
+    stops, only overflow decides again. Items without a fallback never move but count towards
+    `overflow`. Spilled items keep their priority and batch, and never spill again from the fallback.
 ]]
 
 local U = require("prism.util")
@@ -84,16 +84,29 @@ function P.spill(scan, limits, held)
     local lim = limits[proc]
     local overflow = lim and tonumber(lim.overflow)
     if lim and (lim.diverted or overflow) then
-      local keep, sum = {}, 0
-      for _, e in ipairs(q) do
-        local out = false
-        if e.fallback then
-          if lim.diverted then out = "diverted"
-          elseif held[e.key] == "overflow" then out = sum + e.size > math.floor(overflow * 3 / 4) and "overflow"
-          else out = sum >= overflow and "overflow" end
+      local out = {}                              -- [entry] = "overflow" | "diverted"
+      if lim.diverted then
+        for _, e in ipairs(q) do if e.fallback then out[e] = "diverted" end end
+      else
+        local function wasOut(e) return e.fallback and held[e.key] == "overflow" end
+        local kept = 0
+        for _, e in ipairs(q) do if not wasOut(e) then kept = kept + e.size end end
+        local back = math.floor(overflow * 3 / 4)
+        for _, e in ipairs(q) do                  -- spilled last scan: back if it fits, best first
+          if wasOut(e) then
+            if kept + e.size <= back then kept = kept + e.size else out[e] = "overflow" end
+          end
         end
-        if out then moves[#moves + 1] = { e = e, from = proc }; spilled[e.key] = out
-        else keep[#keep + 1] = e; sum = sum + e.size end
+        for i = #q, 1, -1 do                      -- still too much: spill from the bottom up
+          if kept <= overflow then break end
+          local e = q[i]
+          if e.fallback and not out[e] then out[e] = "overflow"; kept = kept - e.size end
+        end
+      end
+      local keep = {}
+      for _, e in ipairs(q) do
+        if out[e] then moves[#moves + 1] = { e = e, from = proc }; spilled[e.key] = out[e]
+        else keep[#keep + 1] = e end
       end
       scan.queues[proc] = keep
     end

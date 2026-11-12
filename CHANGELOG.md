@@ -7,8 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 - **Fallbacks and overflow**: a rule or override can name a `fallback` process. When more than
-  `processes.<name>.overflow` items wait for its process, the lowest-ranked items with a fallback go there
-  instead (with hysteresis, so they don't bounce). Items without a fallback always wait. Set the fallback
+  `processes.<name>.overflow` items wait for its process, items with a fallback go there, lowest-ranked
+  first, until no more than that are left (with hysteresis, so they don't bounce). Items without a fallback always wait. Set the fallback
   with the new Fallback row when routing an item or editing a rule.
 - **Divert a process** from the control screen: tap it in PROCESSES, then DIVERT TO FALLBACKS. Every item
   with a fallback goes there until STOP DIVERTING. Saved in `prism-diverts.cfg`, so it survives a restart.
