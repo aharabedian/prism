@@ -60,7 +60,7 @@ local log = table.concat(logged)
 
 local c1 = cp[1]
 check(c1.autoPull == false, "auto-pull switched off so it can't overwrite the slots")
-check(log:find("router 0", 1, true) ~= nil, "router starts without a database when only stockers are configured")
+check(log:find("router " .. require("prism.version"), 1, true) ~= nil, "router starts without a database when only stockers are configured")
 local s1 = setOf(c1.slots)
 check(s1[GT .. ":2900"], "batch-2 item is stocked (the multiblock takes exact recipe amounts)")
 check(c1.slots[1] == GT .. ":2900", "highest priority item in slot 1")

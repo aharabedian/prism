@@ -5,6 +5,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-11
+
 ### Added
 - **Fallbacks and overflow**: a rule or override can name a `fallback` process. When more than
   `processes.<name>.overflow` items wait for its process, items with a fallback are shared with it (both
