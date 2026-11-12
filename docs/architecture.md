@@ -104,7 +104,8 @@ causes zero writes, and one item running out rewrites exactly one slot.
 
 A GT Stocking Input Bus (ME) shows the multiblock the network's stock of each configured item, and the
 multiblock extracts exactly what a recipe needs when it starts. So there is no transfer rate to keep up
-with, and batch sizes take care of themselves. The router configures one with
+with, and batch sizes take care of themselves; items with less than one batch in stock aren't stocked,
+since they can't run a recipe. The router configures one with
 `setConfiguration(slot, { name, damage })` (no table clears the slot) and reads back slots with
 `getConfiguration` at startup. No database is involved. It keeps slots stable the same way as export buses (`slots.apply`).
 At startup, auto-pull is switched off on Advanced buses, because it would replace the router's choices.
@@ -130,8 +131,9 @@ If the machine already holds a non-multiple of the batch (a leftover from before
 
 ### Stall detection
 
-A process is **stalled** when it has items waiting and at least one bus, stocker or feeder, but for `stallAfter`
-seconds none of these happened:
+A process is **stalled** when it has items ready (at least one batch of an item) and at least one bus, stocker
+or feeder, but for `stallAfter` seconds none of these happened (likewise, a machine is only idle with work
+waiting when its process has items ready):
 
 - any of its items' quantity dropped, or an item left the network entirely
 - a feeder for it moved items

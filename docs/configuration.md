@@ -180,7 +180,8 @@ Keys are `itemname:damage`. The router logs the key of every unassigned item, an
 `batch = N` (on a rule or override, or set on the screen) means "only ever send multiples of N".
 **Feeders** send batch items in exact multiples, and **stockers** offer them to a multiblock, which only
 takes whole recipes. Export buses skip them, and the router logs a warning if a process has batch items
-but no feeder or stocker. A remainder smaller than N waits in the network until more arrives.
+but no feeder or stocker. A remainder smaller than N waits in the network until more arrives: it isn't
+stocked, and it doesn't make its process stalled or its machines idle.
 
 ## Data files
 

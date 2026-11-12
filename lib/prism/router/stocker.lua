@@ -3,7 +3,8 @@
 
   Config: { address, process, name? }. The bus shows a multiblock the network's stock of each
   configured item and the multiblock takes exactly what a recipe needs, so stockers take batch
-  items too: the top getSlotSize() items of any batch size. Slots are set with
+  items too: the top getSlotSize() items of any batch size, with at least one full batch in stock
+  (less can't run a recipe, and would only take a slot). Slots are set with
   setConfiguration(slot, { name, damage }) (no table clears it): no database needed.
   Auto-pull on an Advanced bus is switched off at open, because it would replace our choices.
 ]]
@@ -53,7 +54,7 @@ function Stocker:apply(queue)
   local wanted = {}
   for _, e in ipairs(queue) do
     if #wanted >= self.size then break end
-    wanted[#wanted + 1] = e
+    if e.size >= e.batch then wanted[#wanted + 1] = e end
   end
   local ok, err = slots.apply(self.slots, self.size, wanted, function(s, e) return self:write(s, e) end)
   if not ok then

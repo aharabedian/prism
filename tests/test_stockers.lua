@@ -93,8 +93,44 @@ for s = 1, 16 do if cp[3].slots[s] ~= cp[4].slots[s] then same = false end end
 check(same, "nothing changes while it's unloaded")
 check(not setOf(cp[5].slots)[GT .. ":2017"] and setOf(cp[5].slots)[GT .. ":2002"], "once loaded again it catches up")
 
+local firstStatus = M.sent[1].data          -- for the screen check at the end
+
+---------------------------------------------------------------- less than one batch left
+-- 25 End Stone Dust in batches of 36 can't run a recipe: it isn't stocked, and nothing is stalled or idle
+-- for it. 40 Cinnabar in batches of 2 that nothing takes still stalls its process.
+M.items = { { name = GT, damage = 2950, label = "End Stone Dust", size = 25 },
+            { name = GT, damage = 2900, label = "Cinnabar Dust", size = 40 } }
+local cent = M.stocker("st333333-3333")
+local mixer = M.stocker("st444444-4444")
+M.machine("gm050000-cccc", { isMachineActive = false, isWorkAllowed = true, getEUStored = 9000, getEUMaxStored = 10000 })
+local leftover = H.config("leftover", [[
+return { modemPort = 4242, interval = 5, stallAfter = 20, idleAlert = 10,
+  stockers = { { address = "st33", process = "centrifuge", name = "Centrifuge" },
+               { address = "st44", process = "mixer", name = "Mixer" } },
+  machines = { { address = "gm05", process = "centrifuge", name = "Centrifuge M" } },
+  rules = { { pattern = "^End Stone Dust$", process = "centrifuge", batch = 36 },
+            { pattern = "^Cinnabar Dust$", process = "mixer", batch = 2 } } }
+]])
+M.sent = {}
+M.onPull = function()
+  if require("computer").uptime() > 200 then return { "interrupted" } end
+end
+H.run("prism.lua", leftover)
+local last
+for _, sent in ipairs(M.sent) do
+  local m = M.serialization.unserialize(sent.data)
+  if m.type == "router-status" then last = m end
+end
+local alertIds = {}
+for _, a in ipairs(last.alerts) do alertIds[a.id] = true end
+check(cent.slots[1] == nil and mixer.slots[1] and mixer.slots[1].damage == 2900,
+  "less than one batch isn't stocked; a full batch is")
+check(not alertIds["stall:centrifuge"] and not alertIds["idle:Centrifuge M"],
+  "less than one batch waiting is neither a stall nor an idle machine")
+check(alertIds["stall:mixer"], "a full batch nothing takes still stalls")
+check(last.processes.centrifuge.items == 25, "the leftover still shows in the backlog")
+
 ---------------------------------------------------------------- the control screen shows it
-local firstStatus = M.sent[1].data
 local mixed = M.serialization.unserialize(firstStatus)
 table.insert(mixed.buses, 1, { name = "Washer bus", process = "wash", filters = { "Crushed Iron Ore" } })
 local pulls = 0

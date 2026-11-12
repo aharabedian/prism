@@ -1,14 +1,14 @@
 --[[ prism.router.health: stall detection and alerts. Keeps state between scans.
 
-  A process is stalled when it has items waiting and at least one output, but for cfg.stallAfter
-  seconds none of these happened: any of its items' quantity dropped or left the network, a
+  A process is stalled when it has items ready (at least one batch) and at least one output, but for
+  cfg.stallAfter seconds none of these happened: any of its items' quantity dropped or left the network, a
   feeder for it moved items, a monitored machine for it was working.
 
   Health.new(cfg, log) -> health
   health:stalls(now, scan, before, outputs, machines, classify) -> { [process] = seconds stalled }
     before    { present = { [key] = qty } } from the previous scan
     classify  function(key) -> process, for items that left the network
-    Also sets m.idleFor on idle machines with work waiting.
+    Also sets m.idleFor on idle machines with work ready. Less than one batch isn't work: it can't run.
   health:alerts(backlog, stalled, outputs, machines) -> { id, level = "bad"|"warn", text }[]
     Ids are stable (stall:wash, feeder:<name>, machine:<name>, idle:<name>); logs each alert
     when it starts and when it resolves.
@@ -49,7 +49,7 @@ function Health:stalls(now, scan, before, outputs, machines, classify)
   self.fedAtScan = fedNow
   for _, m in ipairs(machines) do
     if m.state == "working" then working[m.process or ""] = true end
-    local waiting = m.process and scan.backlog[m.process] and scan.backlog[m.process].items > 0
+    local waiting = m.process and scan.backlog[m.process] and scan.backlog[m.process].ready > 0
     if m.state == "idle" and waiting then
       m.idleSince = m.idleSince or now
       m.idleFor = math.floor(now - m.idleSince)
@@ -62,7 +62,7 @@ function Health:stalls(now, scan, before, outputs, machines, classify)
   for proc in pairs(scan.backlog) do
     local s = self.stallState[proc] or {}
     self.stallState[proc] = s
-    if moved[proc] or working[proc] or not hasOutput[proc] then
+    if moved[proc] or working[proc] or not hasOutput[proc] or scan.backlog[proc].ready == 0 then
       s.since = nil
     else
       s.since = s.since or now
