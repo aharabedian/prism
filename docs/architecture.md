@@ -44,6 +44,8 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `router/health` | stall detection and alerts, with their state between scans | core |
 | `router/status` | `build()` the `router-status` message | core |
 | `router/commands` | the command table: `{ fields, run }` per wireless command | core |
+| `router/telemetry` | reporting to [LENS](https://github.com/aharabedian/lens) on `lensPort`: describe at start, a snapshot after each scan, answering `hello`. Every call is protected, so a failure never stops routing | core |
+| `lens/metrics`, `lens/codec` | **vendored** from LENS (`tools/sync-lens.sh`), byte for byte; don't edit here. `test_modules` compares them with a `../lens` checkout | telemetry |
 | `control/ui` | the control screen's layout on top of `gui`, sparklines | screen views |
 | `control/model` | screen state (`S`), actions, handling router messages; no drawing | screen |
 | `control/status_view`, `list_view`, `panel_view` | header + left column; the tabbed list (one descriptor per tab); the panels and footer | screen |
@@ -177,6 +179,8 @@ match the game first if they differ.
 | `me_exportbus.get/setExportConfiguration` via adapter, clearing with an empty database slot | Verified in-game (0.1) |
 | Wireless status/commands, control screen rendering and touch | Reported working (0.2) |
 | `me_interface.setInterfaceConfiguration` (block), transposer reading interface stock and `transferItem` | Reported working (0.3) |
+| Reporting to LENS (`lensPort`): describe and snapshots reach the hub; machine states from `isMachineActive` / `isWorkAllowed` show as running, idle and down; a machine switched off raises its alert | Reported working (lens-telemetry branch, 2026-11-12) |
+| `math.random(m, n)` doesn't return an integer (the mock returns floats); LENS boot ids use `codec.newBoot()` | Seen in-game (LENS reporting crashed on it) |
 | `gt_machine` method names (`isMachineActive`, `getWorkProgress`, `getWorkMaxProgress`, `getEUStored`, `getEUMaxStored`, `isWorkAllowed`, `getSensorInformation`, `getCoordinates`) | **Unverified** |
 | Multiblock `Problems:` line format in sensor info | **Unverified** |
 | `internet.request` streaming, `/home/bin` on the OpenOS shell path | Reported working |

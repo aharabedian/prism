@@ -26,10 +26,11 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_discover.lua` | prism-discover output |
 | `test_setup.lua` | prism-setup for router and screen: rules, hardware, wireless, start on boot, re-runs, backups, cancelling; both programs running on its output |
 | `test_setup_screen.lua` | prism-setup's editor on 80x25 and 160x50 screens: assigning, naming, dropping, feeders, general settings, review and save, quitting, falling back to the text setup |
+| `test_lens.lua` | Reporting to LENS: describe at start, snapshots with backlog, machine states and alerts, answering hello with the LENS token only, ports kept apart, off, lensPort = modemPort refused, routing carrying on when reporting fails |
 | `test_update.lua` | prism-update install/update, keeping config, pointing to prism-setup, rejecting bad downloads, migrating old `router*.cfg` |
 | `test_example_config.lua` | The shipped example config loads and routes with its default rules |
 | `test_units.lua` | Pure modules on their own: `rules` (incl. fallbacks), `router/planner` (incl. spill and its hysteresis), `router/slots`, `protocol`, `setup/editor` |
-| `test_modules.lua` | Packaging and contracts: `manifest.lua` lists every file, one version, docs list every setting and command, the program bootstrap |
+| `test_modules.lua` | Packaging and contracts: `manifest.lua` lists every file, one version, docs list every setting and command, the program bootstrap, the vendored LENS modules match `../lens` |
 | `helper.lua` | Shared setup (`H`) |
 | `mocks/oc.lua` | The mock world (`M`) |
 

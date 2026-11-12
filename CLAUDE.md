@@ -50,6 +50,8 @@ make screens                      # render the control screen from tests to PNGs
   - Keep logic pure where it can be (`rules`, `planner`, `slots`, `protocol`) and unit-test it in `tests/test_units.lua`.
   - A new output kind implements the interface in `lib/prism/router/outputs.lua`; don't special-case kinds elsewhere.
   - A new file in `src/` or `lib/` goes in `manifest.lua` (a test checks).
+- **`lib/prism/lens/` is vendored from LENS** (`../lens`): never edit it here; change LENS, then
+  `tools/sync-lens.sh` (a test checks they match when `../lens` exists).
 - **Docs move with code**, in the same change: see the table in `CONTRIBUTING.md` (config →
   `docs/configuration.md` + `config/prism.example.cfg`; messages → `docs/protocol.md`; behavior →
   `docs/architecture.md`; user-visible → `CHANGELOG.md` Unreleased). Keep docs tight: tables over prose,

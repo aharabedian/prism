@@ -21,6 +21,9 @@ C.ROUTER_TUNING = {
   { "idleAlert",       30,    "seconds a monitored machine may sit idle with work waiting" },
   { "defaultPriority", 10,    "priority for rules and overrides that don't set one" },
   { "verbose",         false, "log every filter and interface change" },
+  { "lensPort",        false, "port to report to LENS on (4243); false = off. Not modemPort" },
+  { "lensNode",        "prism", "this router's name in LENS" },
+  { "lensToken",       nil,   "LENS shared secret; separate from token. nil = none" },
 }
 C.ROUTER_DEFAULTS = { slotsPerBus = 9 }
 C.ROUTER_LISTS = { "overrides", "buses", "stockers", "interfaces", "feeders", "machines", "processes" }

@@ -15,6 +15,7 @@
     r.stats      { cycles, writes, cycleMs, lastError }
     r.reported   things already warned about, so the log isn't spammed
     r.lastStatus the latest router-status
+    r.telemetry  reporting to LENS (prism.router.telemetry), or nil when lensPort is off
 ]]
 
 local component = require("component")
@@ -34,6 +35,7 @@ local planner   = require("prism.router.planner")
 local Health    = require("prism.router.health")
 local status    = require("prism.router.status")
 local commands  = require("prism.router.commands")
+local Telemetry = require("prism.router.telemetry")
 
 local Router = {}
 Router.__index = Router
@@ -84,6 +86,8 @@ function Router:setup()
 
   self.modem = proxyOf("modem")
   if self.modem and cfg.modemPort then self.modem.open(cfg.modemPort) end
+  if self.telemetry then self.telemetry:close() end
+  self.telemetry = Telemetry.open(cfg, self.modem, log)
 
   local n = {}
   for _, o in ipairs(self.outputs) do n[o.kind] = (n[o.kind] or 0) + 1 end
@@ -95,6 +99,7 @@ function Router:setup()
     log("using %d rule(s) from %s - rules in prism.cfg are ignored", #self.store.screenRules, self.store.paths.rules)
   end
   if #self.outputs == 0 then log("no buses, stockers, interfaces or feeders configured yet - run prism-setup") end
+  self:telemetryCall("announce")
 end
 
 ---------------------------------------------------------------- wireless
@@ -107,8 +112,22 @@ function Router:send(target, msg)
   if target then modem.send(target, port, data) else modem.broadcast(port, data) end
 end
 
+-- Telemetry must never stop routing: run it protected and log a failure once per kind.
+function Router:telemetryCall(what, ...)
+  if not self.telemetry then return end
+  local ok, err = pcall(self.telemetry[what], self.telemetry, ...)
+  if not ok and not self.reported["lens:" .. what] then
+    self.reported["lens:" .. what] = true
+    log("LENS %s failed: %s", what, tostring(err))
+  end
+end
+
 -- Returns true when the command changed something and a scan should run now.
 function Router:handleMessage(from, port, data)
+  if self.telemetry and port == self.telemetry.port then
+    self:telemetryCall("handle", data)
+    return false
+  end
   if port ~= self.cfg.modemPort then return false end
   local msg = protocol.decode(data)
   if not msg or not msg.cmd then return false end
@@ -197,6 +216,7 @@ function Router:cycle()
   self.stats.cycleMs = math.floor((computer.uptime() - t0) * 1000)
   self.lastStatus = status.build(self, scan, stalled, alerts)
   self:send(nil, self.lastStatus)
+  self:telemetryCall("report", self, scan, stalled, alerts)
 end
 
 ---------------------------------------------------------------- main loop
@@ -223,6 +243,7 @@ function Router:run()
       if not ok then
         self.stats.lastError = tostring(err)
         log("cycle failed: %s", tostring(err))
+        self:telemetryCall("failed", err)
       end
       nextScan = computer.uptime() + cfg.interval
     end
@@ -249,6 +270,7 @@ function Router:run()
 
   for _, o in ipairs(self.outputs) do o:close() end   -- hand stock back to the network
   if self.modem and self.cfg.modemPort then self.modem.close(self.cfg.modemPort) end
+  if self.telemetry then self.telemetry:close() end
   log("stopped")
 end
 

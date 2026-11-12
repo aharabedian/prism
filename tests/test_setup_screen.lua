@@ -155,6 +155,29 @@ drive({
   function()
     local _, y = M.find("Wireless port")
     check(M.row(y):find("5555", 1, true), "the port can be typed")
+    local _, ly = M.find("LENS hub port")
+    check(M.row(ly):find("name", 1, true) and M.row(ly):find("secret", 1, true), "LENS port, name and secret on one row")
+    return { { "touch", "sc000000-ssss", 21, ly, 0, "Aaron" }, chars("5555")[1], chars("5555")[2], chars("5555")[3],
+      chars("5555")[4], key(28) }
+  end,
+  function()
+    check(screenHas("that's the control screen's port - LENS needs its own"), "LENS can't take the control screen's port")
+    local _, ly = M.find("LENS hub port")
+    return tap("OFF", ly, 20)
+  end,
+  function()
+    local _, ly = M.find("LENS hub port")
+    check(M.row(ly):find("4243", 1, true), "turning LENS on fills in the hub's usual port")
+    local nx = M.find("name", ly, 20)
+    local t = { { "touch", "sc000000-ssss", nx + 6, ly, 0, "Aaron" } }
+    for _, e in ipairs(chars("prism-ore")) do t[#t + 1] = e end
+    t[#t + 1] = key(28)
+    return t
+  end,
+  function()
+    local _, ly = M.find("LENS hub port")
+    check(M.row(ly):find("prism-ore", 1, true), "the LENS name can be typed")
+    H.screen("setup-general-lens")
     return tap("ON", select(2, M.find("Start on boot")))
   end,
   function() return tap("SAVE", 25) end,
@@ -163,6 +186,7 @@ drive({
     check(screenHas("- machine gm990000: wash (Old washer)"), "review lists a dropped machine")
     check(screenHas("+ feeder tp000000: centrifuge"), "review lists a new feeder")
     check(screenHas("~ modemPort: 4242 -> 5555"), "review lists general changes")
+    check(screenHas("~ lensPort: none -> 4243") and screenHas("~ lensNode: none -> prism-ore"), "review lists LENS changes")
     check(screenHas("no rule sends anything to \"centrifuge\""), "review warns about a process no rule feeds")
     H.screen("setup-review")
     return tap("SAVE", 25)
@@ -183,6 +207,7 @@ local f = c.feeders[1]
 check(f and f.interface == "if000000-iiii" and f.transposer == "tp000000-tttt" and f.interfaceSide == 4
   and f.machineSide == 5 and f.process == "centrifuge", "feeder saved with its sides")
 check(c.modemPort == 5555 and c.interval == 7 and #c.rules == 2, "port saved; settings and rules it doesn't edit are kept")
+check(c.lensPort == 4243 and c.lensNode == "prism-ore" and c.lensToken == nil, "LENS settings saved from the editor")
 check(read(SHRC) == "prism\n", ".shrc unchanged when start on boot didn't change")
 
 ---------------------------------------------------------------- quitting with unsaved changes

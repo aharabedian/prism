@@ -29,6 +29,14 @@
 
 local M = { setCalls = 0, sent = {}, pulls = 0, oob = 0, beeps = 0, web = {} }
 
+-- In game, math.random(1, 0x7fffffff) returned a number that wasn't an integer (math.type ~= "integer"),
+-- which crashed the LENS reporting (2026-11-12). Mirror that: every result is a float.
+local realRandom = math.random
+math.random = function(m, n) -- luacheck: ignore 122
+  if m == nil then return realRandom() end
+  return realRandom(m, n or m) + 0.0
+end
+
 ---------------------------------------------------------------- serialization
 -- Round-trips like OpenOS serialization (non-pretty mode).
 local function ser(v)

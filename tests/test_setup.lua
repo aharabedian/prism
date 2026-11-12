@@ -78,6 +78,7 @@ out = wizard({
   "wash", "Washer 1",          -- gm010000
   "",                          -- gm020000: skip
   "", "s3cret",                -- wireless: default port, a secret
+  "4242", "4243", "prism-ore", "lsec",  -- LENS: PRISM's port is refused; then 4243, a name, a secret
   "",                          -- start on boot: yes
   "y",                         -- save
 })
@@ -98,6 +99,9 @@ check(has("removing prism-control from .shrc"), "says it drops the other program
 check(read(ROUTER_CFG .. ".bak") == ORIGINAL, "previous prism.cfg kept as prism.cfg.bak")
 local c = loadCfg(ROUTER_CFG)
 check(c.network == "me000000-cccc" and c.database == "db000000-aaaa", "network and database saved")
+check(has("LENS port (the hub's, usually 4243; 0 = don't report) [0]"), "LENS reporting is offered, off by default")
+check(has("that's the control screen's port - LENS needs its own"), "LENS can't use the control screen's port")
+check(c.lensPort == 4243 and c.lensNode == "prism-ore" and c.lensToken == "lsec", "LENS port, name and secret saved")
 check(c.modemPort == 4242 and c.token == "s3cret" and c.slotsPerBus == 9, "wireless and slots saved")
 check(c.interval == 7 and c.myNote == "keep me" and c.overrides["minecraft:cobblestone:0"].process == "ignore",
   "settings the wizard doesn't ask about are kept")
@@ -152,12 +156,14 @@ out = wizard({
   "", "",                      -- gm01: keep
   "",                          -- gm02: skip
   "", "",                      -- wireless: keep 4242 / s3cret
+  "", "", "",                  -- LENS: keep 4243 / prism-ore / lsec
   "",                          -- start on boot: already there
   "",                          -- save (default yes)
 })
 check(has("[1 2 4]") and has("Capacity Cards per bus: 0, 1 or 2 [2]"), "previous processes and cards are the defaults")
 check(has("the 6 standard rules") and not has("instead of your current"), "unchanged rules need no question")
-check(has("[wash]") and has("[Washer 1]") and has("[4242]") and has("[s3cret]"), "previous answers offered as defaults")
+check(has("[wash]") and has("[Washer 1]") and has("[4242]") and has("[s3cret]") and has("[4243]")
+  and has("[prism-ore]") and has("[lsec]"), "previous answers offered as defaults")
 check(has('warning: no bus, stocker, interface or feeder for "crush"'), "warns when a routed process has nowhere to go")
 check(has('warning: no rule sends anything to "smelt"'), "warns when a bus has a process no rule uses")
 check(not has(".shrc will be"), ".shrc left alone when nothing changes")
@@ -171,7 +177,7 @@ check(#c.rules == 6 and c.token == "s3cret" and #c.feeders == 1 and #c.machines 
 local db = M.proxies["db000000-aaaa"]
 M.proxies["db000000-aaaa"] = nil
 local cfgBefore = read(ROUTER_CFG)
-out = wizard(answers({ "", "" }, 8, { "n" }))   -- 8 = stocking bus, machines, wireless, boot
+out = wizard(answers({ "", "" }, 11, { "n" }))   -- 11 = stocking bus, machines, wireless, LENS, boot
 check(has("only export buses and feeders need one") and not has("Capacity Cards"), "no database: bus and feeder steps skipped")
 check(has("stocking bus st010000"), "no database: stocking buses still asked about")
 check(read(ROUTER_CFG) == cfgBefore, "declined: nothing saved")
@@ -183,19 +189,20 @@ out = wizard({ "", "3 5", "y" })       -- thermal + sift, then input ends (Ctrl+
 check(has("^Purified Diamond Ore$") and has("-> sift"), "sifter gets gem ore rules")
 check(out:find("%^Crushed %.%+ Ore%$%s+%-> thermal") ~= nil, "crushed ore falls back to the thermal centrifuge without a washer")
 check(has("nothing saved") and read(ROUTER_CFG) == before, "Ctrl+D cancels without saving")
-out = wizard(answers({}, 18, { "n" }))   -- every default, then decline
+out = wizard(answers({}, 21, { "n" }))   -- every default, then decline
 check(has("nothing saved") and read(ROUTER_CFG) == before and read(SHRC) == shrcBefore, "answering n at the end saves nothing")
 
 ---------------------------------------------------------------- several candidates; wireless off; boot off
 M.proxies["me999999-cccc"] = { address = "me999999-cccc", type = "me_controller", getItemsInNetwork = function() return { n = 0 } end }
-out = wizard(answers({ "", "", "2" }, 13, { "0", "n", "y" }))   -- 13 = cards, bus, stocker, feeder and machine prompts
+out = wizard(answers({ "", "", "2" }, 13, { "0", "0", "n", "y" }))   -- 13 = cards, bus, stocker, feeder and machine prompts
 check(has("1) me000000-cccc") and has("2) me999999-cccc"), "lists ME controllers to choose from")
 c = loadCfg(ROUTER_CFG)
 check(c.network == "me999999-cccc", "chosen controller saved")
 check(c.modemPort == false and c.token == nil, "port 0 turns wireless off")
+check(c.lensPort == false, "LENS port 0 turns reporting off")
 check(not has("On the control computer"), "no control screen instructions with wireless off")
 check(read(SHRC) == "echo hello\n", "start on boot turned off removes the line")
-out = wizard(answers({ "", "", "7", "1" }, 13, { "", "", "y" }))
+out = wizard(answers({ "", "", "7", "1" }, 13, { "", "", "", "y" }))
 check(has("enter a number") and has("[0]"), "re-asks on an invalid choice; wireless off is the new default")
 check(loadCfg(ROUTER_CFG).network == "me000000-cccc", "valid answer after a bad one is used")
 check(read(SHRC) == "echo hello\nprism\n", "start on boot added back")

@@ -18,7 +18,7 @@
   ed.processes() -> names[]      processes to offer: the config's and the rules', then added ones
                                  (the standard ones when there are none)
   ed.addProcess(name)
-  ed.set(key, value)             network, database, slotsPerBus, modemPort, token
+  ed.set(key, value)             network, database, slotsPerBus, modemPort, token, lensPort, lensNode, lensToken
   ed.result() -> config          what to render: ed.c with feeder slots numbered per interface
   ed.changes() -> lines[]        how the result differs from old: "+ bus eb111111 north: wash (Washer 1)"
   ed.warnings() -> lines[]       processes not served, missing database, components not found
@@ -39,7 +39,7 @@ Editor.KINDS = {
 local LABEL, SNAP = {}, { buses = "buses", stockers = "stockers", interfaces = "interfaces",
                           feeders = "transposers", machines = "machines" }
 for _, k in ipairs(Editor.KINDS) do LABEL[k.id] = k.label end
-local GENERAL = { "network", "database", "slotsPerBus", "modemPort", "token" }
+local GENERAL = { "network", "database", "slotsPerBus", "modemPort", "token", "lensPort", "lensNode", "lensToken" }
 
 local function sameAddr(full, prefix)
   return type(full) == "string" and type(prefix) == "string" and prefix ~= "" and full:sub(1, #prefix) == prefix
@@ -67,7 +67,7 @@ local function describe(kind, e)
 end
 local function show(k, v)
   if v == nil then return "none" end
-  if k == "token" then return "(secret)" end
+  if k == "token" or k == "lensToken" then return "(secret)" end
   if v == false then return "off" end
   return tostring(v)
 end

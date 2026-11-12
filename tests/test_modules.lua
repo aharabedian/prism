@@ -26,6 +26,22 @@ for src, dest in pairs(listed) do
 end
 check(placed, "programs install to /home/bin and modules to /home/lib (where the programs look for them)")
 
+---------------------------------------------------------------- vendored LENS modules
+-- lib/prism/lens/ holds copies of LENS's lens.metrics and lens.codec (tools/sync-lens.sh). When a LENS
+-- checkout sits next to this one, they must match it byte for byte; CI has no checkout and skips this.
+local lensRoot = os.getenv("LENS_ROOT") or (H.ROOT .. "/../lens")
+if read("../lens/lib/lens/codec.lua") or os.getenv("LENS_ROOT") then
+  local differ = {}
+  for _, f in ipairs({ "metrics", "codec" }) do
+    local theirs = io.open(lensRoot .. "/lib/lens/" .. f .. ".lua")
+    local t = theirs and theirs:read("*a")
+    if theirs then theirs:close() end
+    if t ~= read("lib/prism/lens/" .. f .. ".lua") then differ[#differ + 1] = f end
+  end
+  check(#differ == 0, "lib/prism/lens/ matches the LENS checkout (run tools/sync-lens.sh)" ..
+    (#differ > 0 and (": " .. table.concat(differ, ", ") .. " differ") or ""))
+end
+
 ---------------------------------------------------------------- version
 local version = dofile(H.ROOT .. "/lib/prism/version.lua")
 check(read("src/prism-update.lua"):match('local VERSION = "([^"]*)"') == version,

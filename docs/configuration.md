@@ -22,6 +22,9 @@ previous version as `<file>.bak`, but hand-written comments are lost.
 | `modemPort` | none | Wireless port for the control screen; `nil` or `false` disables networking |
 | `token` | none | Shared secret; commands without it are ignored. Set the same `token` in `prism-control.cfg` |
 | `verbose` | `false` | Log every filter and interface change |
+| `lensPort` | `false` | Port to report to [LENS](#reporting-to-lens) on (LENS uses 4243); `false` = off. Must differ from `modemPort` |
+| `lensNode` | `"prism"` | This router's name in LENS. Give each router its own |
+| `lensToken` | `nil` | LENS shared secret, set the same on the LENS hub. Separate from `token` |
 | `defaultPriority` | `10` | Priority for rules/overrides that don't set one |
 | `buses` | `{}` | Export buses, see below |
 | `stockers` | `{}` | GT Stocking Input Buses, see below |
@@ -182,6 +185,28 @@ Keys are `itemname:damage`. The router logs the key of every unassigned item, an
 takes whole recipes. Export buses skip them, and the router logs a warning if a process has batch items
 but no feeder or stocker. A remainder smaller than N waits in the network until more arrives: it isn't
 stocked, and it doesn't make its process stalled or its machines idle.
+
+## Reporting to LENS
+
+[LENS](https://github.com/aharabedian/lens) is a base-wide monitoring hub. With `lensPort` set, the router
+broadcasts its state there after every scan, using the same wireless card but its own port and token. LENS
+only watches: it never sends PRISM commands. The router keeps routing if LENS is down or reporting fails.
+`prism-setup` asks for `lensPort`, `lensNode` and `lensToken` (GENERAL tab in the editor, "LENS monitoring"
+in the text setup).
+
+| Metric | Labels | Meaning |
+|---|---|---|
+| `prism_backlog_items` | `process` | Items waiting |
+| `prism_backlog_types` | `process` | Item types waiting |
+| `prism_stalled_seconds` | `process` | How long a stalled process has been stalled (only while stalled) |
+| `prism_unassigned_types` | | Item types no rule or override routes |
+| `prism_machine_state` | `process`, `machine`, `state` | 1 for the machine's state, 0 for the others: `running` (working), `idle`, `down` (no power, maintenance, disabled, offline, or idle with work waiting for `idleAlert` seconds) |
+| `prism_machine_progress_ratio` | `process`, `machine` | Recipe progress, 0..1 |
+| `prism_scan_seconds` | | How long the latest scan took |
+| `prism_scans_total`, `prism_writes_total` | | Scans, and filter/interface writes, since the router started (counters) |
+
+The router's alerts (stalls, machines, feeders) go to LENS as they are, with the same ids. A failed scan
+reports health `bad` with a `scan-failed` alert.
 
 ## Data files
 

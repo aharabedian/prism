@@ -97,6 +97,16 @@ function Screen.run()
       else flash("the port must be a number from 1 to 65535", false) end
     elseif f.field == "token" then
       ed.set("token", text ~= "" and text or nil)
+    elseif f.field == "lensport" then
+      local n = tonumber(text)
+      if text == "" or n == 0 then ed.set("lensPort", false)
+      elseif not (n and n == math.floor(n) and n >= 1 and n <= 65535) then flash("the LENS port must be a number from 1 to 65535", false)
+      elseif n == ed.c.modemPort then flash("that's the control screen's port - LENS needs its own", false)
+      else ed.set("lensPort", math.floor(n)) end
+    elseif f.field == "lensnode" then
+      ed.set("lensNode", text ~= "" and text or nil)
+    elseif f.field == "lenstoken" then
+      ed.set("lensToken", text ~= "" and text or nil)
     end
   end
   local function focus(field, text, extra)
@@ -355,6 +365,16 @@ function Screen.run()
     label("Shared secret")
     x = drawField(20, y, 20, c.token or "", "token")
     say(x, y, "the control screen must send it; blank = none", C.dim, C.bg)
+    y = y + 2
+    label("LENS hub port")
+    x = drawField(20, y, 6, c.lensPort or "", "lensport")
+    x = ui.button(x, y, "OFF", { on = not c.lensPort, fn = function()
+      commitFocus(); ed.set("lensPort", (not c.lensPort) and 4243 or false)
+    end })
+    say(x, y, "name", C.dim, C.bg)
+    x = drawField(x + 5, y, 12, c.lensNode or "", "lensnode")
+    say(x, y, "secret", C.dim, C.bg)
+    drawField(x + 7, y, 10, c.lensToken or "", "lenstoken")
     y = y + 2
     label("Start on boot")
     x = ui.button(20, y, "ON", { on = S.boot, fn = function() S.boot = true end })
