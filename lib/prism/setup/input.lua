@@ -7,7 +7,8 @@
   begin(steps), header(text)   numbered step headings ("3/9 Export buses")
   processHint(procs)           print the numbered process list
   askProcess(what, old, procs) -> process, name | nil (skip); a new name is added to procs
-  askPort(old)                 -> port | false (wireless off)
+  askPort(old, default?, prompt?)  -> port | false (off); default (when old is nil): 4242
+  askLens(old)                 -> lensPort, lensNode, lensToken: reporting to LENS, off by default
   askToken(old)                -> token | nil
   pickOne(list, oldPrefix)     one address: automatically when there's one, else a menu
   askSide(what, inventories)   -> side
@@ -68,14 +69,28 @@ function I.askProcess(what, old, procs)
 end
 
 -- false, not nil, for wireless off: the screen treats a missing port as the default port.
-function I.askPort(old)
-  local default = old == nil and "4242" or tostring(old or 0)
+function I.askPort(old, fallback, prompt)
+  local default = old == nil and tostring(fallback or 4242) or tostring(old or 0)
   while true do
-    local port = tonumber(I.ask("  wireless port (0 turns wireless off)", default))
+    local port = tonumber(I.ask(prompt or "  wireless port (0 turns wireless off)", default))
     if port and port == math.floor(port) and port >= 0 and port <= 65535 then
       return port > 0 and math.floor(port) or false
     end
     print("  enter a port from 1 to 65535, or 0")
+  end
+end
+
+function I.askLens(old)
+  while true do
+    local port = I.askPort(old.lensPort, 0, "  LENS port (the hub's, usually 4243; 0 = don't report)")
+    if not port then return false, old.lensNode, old.lensToken end
+    if port ~= old.modemPort then
+      local node = I.ask("  this router's name in LENS", old.lensNode or "prism")
+      local token = I.ask("  LENS secret (the hub's token; - for none)", type(old.lensToken) == "string" and old.lensToken or nil)
+      if token == "-" then token = nil end
+      return port, node, token
+    end
+    print("  that's the control screen's port - LENS needs its own")
   end
 end
 

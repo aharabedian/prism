@@ -191,6 +191,8 @@ stocked, and it doesn't make its process stalled or its machines idle.
 [LENS](https://github.com/aharabedian/lens) is a base-wide monitoring hub. With `lensPort` set, the router
 broadcasts its state there after every scan, using the same wireless card but its own port and token. LENS
 only watches: it never sends PRISM commands. The router keeps routing if LENS is down or reporting fails.
+`prism-setup` asks for `lensPort`, `lensNode` and `lensToken` (GENERAL tab in the editor, "LENS monitoring"
+in the text setup).
 
 | Metric | Labels | Meaning |
 |---|---|---|

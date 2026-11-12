@@ -1,6 +1,6 @@
 --[[ prism.setup.router: prism-setup for the router computer -> /home/prism.cfg.
   run()   processes and rules, ME network, database, export buses, stockers, feeders, interfaces, machines,
-          wireless, start on boot; then review and save.
+          wireless, LENS, start on boot; then review and save.
 ]]
 
 local filesystem = require("filesystem")
@@ -18,7 +18,7 @@ local save       = require("prism.setup.save")
 local R = {}
 
 function R.run()
-  input.begin(10)
+  input.begin(11)
   local cfgPath = paths.ROUTER_CFG
   local old = files.loadLua(cfgPath, { sides = sides }) or {}
   if filesystem.exists(cfgPath) then print("Editing " .. cfgPath) end
@@ -55,6 +55,10 @@ function R.run()
   if not probe.isWireless() then print("  no Wireless Network Card found - the control screen needs one in this computer") end
   c.modemPort = input.askPort(old.modemPort)
   c.token = c.modemPort and input.askToken(old.token) or nil
+
+  input.header("LENS monitoring (optional: reports to a LENS hub, github.com/aharabedian/lens)")
+  c.lensPort, c.lensNode, c.lensToken = input.askLens({ lensPort = old.lensPort, lensNode = old.lensNode,
+    lensToken = old.lensToken, modemPort = c.modemPort })
 
   local shrc = autostart.step("prism")
   local text = render.router(c)
