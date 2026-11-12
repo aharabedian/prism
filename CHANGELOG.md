@@ -5,6 +5,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-11
+
 ### Added
 - **Setup editor**: on a router that already has `prism.cfg` and a tier 2 screen or better, `prism-setup`
   opens a full-screen editor. Tabs list every export bus, stocking bus, interface, transposer and GT machine

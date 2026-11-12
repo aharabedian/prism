@@ -191,4 +191,4 @@ match the game first if they differ.
 | `me_interface.getInterfaceConfiguration(slot)` (only for the slot 1 marker in prism-setup/discover; missing = "(empty)") | **Unverified** |
 | `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
 | `/home/.shrc` run by the shell at boot (start on boot) | **Unverified** |
-| prism-setup's editor: `touch` and `scroll` events from a tier 2 screen, `component.isAvailable("screen")`, `key_down` codes (Enter 28, Esc 1, Backspace 14, arrows 200/208/203/205) | **Unverified** |
+| prism-setup's editor: `touch` and `scroll` events from a tier 2 screen, `component.isAvailable("screen")`, `key_down` codes (Enter 28, Esc 1, Backspace 14, arrows 200/208/203/205) | Reported working (1.1.0) |
