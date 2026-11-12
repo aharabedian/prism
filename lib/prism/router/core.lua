@@ -11,7 +11,7 @@
     r.outputs    export buses, stockers, feeders (prism.router.outputs)
     r.machines   monitored GT machines (prism.router.machines)
     r.last       { labels, present, queues } from the latest scan (queues after spilling to fallbacks)
-    r.spilled    { [key] = "overflow" | "diverted" }: items spilled to their fallback in the latest scan
+    r.spilled    { [key] = true }: items shared with their fallback in the latest scan
     r.stats      { cycles, writes, cycleMs, lastError }
     r.reported   things already warned about, so the log isn't spammed
     r.lastStatus the latest router-status
@@ -148,17 +148,17 @@ function Router:warn(scan)
   end
 end
 
--- Move items to their fallbacks (planner.spill) and log when a process starts and stops spilling.
+-- Share items with their fallbacks (planner.spill) and log when a process starts and stops sharing.
 function Router:spill(scan)
   local before = self.spilling or {}
   self.spilled = planner.spill(scan, self.store:limits(), self.spilled or {})
   local now = {}
   for proc, s in pairs(scan.spilled) do
     now[proc] = true
-    if not before[proc] then log("%s: %d item type(s) going to fallbacks", proc, s.types) end
+    if not before[proc] then log("%s: sharing %d item type(s) with fallbacks", proc, s.types) end
   end
   for proc in pairs(before) do
-    if not now[proc] then log("%s: back to its own machines", proc) end
+    if not now[proc] then log("%s: no longer sharing with fallbacks", proc) end
   end
   self.spilling = now
 end

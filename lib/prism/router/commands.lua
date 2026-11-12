@@ -136,8 +136,11 @@ COMMANDS.divert = { fields = { process = "string", on = "boolean" }, run = funct
   local store = r.store
   store.diverts[msg.process] = msg.on or nil
   store:saveDiverts()
-  r.log("%s %s", msg.process, msg.on and "diverted to fallbacks" or "no longer diverted")
-  acker(reply)(true, msg.on and (msg.process .. ": items with a fallback go there until you stop diverting")
+  if not msg.on then   -- forget what the divert shared, so only the overflow decides from now on
+    for _, e in ipairs(r.last.queues[msg.process] or {}) do r.spilled[e.key] = nil end
+  end
+  r.log("%s %s", msg.process, msg.on and "diverted: sharing everything with a fallback" or "no longer diverted")
+  acker(reply)(true, msg.on and (msg.process .. ": items with a fallback are shared until you stop diverting")
                              or (msg.process .. ": back to normal"))
   return true
 end }

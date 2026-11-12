@@ -12,7 +12,7 @@ versions follow [Semantic Versioning](https://semver.org/).
   hysteresis, so they don't flip back and forth). Items without a fallback always wait. Set the fallback
   with the new Fallback row when routing an item or editing a rule.
 - **Divert a process** from the control screen: tap it in PROCESSES, then DIVERT TO FALLBACKS. Every item
-  with a fallback goes only to its fallback until STOP DIVERTING. Saved in `prism-diverts.cfg`, so it survives a restart.
+  with a fallback is shared until STOP DIVERTING. Saved in `prism-diverts.cfg`, so it survives a restart.
 - Protocol: `divert` command; `fallback` on `assign`, `setRule` and the item, override and rule lists;
   `spilled`, `overflow` and `diverted` on `router-status` processes. `prism-setup` writes `processes`.
 

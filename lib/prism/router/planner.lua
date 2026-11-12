@@ -11,25 +11,22 @@
     queues     = { [process] = entry[] }        ranked: priority, then quantity, then key
     backlog    = { [process] = { types, items } }
     unassigned = { key, label, size }[]         largest first
-    spilled    = { [process] = { types, items } }   shared with or moved to fallbacks by spill
+    spilled    = { [process] = { types, items } }   shared with fallbacks by spill
   }
   entry = { key, stack, label, size, prio, batch, fallback?, from? }
     from: on the copy in a fallback's queue, the process it came from
   process "ignore" is neither queued nor unassigned.
 
-  spill(scan, limits, held) -> spilledKeys   { [key] = "overflow" | "diverted" }
-    Sends items with a fallback to that process too when theirs has too much waiting.
-    limits  { [process] = { overflow = items?, diverted = bool? } }
-    held    what spilled last scan (pass the previous result; {} at first)
-    Overflow SHARES: the item stays in its process's queue and backlog, and a copy joins its fallback's,
-    so both pull from the same stock. While the items not shared add up to more than `overflow`, items
-    with a fallback are shared, lowest-ranked first (the top one too, if it's the one that can be). A
-    shared item stops being shared once the unshared items plus it fit under 3/4 of `overflow`,
-    highest-ranked first, so items don't flip back and forth.
-    Diverted MOVES: every item with a fallback leaves its process's queue and backlog; when that stops,
-    only overflow decides again.
-    Items without a fallback never move but count towards `overflow`. Copies keep their priority and
-    batch, and never spill again from the fallback.
+  spill(scan, limits, held) -> sharedKeys   { [key] = true }
+    Shares items with a fallback with that process when theirs has too much waiting: the item stays in
+    its own queue and backlog, and a copy joins its fallback's, so both pull from the same stock.
+    limits  { [process] = { overflow = items?, diverted = bool? } }   diverted: as overflow = 0
+    held    what was shared last scan (pass the previous result; {} at first)
+    While the unshared items add up to more than `overflow`, items with a fallback are shared,
+    lowest-ranked first (the top one too, if it's the one that can be). A shared item stops being
+    shared once the unshared items plus it fit under 3/4 of `overflow`, highest-ranked first, so items
+    don't flip back and forth. Items without a fallback are never shared but count towards `overflow`.
+    Copies keep their priority and batch, and are never shared again from the fallback.
 ]]
 
 local U = require("prism.util")
@@ -83,58 +80,43 @@ local function addTo(t, proc, size)
 end
 
 function P.spill(scan, limits, held)
-  local moves, spilled = {}, {}
+  local shares, shared = {}, {}
   for proc, q in pairs(scan.queues) do
-    local lim = limits[proc]
-    local overflow = lim and tonumber(lim.overflow)
-    if lim and (lim.diverted or overflow) then
-      local out = {}                              -- [entry] = "overflow" | "diverted"
-      if lim.diverted then
-        for _, e in ipairs(q) do if e.fallback then out[e] = "diverted" end end
-      else
-        local function wasOut(e) return e.fallback and held[e.key] == "overflow" end
-        local kept = 0
-        for _, e in ipairs(q) do if not wasOut(e) then kept = kept + e.size end end
-        local back = math.floor(overflow * 3 / 4)
-        for _, e in ipairs(q) do                  -- spilled last scan: back if it fits, best first
-          if wasOut(e) then
-            if kept + e.size <= back then kept = kept + e.size else out[e] = "overflow" end
-          end
-        end
-        for i = #q, 1, -1 do                      -- still too much: spill from the bottom up
-          if kept <= overflow then break end
-          local e = q[i]
-          if e.fallback and not out[e] then out[e] = "overflow"; kept = kept - e.size end
+    local lim = limits[proc] or {}
+    local overflow = lim.diverted and 0 or tonumber(lim.overflow)
+    if overflow then
+      local function wasShared(e) return e.fallback and held[e.key] end
+      local unshared = 0
+      for _, e in ipairs(q) do if not wasShared(e) then unshared = unshared + e.size end end
+      local back = math.floor(overflow * 3 / 4)
+      for _, e in ipairs(q) do                    -- shared last scan: stop if it fits, best first
+        if wasShared(e) then
+          if unshared + e.size <= back then unshared = unshared + e.size else shared[e.key] = true end
         end
       end
-      local keep = {}
+      for i = #q, 1, -1 do                        -- still too much: share from the bottom up
+        if unshared <= overflow then break end
+        local e = q[i]
+        if e.fallback and not shared[e.key] then shared[e.key] = true; unshared = unshared - e.size end
+      end
       for _, e in ipairs(q) do
-        if out[e] then moves[#moves + 1] = { e = e, from = proc, why = out[e] }; spilled[e.key] = out[e] end
-        if out[e] ~= "diverted" then keep[#keep + 1] = e end
+        if shared[e.key] and e.fallback then shares[#shares + 1] = { e = e, from = proc } end
       end
-      scan.queues[proc] = keep
     end
   end
   local touched = {}
-  for _, mv in ipairs(moves) do
-    local e, from = mv.e, mv.from
-    if mv.why == "diverted" then
-      local b = scan.backlog[from]
-      b.types, b.items = b.types - 1, b.items - e.size
-      if b.types == 0 then scan.backlog[from] = nil end
-    end
+  for _, sh in ipairs(shares) do
     local copy = {}
-    for k, v in pairs(e) do copy[k] = v end
-    copy.from, e = from, copy
-    addTo(scan.spilled, from, e.size)
-    addTo(scan.backlog, e.fallback, e.size)
-    local q = scan.queues[e.fallback] or {}
-    q[#q + 1] = e
-    scan.queues[e.fallback], touched[e.fallback] = q, true
+    for k, v in pairs(sh.e) do copy[k] = v end
+    copy.from = sh.from
+    addTo(scan.spilled, sh.from, copy.size)
+    addTo(scan.backlog, copy.fallback, copy.size)
+    local q = scan.queues[copy.fallback] or {}
+    q[#q + 1] = copy
+    scan.queues[copy.fallback], touched[copy.fallback] = q, true
   end
   for proc in pairs(touched) do table.sort(scan.queues[proc], rank) end
-  for proc, q in pairs(scan.queues) do if #q == 0 then scan.queues[proc] = nil end end
-  return spilled
+  return shared
 end
 
 return P

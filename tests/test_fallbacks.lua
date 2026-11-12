@@ -64,8 +64,8 @@ check(cp[1].bath == "5001 5002 5003" and cp[1].washer == "5003",
 local p1 = cp[1].status.processes
 check(p1.chembath.overflow == 1500 and p1.chembath.spilled == 300 and p1.chembath.items == 1800
   and p1.wash.items == 300, "status: overflow, items shared, and the shared item waiting for both")
-check(cp[2].ack.ok and cp[2].bath == "5001" and cp[2].washer == "5002 5003",
-  "diverted: everything with a fallback goes there; items without one stay")
+check(cp[2].ack.ok and cp[2].bath == "5001 5002 5003" and cp[2].washer == "5002 5003",
+  "diverted: everything with a fallback is shared; items without one stay")
 check(cp[2].status.processes.chembath.diverted == true, "status says the process is diverted")
 local byKey = {}
 for _, it in ipairs(cp[3].items.list) do byKey[it.key] = it end
@@ -81,7 +81,7 @@ M.onPull = function()
   pulls = pulls + 1
   local n = pulls
   if n == 1 then
-    cp[1] = { bath = stocked(bath) }
+    cp[1] = { bath = stocked(bath), washer = stocked(washer) }
     return cmd({ cmd = "divert", process = "chembath", on = false })
   elseif n == 2 then
     cp[2] = { bath = stocked(bath), washer = stocked(washer) }
@@ -100,12 +100,12 @@ H.run("prism.lua", cfg)
 io.write = realWrite
 local log = table.concat(logged)
 
-check(cp[1].bath == "5001", "a divert survives a restart")
+check(cp[1].washer == "5002 5003", "a divert survives a restart")
 check(cp[2].bath == "5001 5002 5003" and cp[2].washer == "5003", "undoing it goes back to overflow only")
 check(cp[4].ov.list[1].fallback == "wash", "a screen override keeps its fallback")
 check(cp[5].rules.list[2].fallback == "wash" and cp[5].rules.list[1].fallback == nil, "rules carry their fallback")
-check(log:find("chembath: 1 item type(s) going to fallbacks", 1, true) and log:find("chembath diverted to fallbacks", 1, true)
-  and log:find("chembath no longer diverted", 1, true), "spilling and diverting are logged")
+check(log:find("chembath: sharing 1 item type(s) with fallbacks", 1, true) and log:find("chembath diverted: sharing", 1, true)
+  and log:find("chembath no longer diverted", 1, true), "sharing and diverting are logged")
 
 ------------------------------------------------ control screen: process panel, divert, fallback row
 M.sent = {}
@@ -143,7 +143,7 @@ local steps = {
   end,
   function()
     check(M.find("DIVERTED", PT) and M.find(" STOP DIVERTING ", PT + 11), "a diverted process offers STOP DIVERTING")
-    check(M.find("↷ 900 items moved to their fallbacks", PT), "diverted items are moved, not shared")
+    check(M.find("↷ 900 items shared with their fallbacks", PT), "diverted items are shared too")
     return tap(" STOP DIVERTING ", PT + 11)
   end,
   function()

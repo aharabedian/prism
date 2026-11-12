@@ -99,9 +99,9 @@ Within a process, items are ranked by **priority** (higher first), then by quant
 
 ## Fallbacks and overflow
 
-A rule or override may name a `fallback` process: one that may also take its items when their own process
-has too much waiting, or take them instead when it's diverted. Without a `fallback`, an item always waits
-for its own process.
+A rule or override may name a `fallback` process that its items are **shared** with when their own process
+has too much waiting: the item stays in its own process's outputs and is added to the fallback's, so both
+pull from the same stock. Without a `fallback`, an item only ever waits for its own process.
 
 ```lua
 processes = { chembath = { overflow = 2000 } },
@@ -113,14 +113,14 @@ rules = {
 
 | Trigger | Set by | Effect |
 |---|---|---|
-| `overflow = N` | `processes` in `prism.cfg` | **Shares.** While more than N items wait unshared, items with a fallback are shared with it, lowest-ranked (priority, then quantity) first, until N or fewer are left unshared. A shared item stays in its own process's outputs and is added to the fallback's, so both pull from the same stock. Whole items are shared, even the biggest stack if it's the only one with a fallback. Sharing stops once the unshared items plus it fit under 3/4 of N, so items don't flip back and forth |
-| Divert | Tap the process on the screen → DIVERT TO FALLBACKS (saved in `prism-diverts.cfg`) | **Moves.** Every item with a fallback goes only to its fallback until STOP DIVERTING |
+| `overflow = N` | `processes` in `prism.cfg` | While more than N items wait unshared, items with a fallback are shared, lowest-ranked (priority, then quantity) first, until N or fewer are left unshared. Whole items are shared, even the biggest stack if it's the only one with a fallback. Sharing stops once the unshared items plus it fit under 3/4 of N, so items don't flip back and forth |
+| Divert | Tap the process on the screen → DIVERT TO FALLBACKS (saved in `prism-diverts.cfg`) | Every item with a fallback is shared until STOP DIVERTING; then `overflow` decides again |
 
-- Items without a fallback count toward `overflow` but never move.
-- Shared and moved items keep their priority and batch, and don't spill again from the fallback (no chains).
+- Items without a fallback count toward `overflow` but are never shared.
+- Shared items keep their priority and batch, and aren't shared again from the fallback (no chains).
 - A shared item waits in both processes' backlogs. Either process using it counts as movement for both, so
   stall detection can't tell which one is stuck; [monitored machines](#machines) can.
-- The router logs when a process starts and stops sending items to fallbacks. On the screen, the process is
+- The router logs when a process starts and stops sharing items with fallbacks. On the screen, the process is
   marked `↷`, and lists show `process›fallback`.
 - A process whose machines have stopped still raises its stall alert for the items it keeps.
 

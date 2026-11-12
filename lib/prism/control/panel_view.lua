@@ -148,13 +148,12 @@ function PanelView.new(ui, m)
       put(RX + 1, P + 3, fit(("No overflow limit (processes.%s.overflow in prism.cfg)"):format(name), RW - 2), C.dim, C.panel)
     end
     if (p.spilled or 0) > 0 then
-      local how = p.diverted and "moved to" or "shared with"
-      put(RX + 1, P + 4, fit(("↷ %s items %s their fallbacks"):format(U.fmtNum(p.spilled), how), RW - 2), C.warn, C.panel)
+      put(RX + 1, P + 4, fit(("↷ %s items shared with their fallbacks"):format(U.fmtNum(p.spilled)), RW - 2), C.warn, C.panel)
     else
       put(RX + 1, P + 4, "nothing going to fallbacks", C.dim, C.panel)
     end
     if p.diverted then
-      put(RX + 1, P + 5, fit("DIVERTED: every item with a fallback goes only there", RW - 2), C.warn, C.panel)
+      put(RX + 1, P + 5, fit("DIVERTED: every item with a fallback is shared", RW - 2), C.warn, C.panel)
     end
     put(RX + 1, P + 7, fit("Fallbacks are set per rule or override (the Fallback row).", RW - 2), C.dim, C.panel)
     put(RX + 1, P + 8, fit("Items without one always wait for this process.", RW - 2), C.dim, C.panel)
