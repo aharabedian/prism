@@ -11,21 +11,25 @@
     queues     = { [process] = entry[] }        ranked: priority, then quantity, then key
     backlog    = { [process] = { types, items } }
     unassigned = { key, label, size }[]         largest first
-    spilled    = { [process] = { types, items } }   moved to fallbacks by spill (empty until then)
+    spilled    = { [process] = { types, items } }   shared with or moved to fallbacks by spill
   }
-  entry = { key, stack, label, size, prio, batch, fallback?, from? }   from: the process it spilled from
+  entry = { key, stack, label, size, prio, batch, fallback?, from? }
+    from: on the copy in a fallback's queue, the process it came from
   process "ignore" is neither queued nor unassigned.
 
   spill(scan, limits, held) -> spilledKeys   { [key] = "overflow" | "diverted" }
-    Moves items with a fallback out of a process that has too much waiting, into their fallback's queue.
+    Sends items with a fallback to that process too when theirs has too much waiting.
     limits  { [process] = { overflow = items?, diverted = bool? } }
     held    what spilled last scan (pass the previous result; {} at first)
-    Overflow: while more than `overflow` items would wait for the process, items with a fallback spill,
-    lowest-ranked first (whole items: the top one too, if it's the one that can move). A spilled item
-    comes back only once the process's items plus it fit under 3/4 of `overflow`, highest-ranked first,
-    so items don't bounce between processes. Diverted: every item with a fallback spills; when that
-    stops, only overflow decides again. Items without a fallback never move but count towards
-    `overflow`. Spilled items keep their priority and batch, and never spill again from the fallback.
+    Overflow SHARES: the item stays in its process's queue and backlog, and a copy joins its fallback's,
+    so both pull from the same stock. While the items not shared add up to more than `overflow`, items
+    with a fallback are shared, lowest-ranked first (the top one too, if it's the one that can be). A
+    shared item stops being shared once the unshared items plus it fit under 3/4 of `overflow`,
+    highest-ranked first, so items don't flip back and forth.
+    Diverted MOVES: every item with a fallback leaves its process's queue and backlog; when that stops,
+    only overflow decides again.
+    Items without a fallback never move but count towards `overflow`. Copies keep their priority and
+    batch, and never spill again from the fallback.
 ]]
 
 local U = require("prism.util")
@@ -105,8 +109,8 @@ function P.spill(scan, limits, held)
       end
       local keep = {}
       for _, e in ipairs(q) do
-        if out[e] then moves[#moves + 1] = { e = e, from = proc }; spilled[e.key] = out[e]
-        else keep[#keep + 1] = e end
+        if out[e] then moves[#moves + 1] = { e = e, from = proc, why = out[e] }; spilled[e.key] = out[e] end
+        if out[e] ~= "diverted" then keep[#keep + 1] = e end
       end
       scan.queues[proc] = keep
     end
@@ -114,10 +118,14 @@ function P.spill(scan, limits, held)
   local touched = {}
   for _, mv in ipairs(moves) do
     local e, from = mv.e, mv.from
-    e.from = from
-    local b = scan.backlog[from]
-    b.types, b.items = b.types - 1, b.items - e.size
-    if b.types == 0 then scan.backlog[from] = nil end
+    if mv.why == "diverted" then
+      local b = scan.backlog[from]
+      b.types, b.items = b.types - 1, b.items - e.size
+      if b.types == 0 then scan.backlog[from] = nil end
+    end
+    local copy = {}
+    for k, v in pairs(e) do copy[k] = v end
+    copy.from, e = from, copy
     addTo(scan.spilled, from, e.size)
     addTo(scan.backlog, e.fallback, e.size)
     local q = scan.queues[e.fallback] or {}

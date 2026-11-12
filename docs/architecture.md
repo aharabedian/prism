@@ -85,7 +85,8 @@ A command that changes routing (assign, rule edit, reload...) triggers an immedi
 1. `getItemsInNetwork()`, then `planner.plan`: merge stacks of the same `name:damage` (NBT variants),
    classify each item (screen override → cfg override → rules) into process, priority and batch, and
    rank each process's queue by priority, then quantity.
-   Then `planner.spill` moves items with a `fallback` out of a process past its `overflow` or diverted
+   Then `planner.spill` shares items with a `fallback` from a process past its `overflow` (a copy joins
+   the fallback's queue), or moves them out of a diverted one
    ([Fallbacks and overflow](configuration.md#fallbacks-and-overflow)). Which items spilled is kept until the
    next scan, for the hysteresis. Everything after this step sees the queues after spilling.
 2. Add new items to the catalog (`prism-items.cfg`); log new problems once.

@@ -41,7 +41,7 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `version` | string | Router version |
 | `uptime`, `interval`, `cycles`, `cycleMs`, `writes` | number | Housekeeping |
 | `lastError` | string? | Problem during the last scan |
-| `processes` | `{ [name] = { types, items, buses, stalled?, spilled?, overflow?, diverted? } }` | Backlog per process, after [spilling](configuration.md#fallbacks-and-overflow). `buses` counts outputs; `stalled` is seconds; `spilled` is items sent to fallbacks this scan; `overflow` and `diverted` are its limits |
+| `processes` | `{ [name] = { types, items, buses, stalled?, spilled?, overflow?, diverted? } }` | Backlog per process, after [spilling](configuration.md#fallbacks-and-overflow). `buses` counts outputs; `stalled` is seconds; `spilled` is items shared with (overflow) or moved to (diverted) fallbacks this scan; `overflow` and `diverted` are its limits |
 | `buses` | `{ name, process, filters = { label... }, kind? }[]` | Export buses, then stockers (`kind = "stocker"`), then interfaces (`kind = "interface"`); for those two `filters` are the stocked items. `filters` may be dropped to fit the packet |
 | `feeders` | `{ name, process, state, level, label?, batch?, fed }[]` | `level`: `ok`, `idle`, `warn` or `bad` (since 0.6.0; for older routers the screen reads `state`) |
 | `machines` | `{ name, process, state, progress?, eu?, idle? }[]` | `progress`/`eu` are 0..1; `idle` is seconds idle with work waiting |
@@ -56,7 +56,7 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 |---|---|
 | `router-machines` | `machines` (as in status), broadcast between scans |
 | `router-ack` | `ok`, `text` |
-| `router-items` | `req`, `offset`, `total`, `list = { key, label, size, process?, priority?, batch?, fallback?, spilled, source? }[]` (`source` is `gui`, `cfg` or `rule`; `spilled`: went to its fallback in the latest scan) |
+| `router-items` | `req`, `offset`, `total`, `list = { key, label, size, process?, priority?, batch?, fallback?, spilled, source? }[]` (`source` is `gui`, `cfg` or `rule`; `spilled`: shared with or moved to its fallback in the latest scan) |
 | `router-overrides` | `list = { key, label?, process, priority?, batch?, fallback?, source }[]` |
 | `router-rules` | `source` (`config` or `screen`), `list = { index, pattern, process, priority?, batch?, fallback?, used }[]` (`used` = catalog items this rule currently decides) |
 | `router-preview` | `req`, and either `error`, or `total`, `applies`, `list = { key, label, now?, effect }[]` (≤ 40; `effect` is `applies`, `override wins` or `rule #N wins`) |

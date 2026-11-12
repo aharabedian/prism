@@ -109,7 +109,7 @@ function R.router(c)
   L[#L + 1] = "  },"
 
   L[#L + 1] = ""
-  L[#L + 1] = "  -- Per process: overflow = N sends items with a fallback to it while more than N items wait."
+  L[#L + 1] = "  -- Per process: overflow = N shares items with a fallback with it while more than N items wait."
   L[#L + 1] = "  processes = {"
   local procs = {}
   for k in pairs(c.processes or {}) do procs[#procs + 1] = k end

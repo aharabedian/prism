@@ -69,29 +69,33 @@ local s1 = fbScan()
 local held = planner.spill(s1, {}, {})
 check(next(held) == nil and keysOf(s1.queues.chembath) == "a:0 c:0 b:0", "no limits: nothing spills")
 
+-- overflow shares: the item stays in its own queue and joins its fallback's too
 s1 = fbScan()
 held = planner.spill(s1, { chembath = { overflow = 900 } }, {})
-check(keysOf(s1.queues.chembath) == "a:0 c:0" and held["b:0"] and not held["a:0"],
-  "past the overflow, the lowest-ranked item with a fallback spills, until the rest fits")
-check(keysOf(s1.queues.wash) == "d:0 b:0" and s1.queues.wash[2].from == "chembath" and s1.queues.wash[2].prio == 5,
-  "it joins its fallback's queue with its own priority, ranked there")
-check(s1.backlog.chembath.items == 900 and s1.backlog.wash.items == 400 and s1.spilled.chembath.items == 300,
-  "backlogs move with it and spilled counts it")
+check(keysOf(s1.queues.chembath) == "a:0 c:0 b:0" and held["b:0"] == "overflow" and not held["a:0"],
+  "past the overflow, the lowest-ranked item with a fallback is shared, until the rest fits; it stays queued")
+check(keysOf(s1.queues.wash) == "d:0 b:0" and s1.queues.wash[2].from == "chembath" and s1.queues.wash[2].prio == 5
+  and s1.queues.wash[2] ~= s1.queues.chembath[3], "a copy joins its fallback's queue with its own priority, ranked there")
+check(s1.backlog.chembath.items == 1200 and s1.backlog.wash.items == 400 and s1.spilled.chembath.items == 300,
+  "it waits in both backlogs, and spilled counts it")
 
 s1 = fbScan()
 planner.spill(s1, { chembath = { overflow = 100 } }, {})
-check(keysOf(s1.queues.chembath) == "c:0", "far past it, everything with a fallback spills; items without one never move")
+check(keysOf(s1.queues.wash) == "a:0 d:0 b:0" and keysOf(s1.queues.chembath) == "a:0 c:0 b:0",
+  "far past it, everything with a fallback is shared; items without one only wait here")
 
 s1 = fbScan()
 held = planner.spill(s1, { chembath = { overflow = 1000 } }, { ["b:0"] = "overflow" })
-check(held["b:0"] and keysOf(s1.queues.chembath) == "a:0 c:0", "a spilled item stays out until it fits under 3/4 of the overflow")
+check(held["b:0"] and keysOf(s1.queues.wash) == "d:0 b:0", "a shared item stays shared until it fits under 3/4 of the overflow")
 s1 = fbScan()
 held = planner.spill(s1, { chembath = { overflow = 1600 } }, { ["b:0"] = "overflow" })
-check(not held["b:0"] and keysOf(s1.queues.chembath) == "a:0 c:0 b:0", "then it comes back")
+check(not held["b:0"] and keysOf(s1.queues.wash) == "d:0", "then it stops being shared")
 
+-- divert moves
 s1 = fbScan()
 held = planner.spill(s1, { chembath = { diverted = true } }, {})
-check(keysOf(s1.queues.chembath) == "c:0" and held["a:0"] and held["b:0"], "diverted: everything with a fallback spills")
+check(keysOf(s1.queues.chembath) == "c:0" and held["a:0"] == "diverted" and held["b:0"] == "diverted"
+  and s1.backlog.chembath.items == 400, "diverted: everything with a fallback moves out")
 s1 = fbScan()
 planner.spill(s1, { chembath = { diverted = true }, wash = { overflow = 0 } }, {})
 check(keysOf(s1.queues.wash) == "a:0 d:0 b:0", "spilled items never spill again from the fallback")
@@ -105,8 +109,8 @@ local s3 = planner.plan({
   { name = "q", damage = 0, label = "Pall", size = 700 },
 }, function(label) return "bath", 10, 1, label == "Nickel" and "wash" or nil end)
 planner.spill(s3, { bath = { overflow = 10000 } }, {})
-check(keysOf(s3.queues.bath) == "p:0 q:0" and keysOf(s3.queues.wash) == "n:0",
-  "the top-ranked item spills when it's the one that can")
+check(keysOf(s3.queues.bath) == "n:0 p:0 q:0" and keysOf(s3.queues.wash) == "n:0",
+  "the top-ranked item is shared when it's the one that can be")
 
 local s2 = planner.plan({ { name = "a", damage = 0, label = "A", size = 5 } },
   function() return "chembath", 10, 1, "wash" end)
