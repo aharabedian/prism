@@ -30,7 +30,7 @@ local function write(path, s) local f = assert(io.open(path, "w")); f:write(s); 
 local function loadCfg(path) return assert(loadfile(path, "t", { sides = require("sides") }))() end
 
 local ORIGINAL = [[
-return { interval = 7, myNote = "keep me",
+return { interval = 7, myNote = "keep me", processes = { chembath = { overflow = 2000 } },
          overrides = { ["minecraft:cobblestone:0"] = { process = "ignore" } },
          rules = { { pattern = "^Crushed .+ Ore$", process = "wash" }, { pattern = "Ore$", process = "crush" } } }
 ]]
@@ -102,6 +102,10 @@ check(c.modemPort == 4242 and c.token == "s3cret" and c.slotsPerBus == 9, "wirel
 check(c.interval == 7 and c.myNote == "keep me" and c.overrides["minecraft:cobblestone:0"].process == "ignore",
   "settings the wizard doesn't ask about are kept")
 check(c.stallAfter == 60 and c.verbose == false, "every other option written with its default")
+check(c.processes.chembath.overflow == 2000 and read(ROUTER_CFG):find("\n  processes = {", 1, true),
+  "processes are kept, in their own section")
+local rendered = require("prism.setup.render").router({ rules = { { pattern = "^A$", process = "chembath", fallback = "wash" } } })
+check(rendered:find('{ pattern = "^A$", process = "chembath", fallback = "wash" }', 1, true), "a rule's fallback is written")
 check(#c.rules == 6 and c.rules[1].process == "wash" and c.rules[6].pattern == "Ore$" and c.rules[6].priority == 5,
   "standard rules for crush/wash/centrifuge saved")
 check(#c.buses == 2 and c.buses[1].address == "eb111111-1111" and c.buses[1].side == 2

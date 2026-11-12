@@ -35,7 +35,7 @@ function H.config(cfgName, text)
   local f = assert(io.open(path, "w"))
   f:write(text)
   f:close()
-  for _, suffix in ipairs({ "-overrides.cfg", "-items.cfg", "-rules.cfg" }) do
+  for _, suffix in ipairs({ "-overrides.cfg", "-items.cfg", "-rules.cfg", "-diverts.cfg" }) do
     os.remove(H.TMP .. "/" .. cfgName .. suffix)
   end
   return path

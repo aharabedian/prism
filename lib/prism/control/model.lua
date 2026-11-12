@@ -9,7 +9,8 @@
   m.start()                 ask the router for status
   actions: switchTab, selectRow, editRule, newRule, makeRule, saveRule, deleteRule, moveRule,
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
-           reloadRouter, pickProcess, pickBatch, pickPriority, setScroll, clearFilter, quit,
+           reloadRouter, pickProcess, pickFallback, pickBatch, pickPriority, setScroll, clearFilter, quit,
+           selectProcess, cancelProcess, divert(on),
            askConfirm(what, fn), confirming(what)
 
   S.status      latest router-status (S.statusAt: when it arrived; S.router: its address)
@@ -17,8 +18,9 @@
   S.items / S.overrides / S.rules (+ S.rulesSource)   lists fetched for their tabs
   S.tab         "unassigned" | "items" | "overrides" | "rules";  S.scroll, S.filter
   S.sel         the item being routed: { key, label, size, list, source, process },
-                with the choices S.selProc, S.selPrio, S.selBatch
-  S.ruleEdit    the rule being edited: { index?, pattern, process, priority, batch }; S.preview
+                with the choices S.selProc, S.selFallback, S.selPrio, S.selBatch
+  S.ruleEdit    the rule being edited: { index?, pattern, process, fallback?, priority, batch }; S.preview
+  S.procSel     the process tapped in the PROCESSES list (its panel: overflow, divert)
   S.msg/msgOk   the flash message in the footer; S.confirm: an action waiting for a second tap
 ]]
 
@@ -44,7 +46,7 @@ function Model.new(settings, modem)
     rules = nil, rulesSource = nil,
     ruleEdit = nil, preview = nil, previewReq = 0,
     tab = "unassigned", scroll = 0, filter = "",
-    sel = nil, selProc = nil, selPrio = 10, selBatch = 1,
+    sel = nil, selProc = nil, selFallback = nil, selPrio = 10, selBatch = 1, procSel = nil,
     msg = nil, msgOk = true, msgAt = 0,
     confirm = nil, confirmAt = 0,
   }
@@ -114,9 +116,11 @@ function Model.new(settings, modem)
   ---------------------------------------------------------------- routing an item
 
   function m.selectRow(row, list)
+    S.procSel = nil
     S.sel = { key = row.key, label = row.label, size = row.size, list = list,
               source = row.source, process = row.process }
     S.selProc  = row.process
+    S.selFallback = row.fallback
     S.selPrio  = row.priority or 10
     S.selBatch = row.batch or 1
   end
@@ -127,7 +131,7 @@ function Model.new(settings, modem)
     local sel = S.sel
     if not (sel and S.selProc) then return end
     m.send({ cmd = "assign", key = sel.key, process = S.selProc, priority = S.selPrio,
-             batch = S.selBatch, label = sel.label })
+             batch = S.selBatch, fallback = S.selFallback, label = sel.label })
     m.flash(("sending %s -> %s ..."):format(sel.label or sel.key, S.selProc), true)
     S.sel = nil
   end
@@ -151,17 +155,38 @@ function Model.new(settings, modem)
     m.flash("clearing absent items ...", true)
   end
 
-  -- Process, batch and priority buttons edit the rule being edited, else the item being routed.
-  function m.pickProcess(v) if S.ruleEdit then S.ruleEdit.process = v else S.selProc = v end end
+  -- Process, fallback, batch and priority buttons edit the rule being edited, else the item being routed.
+  -- A fallback equal to the new process is dropped. pickFallback(nil): no fallback.
+  function m.pickProcess(v)
+    local t = S.ruleEdit
+    if t then t.process = v; if t.fallback == v then t.fallback = nil end
+    else S.selProc = v; if S.selFallback == v then S.selFallback = nil end end
+  end
+  function m.pickFallback(v) if S.ruleEdit then S.ruleEdit.fallback = v else S.selFallback = v end end
   function m.pickBatch(v) if S.ruleEdit then S.ruleEdit.batch = v else S.selBatch = v end end
   function m.pickPriority(v) if S.ruleEdit then S.ruleEdit.priority = v else S.selPrio = v end end
+
+  ---------------------------------------------------------------- processes
+
+  function m.selectProcess(name)
+    S.sel, S.ruleEdit, S.preview = nil, nil, nil
+    S.procSel = name
+  end
+
+  function m.cancelProcess() S.procSel = nil end
+
+  function m.divert(on)
+    if not S.procSel then return end
+    m.send({ cmd = "divert", process = S.procSel, on = on })
+    m.flash((on and "diverting %s ..." or "restoring %s ..."):format(S.procSel), true)
+  end
 
   ---------------------------------------------------------------- rules
 
   function m.editRule(rule)
-    S.sel = nil
+    S.sel, S.procSel = nil, nil
     S.ruleEdit = { index = rule.index, pattern = rule.pattern or "", process = rule.process,
-                   priority = rule.priority or 10, batch = rule.batch or 1 }
+                   fallback = rule.fallback, priority = rule.priority or 10, batch = rule.batch or 1 }
     S.preview, S.scroll = nil, 0
     requestPreview()
   end
@@ -173,7 +198,7 @@ function Model.new(settings, modem)
     local sel = S.sel
     if not sel then return end
     local rule = { pattern = "^" .. escapePattern(sel.label or "") .. "$", process = S.selProc,
-                   priority = S.selPrio, batch = S.selBatch }
+                   fallback = S.selFallback, priority = S.selPrio, batch = S.selBatch }
     S.tab, S.scroll = "rules", 0
     m.send({ cmd = "rules" })
     m.editRule(rule)
@@ -183,7 +208,7 @@ function Model.new(settings, modem)
     local r = S.ruleEdit
     if not (r and r.process and r.pattern ~= "") then return end
     m.send({ cmd = "setRule", index = r.index, pattern = r.pattern, process = r.process,
-             priority = r.priority, batch = r.batch })
+             fallback = r.fallback, priority = r.priority, batch = r.batch })
     m.flash("saving rule ...", true)
     S.ruleEdit, S.preview = nil, nil
   end

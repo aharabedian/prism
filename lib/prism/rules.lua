@@ -9,7 +9,9 @@
   clean(list, where, log)               rules with a valid pattern and a process; logs the rest
   fromMsg(msg)                          a rule from a setRule command -> rule | nil, reason
   classify(overrides, cfg, rules, label, key)
-                                        -> process, priority, batch, source, ruleIndex | nil
+                                        -> process, priority, batch, source, ruleIndex, fallback | nil
+                                           (ruleIndex is nil for overrides; fallback: see validFallback)
+  validFallback(process, fallback)      -> fallback if it's a process items can spill to, else nil
   usage(overrides, cfg, rules, catalog) -> { [ruleIndex] = catalog items it decides }
   preview(overrides, cfg, rules, catalog, msg, limit)
                                         -> fields of a router-preview reply (see docs/protocol.md)
@@ -22,6 +24,13 @@ function R.validPattern(p)
   local ok, err = pcall(string.find, "", p)
   if not ok then return false, (tostring(err):gsub("^.-:%d+: ", "")) end
   return true
+end
+
+-- A fallback is another real process; anything else means "never spill".
+function R.validFallback(process, fallback)
+  if type(fallback) == "string" and fallback ~= "" and fallback ~= process and fallback ~= "ignore"
+     and process ~= "ignore" then return fallback end
+  return nil
 end
 
 function R.clean(list, where, log)
@@ -40,17 +49,19 @@ function R.fromMsg(msg)
   if type(msg.process) ~= "string" or msg.process == "" then return nil, "pick a process for the rule" end
   local batch = math.max(1, math.floor(tonumber(msg.batch) or 1))
   return { pattern = msg.pattern, process = msg.process, priority = tonumber(msg.priority),
-           batch = batch > 1 and batch or nil }
+           batch = batch > 1 and batch or nil, fallback = R.validFallback(msg.process, msg.fallback) }
 end
 
 function R.classify(overrides, cfg, rules, label, key)
   local o = overrides[key]
-  if o then return o.process, o.priority or cfg.defaultPriority, o.batch or 1, "gui" end
+  if o then return o.process, o.priority or cfg.defaultPriority, o.batch or 1, "gui", nil, R.validFallback(o.process, o.fallback) end
   o = cfg.overrides[key]
-  if o then return o.process, o.priority or cfg.defaultPriority, o.batch or 1, "cfg" end
+  if o then return o.process, o.priority or cfg.defaultPriority, o.batch or 1, "cfg", nil, R.validFallback(o.process, o.fallback) end
   label = label or ""
   for i, r in ipairs(rules) do
-    if label:find(r.pattern) then return r.process, r.priority or cfg.defaultPriority, r.batch or 1, "rule", i end
+    if label:find(r.pattern) then
+      return r.process, r.priority or cfg.defaultPriority, r.batch or 1, "rule", i, R.validFallback(r.process, r.fallback)
+    end
   end
   return nil
 end

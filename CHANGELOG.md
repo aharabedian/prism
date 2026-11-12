@@ -5,6 +5,16 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Fallbacks and overflow**: a rule or override can name a `fallback` process. When more than
+  `processes.<name>.overflow` items wait for its process, the lowest-ranked items with a fallback go there
+  instead (with hysteresis, so they don't bounce). Items without a fallback always wait. Set the fallback
+  with the new Fallback row when routing an item or editing a rule.
+- **Divert a process** from the control screen: tap it in PROCESSES, then DIVERT TO FALLBACKS. Every item
+  with a fallback goes there until STOP DIVERTING. Saved in `prism-diverts.cfg`, so it survives a restart.
+- Protocol: `divert` command; `fallback` on `assign`, `setRule` and the item, override and rule lists;
+  `spilled`, `overflow` and `diverted` on `router-status` processes. `prism-setup` writes `processes`.
+
 ## [0.6.0] - 2026-11-11
 
 ### Added
