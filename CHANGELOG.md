@@ -16,6 +16,10 @@ versions follow [Semantic Versioning](https://semver.org/).
 - Protocol: `alwaysShare` command; `fallback` on `assign`, `setRule` and the item, override and rule lists;
   `spilled`, `overflow` and `alwaysShare` on `router-status` processes. `prism-setup` writes `processes`.
 
+### Fixed
+- Less than one batch of an item (e.g. 25 dust in batches of 36) no longer flags its process as stalled or its
+  machines as idle, and stockers no longer stock it, since it can't run a recipe. It still shows in the backlog.
+
 ## [0.6.0] - 2026-11-11
 
 ### Added

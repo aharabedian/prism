@@ -9,7 +9,7 @@
     labels     = { [key] = label }
     present    = { [key] = quantity }
     queues     = { [process] = entry[] }        ranked: priority, then quantity, then key
-    backlog    = { [process] = { types, items } }
+    backlog    = { [process] = { types, items, ready } }   ready: items in stacks of at least one batch
     unassigned = { key, label, size }[]         largest first
     spilled    = { [process] = { types, items } }   shared with fallbacks by spill
   }
@@ -39,6 +39,13 @@ local function rank(a, b)
   return a.key < b.key
 end
 
+local function addTo(t, proc, e)
+  local b = t[proc] or { types = 0, items = 0, ready = 0 }
+  b.types, b.items = b.types + 1, b.items + e.size
+  if e.size >= e.batch then b.ready = b.ready + e.size end
+  t[proc] = b
+end
+
 function P.plan(items, classify)
   -- the same item with different NBT shows up as separate stacks
   local merged, order = {}, {}
@@ -63,20 +70,12 @@ function P.plan(items, classify)
       local q = scan.queues[proc] or {}
       q[#q + 1] = e
       scan.queues[proc] = q
-      local b = scan.backlog[proc] or { types = 0, items = 0 }
-      b.types, b.items = b.types + 1, b.items + e.size
-      scan.backlog[proc] = b
+      addTo(scan.backlog, proc, e)
     end
   end
   for _, q in pairs(scan.queues) do table.sort(q, rank) end
   table.sort(scan.unassigned, function(a, b) return a.size > b.size end)
   return scan
-end
-
-local function addTo(t, proc, size)
-  local b = t[proc] or { types = 0, items = 0 }
-  b.types, b.items = b.types + 1, b.items + size
-  t[proc] = b
 end
 
 function P.spill(scan, limits, held)
@@ -109,8 +108,8 @@ function P.spill(scan, limits, held)
     local copy = {}
     for k, v in pairs(sh.e) do copy[k] = v end
     copy.from = sh.from
-    addTo(scan.spilled, sh.from, copy.size)
-    addTo(scan.backlog, copy.fallback, copy.size)
+    addTo(scan.spilled, sh.from, copy)
+    addTo(scan.backlog, copy.fallback, copy)
     local q = scan.queues[copy.fallback] or {}
     q[#q + 1] = copy
     scan.queues[copy.fallback], touched[copy.fallback] = q, true

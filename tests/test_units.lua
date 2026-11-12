@@ -39,6 +39,11 @@ local scan = planner.plan({
 check(scan.present["c:0"] == 7 and #scan.order == 4, "stacks of the same name:damage are merged; empty stacks dropped")
 check(scan.queues.wash[1].key == "d:0" and scan.queues.wash[2].key == "c:0", "a queue is ranked by quantity within a priority")
 check(scan.backlog.wash.types == 2 and scan.backlog.wash.items == 16, "backlog counts types and items")
+local partial = planner.plan({ { name = "e", damage = 0, label = "End Stone Dust", size = 25 },
+                               { name = "f", damage = 0, label = "Other Dust", size = 72 } },
+  function(label) return "centrifuge", 10, label == "End Stone Dust" and 36 or 1 end)
+check(partial.backlog.centrifuge.items == 97 and partial.backlog.centrifuge.ready == 72,
+  "ready counts only stacks with at least one batch")
 check(scan.queues.ignore == nil and #scan.unassigned == 1 and scan.unassigned[1].key == "x:0", "ignored items aren't queued or unassigned")
 
 ---------------------------------------------------------------- fallbacks
@@ -99,6 +104,12 @@ check(keysOf(s1.queues.chembath) == "a:0 c:0 b:0" and keysOf(s1.queues.wash) == 
 s1 = fbScan()
 planner.spill(s1, { chembath = { alwaysShare = true }, wash = { overflow = 0 } }, {})
 check(keysOf(s1.queues.wash) == "a:0 d:0 b:0", "copies are never shared again from the fallback")
+
+local s4 = planner.plan({ { name = "e", damage = 0, label = "End Stone Dust", size = 25 } },
+  function() return "centrifuge", 10, 36, "macerate" end)
+planner.spill(s4, { centrifuge = { alwaysShare = true } }, {})
+check(s4.backlog.macerate.items == 25 and s4.backlog.macerate.ready == 0,
+  "a shared copy with less than one batch isn't ready in the fallback either")
 
 -- the in-game case: the biggest stack is the one with a fallback, the rest can't move
 local s3 = planner.plan({
