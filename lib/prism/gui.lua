@@ -18,11 +18,12 @@ local unicode = require("unicode")
 
 local Gui = {}
 
+-- The SPECTRA logo's colors (ink, background, a project each) with neutral greys between.
 Gui.C = {
-  bg     = 0x0f1419, panel = 0x1a2129, line  = 0x2c3640,
-  text   = 0xe6e9ec, dim   = 0x7d8a96, accent = 0xffa62b,
-  good   = 0x4cd17a, bad   = 0xff5c5c, warn  = 0xffd24c, info = 0x5fb4ff,
-  btn    = 0x2c3640, btnOn = 0x2f6fb5, sel   = 0x24384d, field = 0x0b0f13,
+  bg     = 0x0b0e11, panel = 0x1a2129, line  = 0x2c3640,
+  text   = 0xe6eaee, dim   = 0x7d8a96, accent = 0xff9f43,   -- accent: PRISM's color in the SPECTRA logo
+  good   = 0x4fd17a, bad   = 0xff5c5c, warn  = 0xffd24d, info = 0x5eb4ff,
+  btn    = 0x2c3640, btnOn = 0x2f6fb5, sel   = 0x24384d, field = 0x07090c,
 }
 
 function Gui.len(s) return unicode.len(s) end

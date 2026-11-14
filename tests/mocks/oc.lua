@@ -20,6 +20,7 @@
     M.row(y), M.find(text, minY, minX), M.dump(path)
                             read the 160x50 screen the GPU drew
     M.oob, M.beeps, M.cleared, M.setCalls
+    M.slept                 seconds waited in os.sleep (which OpenOS adds; time passes)
 
   Time only moves when a program waits: pullMultiple(timeout) with no event
   advances computer.uptime() by `timeout`. Returning an event doesn't.
@@ -366,6 +367,13 @@ local computer = {
   uptime = function() return clock end,
   beep = function() M.beeps = M.beeps + 1 end,
 }
+
+-- OpenOS adds os.sleep (plain Lua has none): it waits, yielding, so time passes. M.slept adds it up.
+M.slept = 0
+os.sleep = function(seconds) -- luacheck: ignore 142
+  M.slept = M.slept + (seconds or 0)
+  clock = clock + (seconds or 0)
+end
 
 local event = {
   pullMultiple = function(timeout)

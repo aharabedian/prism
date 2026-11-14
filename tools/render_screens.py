@@ -47,6 +47,8 @@ def render(src, dst, font):
         draw.rectangle([x, y, x + CW - 1, y + CH - 1], fill="#" + bg)
         if ch == "█":
             draw.rectangle([x, y, x + CW - 1, y + CH - 1], fill="#" + fg)
+        elif ch == "▀":  # the splash logo: two pixels a cell, the top one in fg
+            draw.rectangle([x, y, x + CW - 1, y + CH // 2 - 1], fill="#" + fg)
         elif ch in SPARK:
             h = (SPARK.index(ch) + 1) * CH // 8
             draw.rectangle([x, y + CH - h, x + CW - 1, y + CH - 1], fill="#" + fg)

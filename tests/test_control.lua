@@ -193,5 +193,6 @@ M.onPull = function(n)
 end
 assert(loadfile(H.SRC .. "/prism-control.lua"))()
 check(#stderr == 0, "control exited cleanly " .. table.concat(stderr))
+check(M.slept == require("prism.splash").SECONDS, "the SPECTRA logo shows while prism-control starts")
 check(M.oob == 0, "no drawing outside the screen (" .. tostring(M.oobAt) .. ")")
 H.done()

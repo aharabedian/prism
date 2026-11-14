@@ -28,10 +28,13 @@ local Model      = require("prism.control.model")
 local StatusView = require("prism.control.status_view")
 local ListView   = require("prism.control.list_view")
 local PanelView  = require("prism.control.panel_view")
+local splash     = require("prism.splash")
 
 local settings = config.loadControl(({ ... })[1] or "/home/prism-control.cfg")
 local modem = settings.modemPort and component.isAvailable("modem") and component.modem or nil
 local ui = Ui.new(component.gpu)
+splash.show(component.gpu, ui.W, ui.H, "PRISM", require("prism.version"), ui.C.accent)
+os.sleep(splash.SECONDS)   -- yields: OpenOS keeps running while the logo shows
 local m = Model.new(settings, modem)
 local status, list, panel = StatusView.new(ui, m), ListView.new(ui, m), PanelView.new(ui, m)
 

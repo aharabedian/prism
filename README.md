@@ -4,6 +4,10 @@
 using **OpenComputers**, built for **GregTech: New Horizons** ore processing but useful for any
 "send these items to that machine" job.
 
+**[Website](https://aharabedian.github.io/spectra/prism/)** · **[Docs](https://aharabedian.github.io/spectra/prism/docs/)** · [Changelog](CHANGELOG.md) · [Install](#install)
+
+Part of **[SPECTRA](https://github.com/aharabedian/spectra)**, OpenComputers programs for running a GTNH base: **🟧 PRISM** (items) · 🟦 [LENS](https://github.com/aharabedian/lens) (monitoring) · 🟩 [LUMEN](https://github.com/aharabedian/lumen) (power). Each runs on its own.
+
 Instead of hand-managing ore dictionary cards, a computer scans an AE2 subnet, decides where each
 item should go from pattern rules and per-item overrides, and configures export buses, stocking buses and
 interfaces to match. When a machine falls behind, items can be shared with a fallback process.
