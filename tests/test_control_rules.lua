@@ -160,7 +160,7 @@ local steps = {
   function()
     check(M.find("bad pattern: malformed", PT) ~= nil, "pattern error shown")
     local x, y = M.find(" SAVE ", PT + 11)
-    check(M.fgb[y][x + 1] == 0x7d8a96, "SAVE disabled while the pattern is bad")
+    check(M.fgb[y][x + 1] == require("prism.gui").C.dim, "SAVE disabled while the pattern is bad")
     return tap(" DELETE ", PT + 11)
   end,
   function()

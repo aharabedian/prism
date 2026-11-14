@@ -36,6 +36,7 @@ return {
   { "lib/prism/router/store.lua", "lib/prism/router/store.lua" },
   { "lib/prism/router/telemetry.lua", "lib/prism/router/telemetry.lua" },
   { "lib/prism/rules.lua", "lib/prism/rules.lua" },
+  { "lib/prism/splash.lua", "lib/prism/splash.lua" },
   { "lib/prism/setup/autostart.lua", "lib/prism/setup/autostart.lua" },
   { "lib/prism/setup/control.lua", "lib/prism/setup/control.lua" },
   { "lib/prism/setup/editor.lua", "lib/prism/setup/editor.lua" },

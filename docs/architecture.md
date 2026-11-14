@@ -32,7 +32,8 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `protocol` | `encode` (trims to fit without changing the message), `decode`, `feederLevel`, page sizes | router, screen |
 | `rules` | `classify` (screen override → cfg override → rules), `clean`, `fromMsg`, `usage`, `preview` (pure) | router |
 | `probe` | finding and describing components: export buses, stockers, transposer sides, machines; `snapshot()` of all of them | setup, discover |
-| `gui` | GPU primitives, colors, buttons and touch targets | screen, setup |
+| `gui` | GPU primitives, colors (the SPECTRA logo's, PRISM orange as the accent), buttons and touch targets | screen, setup, splash |
+| `splash` | `show(gpu, w, h, name, version, accent)`: the SPECTRA logo in pixel art while a program starts; `rows(scale)` (pure) | prism-control |
 | `router/core` | the router object: `setup()`, `cycle()`, `run()`; owns the state below | `prism.lua` |
 | `router/store` | the data files (`overrides`, `catalog`, `screenRules`, `alwaysShare`), `classify` against them, `limits` | core, commands, status |
 | `router/planner` | `plan(items, classify)` → queues, backlog, unassigned; `spill` to fallbacks (pure) | core |
@@ -183,6 +184,7 @@ match the game first if they differ.
 | `math.random(m, n)` doesn't return an integer (the mock returns floats); LENS boot ids use `codec.newBoot()` | Seen in-game (LENS reporting crashed on it) |
 | `gt_machine` method names (`isMachineActive`, `getWorkProgress`, `getWorkMaxProgress`, `getEUStored`, `getEUMaxStored`, `isWorkAllowed`, `getSensorInformation`, `getCoordinates`) | **Unverified** |
 | Multiblock `Problems:` line format in sensor info | **Unverified** |
+| `os.sleep` (OpenOS) waits while yielding; `gpu.set` draws `▀` with the foreground on top (the splash's half-block pixels) | **Unverified** |
 | `internet.request` streaming, `/home/bin` on the OpenOS shell path | Reported working |
 | `/home/lib/?.lua` appended to `package.path` finds `/home/lib/prism/*.lua`; clearing `package.loaded["prism.*"]` reloads modules on restart | Reported working (modules branch) |
 | `filesystem.makeDirectory` creating `/home/lib/prism/router` (prism-update creates each level itself) | Reported working (modules branch) |

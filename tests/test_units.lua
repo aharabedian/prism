@@ -212,5 +212,35 @@ check(Editor.new({}, snap).processes()[1] == "crush", "editor: standard processe
 check(Editor.new(old, snap, { { pattern = "x", process = "smelt" } }).processes()[3] == "smelt",
   "editor: processes from prism-rules.cfg are offered")
 
-local _ = M
+---------------------------------------------------------------- splash
+local splash = require("prism.splash")
+local Gui = require("prism.gui")
+local artOk = #splash.ART == 23
+for _, row in ipairs(splash.ART) do artOk = artOk and #row == 25 and not row:find("[^.WOBG]") end
+check(artOk, "splash: the logo is 25 x 23 pixels of known colors")
+local function width(runs) local n = 0; for _, r in ipairs(runs) do n = n + utf8.len(r[2]) end; return n end
+local small, big = splash.rows(1), splash.rows(2)
+check(#small == 12 and width(small[1]) == 25 and #big == 23 and width(big[1]) == 50, "splash: 25 x 12 cells, or 50 x 23 doubled")
+-- Row 1 at scale 1 holds pixel rows 1 and 2: the apex, orange in both, is a plain orange cell between
+-- two ▀ (background over ink).
+local cells = {}
+for _, r in ipairs(small[1]) do for _ = 1, utf8.len(r[2]) do cells[#cells + 1] = r end end
+check(cells[13][2] == " " and cells[13][4] == splash.PIXEL.O and cells[12][2]:sub(1, 3) == "▀"
+  and cells[12][3] == Gui.C.bg and cells[12][4] == splash.PIXEL.W, "splash: the apex is PRISM orange")
+
+local gpu = require("component").gpu
+local function shown(sw, sh, name)
+  M.resize(sw, sh)
+  splash.show(gpu, sw, sh, "PRISM", "9.9.9", Gui.C.accent)
+  H.screen(name)
+  local _, ty = M.find("S P E C T R A")
+  local nx, ny = M.find("PRISM  v9.9.9")
+  return ty, nx and M.fgb[ny][nx] == Gui.C.accent, M.oob
+end
+local ty, accent, oob = shown(160, 50, "splash")
+check(ty and accent and oob == 0, "splash: tier 3 shows the logo, SPECTRA and the name in PRISM's color")
+ty, accent, oob = shown(80, 25, "splash-tier2")
+check(ty and ty <= 25 and accent and oob == 0, "splash: fits a tier 2 screen")
+M.resize(160, 50)
+
 H.done()

@@ -5,6 +5,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **The SPECTRA logo** in pixel art for a moment while `prism-control` starts, with PRISM's name and version.
+
+### Changed
+- **Colors** follow the SPECTRA logo: PRISM orange (`#FF9F43`) as the accent, and the logo's ink, background
+  and green, yellow and blue for status.
+
 ## [1.2.0] - 2026-11-12
 
 ### Added
