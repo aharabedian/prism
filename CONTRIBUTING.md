@@ -51,6 +51,21 @@
 | A new failure mode with a known fix | `docs/troubleshooting.md` |
 | Anything user-visible | `CHANGELOG.md` under **Unreleased** |
 
+### The docs on SPECTRA
+
+`README.md` and `docs/*.md` are also published on [SPECTRA](https://aharabedian.github.io/spectra/prism/docs/),
+built from the latest release by [aharabedian/spectra](https://github.com/aharabedian/spectra). Write for GitHub
+and the site follows, as long as each doc keeps to:
+
+- One `# Title` per file: it becomes the page title and the sidebar label.
+- Relative links between docs (`setup.md#updating`). Links to anything else in the repo go to GitHub.
+- Images in `docs/images/`.
+- Callouts as GitHub alerts (`> [!NOTE]`, `> [!WARNING]`).
+
+A new doc shows up at the end of the site's sidebar; to place it, add it to `order` in SPECTRA's
+`spectra.config.mjs`. SPECTRA's landing page for PRISM quotes program, metric and config names: renaming one
+stops the site's next build until the page is updated there.
+
 ## Releasing
 
 1. Move **Unreleased** in `CHANGELOG.md` to a new version heading with the date.
