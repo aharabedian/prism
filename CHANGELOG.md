@@ -5,6 +5,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-13
+
 ### Added
 - **The SPECTRA logo** in pixel art for a moment while `prism-control` starts, with PRISM's name and version.
 
