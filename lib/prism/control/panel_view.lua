@@ -46,15 +46,14 @@ function PanelView.new(ui, m)
     if not listed and x + len(current) + 2 <= W then button(x, y, current, { on = true }) end
   end
 
-  local function batchButtons(y, current)
+  -- Tap the field, then type the batch size (Enter or any tap leaves it).
+  local function batchField(y, current)
     put(RX + 1, y, "Batch", C.dim, C.panel)
-    local x, listed = RX + 11, false
-    for _, b in ipairs(m.settings.batches) do
-      if b == current then listed = true end
-      if x + len(tostring(b)) + 2 > W then break end
-      x = button(x, y, tostring(b), { on = current == b, fn = function() m.pickBatch(b) end })
-    end
-    if not listed then put(x, y, " ×" .. current .. " ", C.text, C.btnOn) end
+    local editing = S.batchEdit ~= nil
+    local shown = editing and (S.batchEdit .. "_") or tostring(current)
+    put(RX + 11, y, " " .. fit(shown, 5) .. " ", editing and C.accent or C.text, C.field)
+    ui.hit(RX + 11, y, RX + 17, y, m.editBatch)
+    put(RX + 19, y, editing and "type a number, Enter when done" or "tap to type", C.dim, C.panel)
   end
 
   local function priorityButtons(y, current)
@@ -82,7 +81,7 @@ function PanelView.new(ui, m)
 
     processButtons(P + 4, r.process)
     fallbackButtons(P + 7, r.process, r.fallback)
-    batchButtons(P + 8, r.batch)
+    batchField(P + 8, r.batch)
     priorityButtons(P + 9, r.priority)
 
     local nRules = S.rules and #S.rules or 0
@@ -123,7 +122,7 @@ function PanelView.new(ui, m)
 
     processButtons(P + 4, S.selProc)
     fallbackButtons(P + 7, S.selProc, S.selFallback)
-    batchButtons(P + 8, S.selBatch)
+    batchField(P + 8, S.selBatch)
     priorityButtons(P + 9, S.selPrio)
 
     local x = RX + 1

@@ -230,4 +230,3 @@ Kept next to the config, never touched by `prism-update` or `prism-setup`:
 | `beep` | `true` | Beep when a new alert appears |
 | `history` | `60` | Backlog samples kept for the sparklines |
 | `staleAfter` | `3` | Missed router cycles before showing NO SIGNAL |
-| `batches` | `{ 1, 2, 3, 4, 6, 8, 9, 16, 32, 36, 64 }` | Batch buttons offered on the screen |

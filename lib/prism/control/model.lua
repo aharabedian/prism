@@ -9,7 +9,8 @@
   m.start()                 ask the router for status
   actions: switchTab, selectRow, editRule, newRule, makeRule, saveRule, deleteRule, moveRule,
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
-           reloadRouter, pickProcess, pickFallback, pickBatch, pickPriority, setScroll, clearFilter, quit,
+           reloadRouter, pickProcess, pickFallback, pickBatch, editBatch, blur, pickPriority, setScroll,
+           clearFilter, quit,
            selectProcess, cancelProcess, setAlwaysShare(on),
            askConfirm(what, fn), confirming(what)
 
@@ -20,6 +21,7 @@
   S.sel         the item being routed: { key, label, size, list, source, process },
                 with the choices S.selProc, S.selFallback, S.selPrio, S.selBatch
   S.ruleEdit    the rule being edited: { index?, pattern, process, fallback?, priority, batch }; S.preview
+  S.batchEdit   the digits typed into the Batch field while it has focus (nil: not focused)
   S.procSel     the process tapped in the PROCESSES list (its panel: overflow, ALWAYS SHARE)
   S.msg/msgOk   the flash message in the footer; S.confirm: an action waiting for a second tap
 ]]
@@ -46,7 +48,7 @@ function Model.new(settings, modem)
     rules = nil, rulesSource = nil,
     ruleEdit = nil, preview = nil, previewReq = 0,
     tab = "unassigned", scroll = 0, filter = "",
-    sel = nil, selProc = nil, selFallback = nil, selPrio = 10, selBatch = 1, procSel = nil,
+    sel = nil, selProc = nil, selFallback = nil, selPrio = 10, selBatch = 1, procSel = nil, batchEdit = nil,
     msg = nil, msgOk = true, msgAt = 0,
     confirm = nil, confirmAt = 0,
   }
@@ -164,6 +166,9 @@ function Model.new(settings, modem)
   end
   function m.pickFallback(v) if S.ruleEdit then S.ruleEdit.fallback = v else S.selFallback = v end end
   function m.pickBatch(v) if S.ruleEdit then S.ruleEdit.batch = v else S.selBatch = v end end
+  -- The Batch field: editBatch() focuses it (typing then replaces the batch), blur() drops focus (any tap).
+  function m.editBatch() S.batchEdit = "" end
+  function m.blur() S.batchEdit = nil end
   function m.pickPriority(v) if S.ruleEdit then S.ruleEdit.priority = v else S.selPrio = v end end
 
   ---------------------------------------------------------------- processes
@@ -313,8 +318,26 @@ function Model.new(settings, modem)
     return false
   end
 
-  -- Typing edits the rule pattern while editing a rule, else the search filter.
+  -- Digits typed into the focused Batch field set the batch; Enter (or any other key) leaves the field.
+  local function batchKey(char, code)
+    local t = S.batchEdit
+    if code == 14 then t = t:sub(1, -2)
+    elseif char and char >= 48 and char <= 57 then
+      if #t >= 4 or (t == "" and char == 48) then return true end
+      t = t .. string.char(char)
+    else
+      S.batchEdit = nil
+      return code == 28                                 -- Enter just leaves; other keys go on to the text
+    end
+    S.batchEdit = t
+    if t ~= "" then m.pickBatch(tonumber(t)) end
+    return true
+  end
+
+  -- Typing edits the Batch field while it has focus, else the rule pattern while editing a rule, else
+  -- the search filter.
   function m.onKey(char, code)
+    if S.batchEdit and batchKey(char, code) then return true end
     local r = S.ruleEdit
     local text = r and r.pattern or S.filter
     if code == 14 then                                   -- backspace

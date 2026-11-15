@@ -5,6 +5,10 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- **Batch is a field** on the control screen instead of a row of buttons: tap it and type any batch size
+  (Enter or a tap elsewhere finishes). The `batches` setting in `prism-control.cfg` is gone.
+
 ## [1.3.0] - 2026-11-13
 
 ### Added

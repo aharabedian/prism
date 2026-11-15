@@ -101,7 +101,31 @@ local steps = {
     return tap("Crushed Platinum Ore Tailings", 5)
   end,
   function() return tap(" centrifuge ", PT) end,
-  function() return tap(" 2 ", PT + 7) end,          -- batch 2
+  function()                                            -- the Batch field: tap it, type 12, backspace -> 1, type 2
+    local x, y = M.find("Batch", PT + 8)
+    return { "touch", "screen", x + 12, y, 0, "Aaron" }
+  end,
+  function()
+    check(M.find("type a number", PT + 8) ~= nil, "Batch field focused")
+    return key("1")
+  end,
+  function() return key("2") end,
+  function()
+    check(M.find(" 12_", PT + 8) ~= nil, "typed digits shown in the field")
+    return { "key_down", "kb", 8, 14, "Aaron" }
+  end,
+  function() return key("2") end,
+  function() return key("x") end,                       -- a letter leaves the field (goes to search)
+  function()
+    check(M.find("type a number", PT + 8) == nil and M.find(" 12 ", PT + 8) ~= nil, "letter left the Batch field at 12")
+    return { "key_down", "kb", 8, 14, "Aaron" }         -- backspace the 'x' from the search
+  end,
+  function()                                            -- tap the field again: typing replaces the value
+    local x, y = M.find("Batch", PT + 8)
+    return { "touch", "screen", x + 12, y, 0, "Aaron" }
+  end,
+  function() return key("2") end,
+  function() return { "key_down", "kb", 13, 28, "Aaron" } end,   -- Enter
   function() return tap(" +10 ", PT + 9) end,
   function()
     H.screen("route-assign")
@@ -148,8 +172,9 @@ local steps = {
   function()
     check(M.find(" FORGET ", PT) ~= nil, "FORGET offered on ITEMS tab")
     check(M.find(" REMOVE OVERRIDE ", PT) ~= nil, "REMOVE offered for a screen override")
-    local x, y = M.find(" 4 ", PT + 7)
-    check(M.bgb[y][x + 1] == 0x2f6fb5, "batch 4 preselected from the item")
+    local x, y = M.find("Batch", PT + 8)
+    local fx, fy = M.find(" 4 ", y, x + 10)
+    check(fx == x + 10 and fy == y, "batch 4 preselected from the item")
     return tap(" FORGET ", PT + 11)
   end,
   function()
