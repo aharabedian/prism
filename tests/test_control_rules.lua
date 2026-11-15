@@ -183,7 +183,11 @@ local steps = {
   function() return key("i") end,
   function() return key("n") end,
   function() return tap(" crush ", PT + 4) end,
-  function() return tap(" 4 ", PT + 7) end,
+  function()
+    local x, y = M.find("Batch", PT + 8)
+    return { "touch", "screen", x + 12, y, 0, "Aaron" }
+  end,
+  function() return key("4") end,
   function() return tap(" SAVE ", PT + 11) end,
   function()
     local c = lastSent()

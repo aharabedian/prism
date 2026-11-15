@@ -62,6 +62,7 @@ local function main()
       dirty = redraw == "full" or (redraw == "machines" and not status.redrawMachines())
     elseif name == "touch" then
       -- touch: screenAddress, x, y, button, player
+      m.blur()
       ui.tap(math.floor(ev[3]), math.floor(ev[4]))
       dirty = true
     elseif name == "key_down" then
