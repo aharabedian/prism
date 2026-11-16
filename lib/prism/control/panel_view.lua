@@ -1,12 +1,13 @@
 --[[ prism.control.panel_view: the panel under the list and the footer.
 
   PanelView.new(ui, m) -> v
-  v.draw()        the process panel while a process is selected, the rule editor while a rule is
+  v.draw()        the process panel (its overflow and outputs) while a process is selected, the rule editor while a rule is
                   edited, else ROUTE ITEM (or the RULES help)
   v.drawFooter()  flash message / router error / rotating alerts, RELOAD CFG and QUIT
 ]]
 
-local U = require("prism.util")
+local U        = require("prism.util")
+local protocol = require("prism.protocol")
 
 local PanelView = {}
 
@@ -133,6 +134,42 @@ function PanelView.new(ui, m)
     button(x, P + 11, "CANCEL", { fn = m.cancelSelection })
   end
 
+  local LEVEL_COLORS = { ok = "good", idle = "dim", warn = "warn", bad = "bad" }
+
+  -- The process's buses, stockers, interfaces and feeders, one per row (at most `rows`).
+  local function drawOutputs(name, y, rows)
+    local st, outs = S.status or {}, {}
+    for _, b in ipairs(st.buses or {}) do if b.process == name then outs[#outs + 1] = b end end
+    for _, f in ipairs(st.feeders or {}) do if f.process == name then outs[#outs + 1] = { feeder = f, name = f.name } end end
+    table.sort(outs, function(a, b) return U.natLess(a.name, b.name) end)
+    if #outs == 0 then
+      put(RX + 1, y, "no buses, stockers, interfaces or feeders for this process", C.bad, C.panel)
+      return
+    end
+    for i, o in ipairs(outs) do
+      if i == rows and #outs > rows then
+        put(RX + 1, y, ("+%d more"):format(#outs - rows + 1), C.dim, C.panel)
+        return
+      end
+      put(RX + 1, y, fit(o.name, 16), C.text, C.panel)
+      local f = o.feeder
+      if f then
+        local level = f.level or protocol.feederLevel(f.state)
+        put(RX + 17, y, "feeder    ", C.dim, C.panel)
+        local state = fit(f.state or "?", 20)
+        put(RX + 27, y, state, C[LEVEL_COLORS[level]], C.panel)
+        local what = f.label and (f.label .. ((f.batch or 1) > 1 and (" ×" .. f.batch) or "")) or ""
+        put(RX + 48, y, fit(what, RW - 49), C.dim, C.panel)
+      else
+        put(RX + 17, y, fit(o.kind or "bus", 10), C.dim, C.panel)
+        local n = o.filters and #o.filters
+        local text = not n and "..." or n == 0 and "idle" or (n .. ": " .. table.concat(o.filters, ", "))
+        put(RX + 27, y, fit(text, RW - 28), n == 0 and C.warn or C.dim, C.panel)
+      end
+      y = y + 1
+    end
+  end
+
   local function drawProcessPanel()
     local name = S.procSel
     local p = S.status and S.status.processes and S.status.processes[name] or {}
@@ -153,8 +190,7 @@ function PanelView.new(ui, m)
     else
       put(RX + 1, P + 4, "nothing going to fallbacks", C.dim, C.panel)
     end
-    put(RX + 1, P + 7, fit("Fallbacks are set per rule or override (the Fallback row).", RW - 2), C.dim, C.panel)
-    put(RX + 1, P + 8, fit("Items without one always wait for this process.", RW - 2), C.dim, C.panel)
+    drawOutputs(name, P + 6, 4)
 
     local x = RX + 1
     x = button(x, P + 11, "SHARE ON OVERFLOW", { on = not p.alwaysShare, fn = function() m.setAlwaysShare(false) end })

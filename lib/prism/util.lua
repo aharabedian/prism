@@ -10,6 +10,7 @@
   fmtTime(s)         45 -> "0m45s", 3720 -> "1h02m"         (control screen)
   pct(x)             0.426 -> "43%", nil -> ""
   round2(x)          to two decimals, nil stays nil
+  natLess(a, b)      a before b with numbers compared by value: "Washer 2" < "Washer 10"
 ]]
 
 local U = {}
@@ -63,6 +64,11 @@ end
 function U.pct(x)
   return x and (math.floor(x * 100 + 0.5) .. "%") or ""
 end
+
+local function natKey(s)
+  return (tostring(s or ""):lower():gsub("%d+", function(d) return ("%012d"):format(tonumber(d)) end))
+end
+function U.natLess(a, b) return natKey(a) < natKey(b) end
 
 function U.round2(x)
   return x and math.floor(x * 100 + 0.5) / 100 or nil

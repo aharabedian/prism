@@ -5,6 +5,7 @@
 
   Each tab is a descriptor in MODES (the rule preview replaces the RULES list while a rule is edited):
     rows()         the rows to list (before the search filter)
+    arrange(rows)  sorts/groups the filtered rows (optional; ITEMS: by process, name or quantity)
     filter         true if typing filters this list
     header()       -> text, color for the column header row
     row(y, r, bg)  draw one row
@@ -56,13 +57,62 @@ function ListView.new(ui, m)
     tap = function(r) return function() m.selectRow(r, "unassigned") end end,
   }
 
+  -- ITEMS sorted by name or quantity, or grouped by process under headers that collapse when tapped
+  -- (searching opens every group). Items with a fallback are grouped under their own process.
+  local SORTS = { { "process", "BY PROCESS" }, { "name", "A-Z" }, { "qty", "BY QTY" } }
+  local function byQty(a, b)
+    if (a.size or 0) ~= (b.size or 0) then return (a.size or 0) > (b.size or 0) end
+    return U.natLess(a.label or a.key, b.label or b.key)
+  end
+  local function byName(a, b) return U.natLess(a.label or a.key, b.label or b.key) end
+
+  local function arrangeItems(rows)
+    local sorted = {}
+    for i, r in ipairs(rows) do sorted[i] = r end
+    if S.itemSort ~= "process" then
+      table.sort(sorted, S.itemSort == "qty" and byQty or byName)
+      return sorted
+    end
+    local groups, names = {}, {}
+    for _, r in ipairs(sorted) do
+      local g = r.process or "unassigned"
+      if not groups[g] then groups[g] = {}; names[#names + 1] = g end
+      table.insert(groups[g], r)
+    end
+    local rank = { unassigned = 0, ignore = 2 }
+    table.sort(names, function(a, b)
+      if (rank[a] or 1) ~= (rank[b] or 1) then return (rank[a] or 1) < (rank[b] or 1) end
+      return a < b
+    end)
+    local out = {}
+    for _, g in ipairs(names) do
+      local list, total = groups[g], 0
+      for _, r in ipairs(list) do total = total + (r.size or 0) end
+      local open = S.filter ~= "" or not S.collapsed[g]
+      out[#out + 1] = { group = g, types = #list, total = total, open = open }
+      if open then
+        table.sort(list, byQty)
+        for _, r in ipairs(list) do out[#out + 1] = r end
+      end
+    end
+    return out
+  end
+
+  local function groupRow(y, r)
+    fill(RX, y, RW, 1, C.panel)
+    put(RX, y, fit((r.open and "▾ " or "▸ ") .. r.group, 20), r.group == "unassigned" and C.warn or C.accent, C.panel)
+    put(RX + 20, y, ("%d type%s  ·  %s items"):format(r.types, r.types == 1 and "" or "s", U.fmtNum(r.total)), C.dim, C.panel)
+  end
+
   MODES.items = {
     filter = true,
     rows = function() return S.items or {} end,
+    arrange = arrangeItems,
     header = function()
       return fit("item", RW - 34) .. rfit("qty", 7) .. " " .. fit("process", 15) .. rfit("batch", 5) .. rfit("from", 6)
     end,
     row = function(y, r, rb)
+      if r.group then return groupRow(y, r) end
       local present = (r.size or 0) > 0
       put(RX, y, fit(r.label or r.key, RW - 34), present and C.text or C.dim, rb)
       put(RX + RW - 34, y, rfit(present and U.fmtNum(r.size) or "absent", 7) .. " ", present and C.text or C.dim, rb)
@@ -72,11 +122,18 @@ function ListView.new(ui, m)
       put(RX + RW - 6, y, rfit(r.source or "", 6), C.dim, rb)
     end,
     empty = function() return S.items and "no items seen yet" or "loading ..." end,
-    tap = function(r) return function() m.selectRow(r, "items") end end,
+    tap = function(r)
+      if r.group then return function() m.toggleGroup(r.group) end end
+      return function() m.selectRow(r, "items") end
+    end,
     actions = function(y)
+      local bx = W
+      for i = #SORTS, 1, -1 do bx = bx - len(SORTS[i][2]) - 3 end
       local x = dangerButton(RX, y, "clearAbsent", "CLEAR ABSENT", "TAP AGAIN TO CLEAR ABSENT", m.forgetAbsent)
-      put(x, y, "forgets absent items without an override", C.dim, C.bg)
-      if S.fetching then put(W - 12, y, "refreshing…", C.dim, C.bg) end
+      put(x, y, fit("forgets absent items without an override", bx - x - 1), C.dim, C.bg)
+      for _, sort in ipairs(SORTS) do
+        bx = button(bx, y, sort[2], { on = S.itemSort == sort[1], fn = function() m.setItemSort(sort[1]) end })
+      end
     end,
   }
 
@@ -151,13 +208,15 @@ function ListView.new(ui, m)
 
   local function visibleRows(md)
     local rows = md.rows()
-    if not md.filter or S.filter == "" then return rows end
-    local f, out = S.filter:lower(), {}
-    for _, r in ipairs(rows) do
-      local text = (r.label or r.pattern or ""):lower()
-      if text:find(f, 1, true) or (r.key and r.key:lower():find(f, 1, true)) then out[#out + 1] = r end
+    if md.filter and S.filter ~= "" then
+      local f, out = S.filter:lower(), {}
+      for _, r in ipairs(rows) do
+        local text = (r.label or r.pattern or ""):lower()
+        if text:find(f, 1, true) or (r.key and r.key:lower():find(f, 1, true)) then out[#out + 1] = r end
+      end
+      rows = out
     end
-    return out
+    return md.arrange and md.arrange(rows) or rows
   end
 
   local v = {}
@@ -211,13 +270,16 @@ function ListView.new(ui, m)
     else
       put(RX, L.INFO_ROW, "type to search", C.dim, C.bg)
     end
+    local right = W
     if #rows > visible then
       local pos = ("%d-%d of %d"):format(S.scroll + 1, math.min(#rows, S.scroll + visible), #rows)
-      put(W - len(pos), L.INFO_ROW, pos, C.dim, C.bg)
+      right = W - len(pos)
+      put(right, L.INFO_ROW, pos, C.dim, C.bg)
     elseif S.tab == "unassigned" and st and (st.unassignedCount or 0) > #rows and S.filter == "" then
       local note = ("router sent top %d of %d"):format(#rows, st.unassignedCount)
       put(W - len(note), L.INFO_ROW, note, C.dim, C.bg)
     end
+    if S.tab == "items" and S.fetching then put(right - 13, L.INFO_ROW, "refreshing… ", C.dim, C.bg) end
 
     if md.actions then md.actions(L.ACTION_ROW) end
   end

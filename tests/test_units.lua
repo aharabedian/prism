@@ -243,4 +243,10 @@ ty, accent, oob = shown(80, 25, "splash-tier2")
 check(ty and ty <= 25 and accent and oob == 0, "splash: fits a tier 2 screen")
 M.resize(160, 50)
 
+-- util.natLess: numbers inside names sort by value
+local U = require("prism.util")
+local names = { "Washer 10", "washer 2", "Centrifuge 1", "Washer 1" }
+table.sort(names, U.natLess)
+check(table.concat(names, ",") == "Centrifuge 1,Washer 1,washer 2,Washer 10", "natLess: " .. table.concat(names, ","))
+
 H.done()

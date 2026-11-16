@@ -96,7 +96,9 @@ local scales = { 1.6, 1.4, 1.5, 1.2, 1.25, 1.1, 1.0 }
 local steps = {
   function() -- unassigned tab: pick item
     H.screen("route-dashboard")
-    check(M.find("FEEDERS") ~= nil, "feeders section drawn")
+    local _, cy = M.find("centrifuge", 5)
+    check(cy and M.row(cy + 1):find("1 feeder", 1, true) and M.row(cy + 1):find("1 feeding", 1, true),
+      "the centrifuge card counts its feeder")
     check(M.find("blocked: 1 in machine") ~= nil, "blocked feeder state shown")
     return tap("Crushed Platinum Ore Tailings", 5)
   end,
@@ -153,6 +155,36 @@ local steps = {
   function()
     check(M.find("absent", 5) ~= nil, "absent item shown as absent")
     check(M.find("×4", 5) ~= nil, "batch column shows ×4")
+    local RX = math.floor(M.W * 0.56) + 3
+    local _, uy = M.find("▾ unassigned", 5, RX)
+    local _, cy = M.find("▾ centrifuge", 5, RX)
+    check(uy == 5 and cy and cy > uy and M.find("Cooperite Dust", cy, RX) ~= nil, "ITEMS grouped by process, unassigned first")
+    return tap("▾ centrifuge", 5)
+  end,
+  function()
+    local RX = math.floor(M.W * 0.56) + 3
+    check(M.find("▸ centrifuge", 5, RX) ~= nil and M.find("Cooperite Dust", 5, RX) == nil, "tapping a group collapses it")
+    return tap("▸ centrifuge", 5)
+  end,
+  function()
+    local RX = math.floor(M.W * 0.56) + 3
+    check(M.find("Cooperite Dust", 5, RX) ~= nil, "and tapping it again opens it")
+    return tap(" BY QTY ", PT - 2)
+  end,
+  function()
+    local RX = math.floor(M.W * 0.56) + 3
+    check(M.find("▾", 5, RX) == nil and M.row(5):find("Stone Dust", 1, true), "BY QTY: no groups, biggest first")
+    return tap(" A-Z ", PT - 2)
+  end,
+  function()
+    local RX = math.floor(M.W * 0.56) + 3
+    local function label(y) local r = M.row(y); return r:sub(utf8.offset(r, RX), utf8.offset(r, RX + 30)):lower() end
+    check(M.find("▾", 5, RX) == nil and label(5) <= label(6) and label(6) <= label(7) and label(7) <= label(8),
+      "A-Z: sorted by name")
+    return tap(" BY PROCESS ", PT - 2)
+  end,
+  function()
+    check(M.find("▾ unassigned", 5) ~= nil, "BY PROCESS groups again")
     return key("c")
   end,
   function() return key("o") end,

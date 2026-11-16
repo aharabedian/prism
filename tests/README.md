@@ -21,8 +21,8 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_interfaces.lua` | ME interfaces another network pulls from: top batch-1 items, clearing at start and exit, one rewrite per item running out, status, screen row, configuration errors |
 | `test_feeders.lua` | Exact-batch feeding against a machine that only consumes full batches; catalog paging, forget |
 | `test_monitor_rules.lua` | Machine states, stall/idle alerts, rule commands and preview |
-| `test_control.lua` | Screen: routing an item, ITEMS paging, search, batch, forget, clear absent, overrides |
-| `test_control_rules.lua` | Screen: machines, alerts, beep, rule editor, MAKE RULE, compact layout, version badge |
+| `test_control.lua` | Screen: routing an item, ITEMS paging, search, grouping and sorting, batch, forget, clear absent, overrides |
+| `test_control_rules.lua` | Screen: process cards and machines, alerts, beep, rule editor, MAKE RULE, trimmed and compact cards, version badge |
 | `test_discover.lua` | prism-discover output |
 | `test_setup.lua` | prism-setup for router and screen: rules, hardware, wireless, start on boot, re-runs, backups, cancelling; both programs running on its output |
 | `test_setup_screen.lua` | prism-setup's editor on 80x25 and 160x50 screens: assigning, naming, dropping, feeders, general settings, review and save, quitting, falling back to the text setup |

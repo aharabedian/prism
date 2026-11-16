@@ -11,13 +11,15 @@
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
            reloadRouter, pickProcess, pickFallback, pickBatch, editBatch, blur, pickPriority, setScroll,
            clearFilter, quit,
-           selectProcess, cancelProcess, setAlwaysShare(on),
+           selectProcess, cancelProcess, setAlwaysShare(on), setItemSort(how), toggleGroup(process),
            askConfirm(what, fn), confirming(what)
 
   S.status      latest router-status (S.statusAt: when it arrived; S.router: its address)
   S.history     { [process] = backlog samples } for the sparklines
   S.items / S.overrides / S.rules (+ S.rulesSource)   lists fetched for their tabs
   S.tab         "unassigned" | "items" | "overrides" | "rules";  S.scroll, S.filter
+  S.itemSort    how ITEMS is ordered: "process" (grouped, S.collapsed[process] = true hides a group),
+                "name" or "qty"
   S.sel         the item being routed: { key, label, size, list, source, process },
                 with the choices S.selProc, S.selFallback, S.selPrio, S.selBatch
   S.ruleEdit    the rule being edited: { index?, pattern, process, fallback?, priority, batch }; S.preview
@@ -47,7 +49,7 @@ function Model.new(settings, modem)
     items = nil, itemsBuf = nil, itemsReq = 0, fetching = false, fetchAt = 0,
     rules = nil, rulesSource = nil,
     ruleEdit = nil, preview = nil, previewReq = 0,
-    tab = "unassigned", scroll = 0, filter = "",
+    tab = "unassigned", scroll = 0, filter = "", itemSort = "process", collapsed = {},
     sel = nil, selProc = nil, selFallback = nil, selPrio = 10, selBatch = 1, procSel = nil, batchEdit = nil,
     msg = nil, msgOk = true, msgAt = 0,
     confirm = nil, confirmAt = 0,
@@ -110,6 +112,9 @@ function Model.new(settings, modem)
     S.tab, S.scroll = tab, 0
     refreshTab()
   end
+
+  function m.setItemSort(how) S.itemSort, S.scroll = how, 0 end
+  function m.toggleGroup(process) S.collapsed[process] = not S.collapsed[process] or nil end
 
   function m.setScroll(n) S.scroll = math.max(0, n) end
   function m.clearFilter() S.filter, S.scroll = "", 0 end
