@@ -5,6 +5,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-18
+
 ### Added
 - **`prism_backlog_ready_items`** for LENS: items waiting per process that can go out now, leaving out
   items still below their batch size.
