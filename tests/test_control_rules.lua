@@ -96,6 +96,22 @@ local bigStatus = ser.unserialize(status)
 bigStatus.cycles = 999
 bigStatus.version = "0.3.9"   -- pretend the router is an older release
 for i = 1, 9 do bigStatus.buses[#bigStatus.buses + 1] = { name = "Extra bus " .. i, process = "wash", filters = { "Crushed Iron Ore", "Crushed Gold Ore" } } end
+-- 120 washers is more than a card can list; 240 more than fits even then
+local trimStatus = ser.unserialize(ser.serialize(bigStatus))
+local function addMachines(st, n)
+  for i = 1, n do
+    st.machines[#st.machines + 1] = { name = "Extra washer " .. i, process = "wash", state = i % 3 == 0 and "idle" or "working", progress = 0.5 }
+  end
+  st.machines[#st.machines + 1] = { name = "Loose machine", state = "working", progress = 0.1 }
+end
+addMachines(trimStatus, 240)
+-- 30 more processes with 3 machines each: too many cards, so they shrink to their header
+for i = 1, 30 do
+  local p = ("proc%02d"):format(i)
+  bigStatus.processes[p] = { items = i, types = 1, buses = 1 }
+  bigStatus.buses[#bigStatus.buses + 1] = { name = p .. " bus", process = p, filters = { "x" } }
+  for j = 1, 3 do bigStatus.machines[#bigStatus.machines + 1] = { name = p .. " m" .. j, process = p, state = "working", progress = 0.2 } end
+end
 bigStatus.feeders = {}
 for i = 1, 5 do
   bigStatus.feeders[i] = { name = "Feeder " .. i, process = "centrifuge", state = "feeding",
@@ -106,9 +122,10 @@ local steps = {
   function() return msg(status) end,
   function()
     H.screen("rules-dashboard")
-    check(M.find("MACHINES") ~= nil, "machines section drawn")
-    local _, y = M.find("Washer A")
-    check(M.row(y):find("30%", 1, true) and M.row(y):find("working", 1, true), "Washer A row: working 30%")
+    local _, wy = M.find("455 items", 5)
+    check(wy and select(2, M.find("Washer A")) == wy + 1, "Washer A on the wash card")
+    local x, y = M.find("Washer A")
+    check(M.row(y):sub(x):find("30%", 1, true) ~= nil, "Washer A cell: working 30%")
     check(M.find("Centrifuge M") and M.row(select(2, M.find("Centrifuge M"))):find("offline", 1, true), "offline machine shown")
     check(M.find("ALERTS", 1) ~= nil and select(2, M.find("ALERTS")) == 1, "alert badge in header")
     check(M.find("⚠ centrifuge") ~= nil, "stalled process flagged")
@@ -120,8 +137,8 @@ local steps = {
     return msg(mm)
   end,
   function()
-    local _, y = M.find("Washer A")
-    check(M.row(y):find("55%", 1, true), "machine row updated in place from router-machines")
+    local x, y = M.find("Washer A")
+    check(M.row(y):sub(x):find("55%", 1, true), "machine cell updated in place from router-machines")
     return msg(status)    -- same status again: no new beep
   end,
   function()
@@ -219,8 +236,20 @@ local steps = {
   end,
   function()
     H.screen("rules-compact")
-    local _, y = M.find("Extra bus 1")
-    check(M.row(y):find("Crushed Iron Ore", 1, true), "compact mode: bus filters on the same row")
+    local _, py = M.find("proc01", 5)
+    check(py and M.row(py):find("●●● 3/3", 1, true), "compact: a card shows its machines as dots")
+    check(M.find("proc01 m1") == nil, "compact: no machine cells on shrunk cards")
+    check(M.find("more processes") == nil and M.find("proc30", 5) ~= nil, "every card fits once shrunk")
+    return msg(trimStatus)
+  end,
+  function()
+    H.screen("rules-trimmed")
+    local _, wy = M.find("455 items", 5)
+    local _, my = M.find("more", wy)
+    check(M.row(wy):find("161/242 working", 1, true) and M.find("Extra washer 1 ") ~= nil and my and M.row(my):find("+%d+ more"),
+      "a card too big for the screen lists what fits and how many more")
+    local _, ly = M.find("(no process)", 5)
+    check(ly and ly > wy and M.row(ly):find("1/1", 1, true), "a machine without a process gets the last card")
     check(M.find("router 0.3.9 ≠ screen", 1) ~= nil, "version mismatch flagged in the header")
     return tap(" QUIT ", M.H)
   end,

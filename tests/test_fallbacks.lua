@@ -134,6 +134,9 @@ local steps = {
     H.screen("fallback-process")
     check(M.find("PROCESS chembath", PT) and M.find("Fallbacks: shared on overflow (past 1500 waiting)", PT)
       and M.find("↷ 300 items shared with their fallbacks", PT), "tapping a process shows its overflow and what's shared")
+    local _, by = M.find("Bath", PT + 5)
+    check(by and M.row(by):find("stocker", 1, true) and M.row(by):find("3: Crushed Platinum Ore", 1, true),
+      "the panel lists the process's outputs with what they hold")
     return tap(" ALWAYS SHARE ", PT + 11)
   end,
   function()

@@ -100,7 +100,7 @@ M.onPull = function()
   return { "interrupted" }
 end
 H.run("prism-control.lua")
-local _, y = M.find("Main net")
-check(y and M.row(y):find("9 stocked", 1, true), "the screen row says how many items it stocks")
+local _, y = M.find("1 interface")
+check(y and M.row(y):find("9 stocked", 1, true), "the process card says how many items its interface stocks")
 check(M.oob == 0, "no drawing outside the screen")
 H.done()

@@ -156,12 +156,18 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 
 ## Control screen
 
-- Redraws fully on status, touch and key events; machine updates redraw only the machine rows.
+- Redraws fully on status, touch and key events; machine updates redraw only the machine cells and
+  each card's "N/M working" (everything, if machines were added, removed or moved to another process).
 - Item lists are fetched in pages, because wireless packets are limited to about 8 KB.
 - All edits are commands to the router; the screen re-fetches after each `router-ack`.
-- The left column switches to one row per bus and feeder when everything wouldn't otherwise fit.
-- Stockers and interfaces are listed under BUSES as "N stocked"; export buses show "N filters".
-- Tapping a process row opens its panel (overflow, what's shared, SHARE ON OVERFLOW / ALWAYS SHARE).
+- The left column is one card per process: header (backlog, history, machines working), its machines,
+  and a line about its outputs (export buses "N filters", stockers/interfaces "N stocked", feeders, and
+  anything wrong). Things without a process get a last "(no process)" card.
+- When the cards don't fit, the biggest first list fewer machines ("+N more"), then shrink to their
+  header with machines as dots (the outputs line stays only if something's wrong).
+- Tapping a card opens its panel (overflow, what's shared, each bus/stocker/feeder, SHARE ON OVERFLOW /
+  ALWAYS SHARE).
+- ITEMS is grouped by process (collapsible; searching opens every group), or sorted A-Z or by quantity.
 
 ## Wireless protocol
 
