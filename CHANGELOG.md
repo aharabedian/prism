@@ -15,8 +15,6 @@ versions follow [Semantic Versioning](https://semver.org/).
   stockers and feeders that calls out anything wrong. Tap a card to see each output in the panel.
   When there are too many machines, the biggest cards list fewer ("+N more") or show them as dots.
 - **ITEMS grouped by process**, under headers you can tap to collapse, with A-Z and BY QTY sorting too.
-
-### Changed
 - **Batch is a field** on the control screen instead of a row of buttons: tap it and type any batch size
   (Enter or a tap elsewhere finishes). The `batches` setting in `prism-control.cfg` is gone.
 
