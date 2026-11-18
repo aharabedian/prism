@@ -39,7 +39,7 @@ return {
     { address = "gm04", name = "Macerator" },
   },
   rules = {
-    { pattern = "^Crushed .+ Ore$",         process = "wash" },
+    { pattern = "^Crushed .+ Ore$",         process = "wash", batch = 250 },
     { pattern = "^Impure Pile of .+ Dust$", process = "centrifuge" },
   },
 }
@@ -136,6 +136,9 @@ local first = snaps[2]
 check(value(first, "prism_backlog_items", { process = "wash" }) == 500
   and value(first, "prism_backlog_types", { process = "wash" }) == 2
   and value(first, "prism_backlog_items", { process = "centrifuge" }) == 120, "backlog per process")
+check(value(first, "prism_backlog_ready_items", { process = "wash" }) == 300
+  and value(first, "prism_backlog_ready_items", { process = "centrifuge" }) == 120,
+  "ready backlog leaves out items below their batch (200 tin < 250)")
 check(stateOf(first, "Washer A") == "running" and value(first, "prism_machine_progress_ratio", { machine = "Washer A" }) == 0.3,
   "a working machine is running, with its progress")
 check(stateOf(first, "Washer B") == "idle", "an idle machine is idle at first")

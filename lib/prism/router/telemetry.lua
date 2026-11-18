@@ -35,6 +35,7 @@ function Telemetry.open(cfg, modem, log)
   local m = metrics.new{ role = "prism", clock = computer.uptime }
   t.m = m
   t.backlogItems = m:gauge("prism_backlog_items", "Items waiting per process", "items")
+  t.backlogReady = m:gauge("prism_backlog_ready_items", "Items waiting per process in stacks of at least one batch", "items")
   t.backlogTypes = m:gauge("prism_backlog_types", "Item types waiting per process", "types")
   t.stalled      = m:gauge("prism_stalled_seconds", "How long a process has been stalled", "s")
   t.unassigned   = m:gauge("prism_unassigned_types", "Item types no rule or override routes", "types")
@@ -68,6 +69,7 @@ function Telemetry:report(r, scan, stalled, alerts)
   m:beginCycle()
   for proc, b in pairs(scan.backlog) do
     self.backlogItems:set(b.items, { process = proc })
+    self.backlogReady:set(b.ready, { process = proc })
     self.backlogTypes:set(b.types, { process = proc })
   end
   for proc, secs in pairs(stalled) do self.stalled:set(secs, { process = proc }) end
