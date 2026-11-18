@@ -197,6 +197,7 @@ in the text setup).
 | Metric | Labels | Meaning |
 |---|---|---|
 | `prism_backlog_items` | `process` | Items waiting |
+| `prism_backlog_ready_items` | `process` | Items waiting that can go out now: those in stacks below their batch are left out |
 | `prism_backlog_types` | `process` | Item types waiting |
 | `prism_stalled_seconds` | `process` | How long a stalled process has been stalled (only while stalled) |
 | `prism_unassigned_types` | | Item types no rule or override routes |

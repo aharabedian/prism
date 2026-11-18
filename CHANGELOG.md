@@ -5,6 +5,10 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **`prism_backlog_ready_items`** for LENS: items waiting per process that can go out now, leaving out
+  items still below their batch size.
+
 ### Changed
 - **Process cards** on the control screen: the left column is one card per process with its backlog, its
   machines side by side (sorted by name, so all your washers are together) and a line about its buses,
