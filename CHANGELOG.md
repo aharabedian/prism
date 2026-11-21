@@ -62,6 +62,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   switches to a third of its resolution after that long without a touch (53 × 16 on 160 × 50), so the text reads
   from across the room: each process's backlog, trend, a dot per machine and held / stalled / time to clear, and
   the two newest alerts. Any touch goes back to the full screen.
+- **Several routers on one screen**: each router sends its name (the new `name` setting, default `prism`). A
+  control screen that hears more than one shows the first and puts a button per router in its header, with the
+  others' alert counts (`ore-line ⚠2`); tapping one shows its cards and lists and sends commands to it. Protocol:
+  `name` on `router-status`.
 
 ## [1.4.0] - 2026-11-18
 

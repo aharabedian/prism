@@ -3,7 +3,9 @@
 Every message is an OpenOS `serialization.serialize`d table, sent on `modemPort` (default 4242).
 The router **broadcasts** `router-status` and `router-machines`; everything else is a reply sent
 directly to whoever asked. The control screen sends commands to the router's address once it has heard
-a status, and broadcasts before that.
+a status, and broadcasts before that. A screen that hears several routers (on the same port and token) shows
+the first one heard and lists the others in its header; it sends commands only to the one shown, and ignores
+replies from the others.
 
 If `token` is set in `prism.cfg`, every command must carry the same `token` field or it's ignored.
 Every command from the control screen also carries `player`: who tapped (from the `touch` event). The router
@@ -50,6 +52,7 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | Field | Type | Meaning |
 |---|---|---|
 | `version` | string | Router version |
+| `name` | string | The router's `name`; a screen that hears several routers lists them by it |
 | `uptime`, `interval`, `cycles`, `cycleMs`, `writes` | number | Housekeeping |
 | `lastError` | string? | Problem during the last scan |
 | `processes` | `{ [name] = { types, items, buses, stalled?, spilled?, overflow?, alwaysShare?, below?, outRate?, inRate?, busy? } }` | Backlog per process, after [spilling](configuration.md#fallbacks-and-overflow). `buses` counts outputs; `stalled` is seconds; `spilled` is items shared with fallbacks this scan; `overflow` and `alwaysShare` are its settings (`overflowFrom`: `screen` or `cfg`, where the mark comes from); `below` is items in stacks below their batch; `outRate` / `inRate` are items leaving / arriving per minute over the last 5 minutes (from the second scan on); `busy` is the share of scans its monitored machines were working over the last hour, 0..1; `held`, `heldBy` and `heldFor` (seconds) while it's on hold |

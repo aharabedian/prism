@@ -34,7 +34,7 @@ function S.build(r, scan, stalled, alerts)
     lastError = r.stats.lastError, processes = {}, buses = {}, feeders = {}, unassigned = {},
     unassignedCount = #scan.unassigned, catalogCount = U.count(r.store.catalog),
     knownProcesses = S.knownProcesses(r), machines = machines.summary(r.machines), alerts = alerts,
-    events = r.events and r.events.added or 0,
+    events = r.events and r.events.added or 0, name = r.cfg.name,
   }
   for proc, b in pairs(scan.backlog) do
     s.processes[proc] = { types = b.types, items = b.items, buses = 0, stalled = stalled[proc],

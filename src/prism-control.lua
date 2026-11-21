@@ -53,7 +53,7 @@ end
 local function drawAll()
   ui.clearHits()
   if glancing then glance.draw(); return end
-  status.drawHeader()
+  status.drawHeader(true)
   status.draw()
   if m.S.procSel then
     process.draw()                           -- a process's page takes the whole right side

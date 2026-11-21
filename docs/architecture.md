@@ -178,6 +178,8 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 - Item lists are fetched in pages, because wireless packets are limited to about 8 KB.
 - All edits are commands to the router; the screen re-fetches after each `router-ack`. Every command carries
   the player who tapped; OVERRIDES shows who made each screen override and how long ago.
+- Several routers on one port: the screen keeps each one's last status (and backlog history), shows the first
+  heard, and puts a button per router in the header (others with their alert count); tapping one switches.
 - With `glanceAfter` set, the screen switches to glance mode (a third of its resolution) after that many minutes
   without a touch; the next touch only switches back.
 - ROUTE ITEM's "Now:" line is the router's `explain` for the selected item, asked again with every status.
