@@ -46,12 +46,13 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `router/flow` | items leaving and arriving per process (rates over 5 minutes), and its machines' busy share over the last hour | core, status, telemetry |
 | `router/status` | `build()` the `router-status` message | core |
 | `router/commands` | the command table: `{ fields, run }` per wireless command | core |
-| `router/explain` | `item(r, key)`: one line on what an item is doing now (on which output, or why it waits), from the output interface only | commands |
+| `router/explain` | `item(r, key)`: one line on what an item is doing now (on which output, or why it waits); `queue(r, process, ...)`: a process's queue with a short line per item. Uses the output interface only | commands |
 | `router/telemetry` | reporting to [LENS](https://github.com/aharabedian/lens) on `lensPort`: describe at start, a snapshot after each scan, answering `hello`. Every call is protected, so a failure never stops routing | core |
 | `lens/metrics`, `lens/codec` | **vendored** from LENS (`tools/sync-lens.sh`), byte for byte; don't edit here. `test_modules` compares them with a `../lens` checkout | telemetry |
 | `control/ui` | the control screen's layout on top of `gui`, sparklines | screen views |
 | `control/model` | screen state (`S`), actions, handling router messages; no drawing | screen |
 | `control/status_view`, `list_view`, `panel_view` | header + left column; the tabbed list (one descriptor per tab); the panels and footer | screen |
+| `control/process_view` | the process page, which replaces the list and panel while a process is selected | screen |
 | `setup/*` | `input` (prompts), `render` (config text), `processes`, `hardware`, `autostart`, `save`, `router`/`control` (the two roles), `paths`; the editor: `editor` (found vs configured hardware and the edits, pure) and `screen` (drawing, touch, keys) | `prism-setup.lua` |
 
 Dependencies point one way: programs → role modules (`router/`, `control/`, `setup/`) → shared modules.
@@ -171,8 +172,10 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
   its panel adds the rates and what its machines' busy share means.
 - When the cards don't fit, the biggest first list fewer machines ("+N more"), then shrink to their
   header with machines as dots (the outputs line stays only if something's wrong).
-- Tapping a card opens its panel (overflow, what's shared, each bus/stocker/feeder, SHARE ON OVERFLOW /
-  ALWAYS SHARE).
+- Tapping a card opens its page in place of the list and panel: what's waiting and its throughput, a
+  backlog chart from the screen's own samples, each machine's last 2 hours as a band (the screen counts the
+  machine states it receives in 160 s cells), the queue in rank order with what each item is doing
+  (`queue`, asked again with every status), its outputs, sharing, and SHARE ON OVERFLOW / ALWAYS SHARE / CLOSE.
 - ITEMS is grouped by process (collapsible; searching opens every group), or sorted A-Z or by quantity.
   BELOW BATCH lists only items with less than one batch, with how many more each needs.
 

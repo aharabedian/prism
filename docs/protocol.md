@@ -28,10 +28,12 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `deleteRule` | `index` | → `router-ack` |
 | `moveRule` | `index`, `dir` (`-1` up, `1` down) | → `router-ack` |
 | `resetRules` | | Delete `prism-rules.cfg`, back to `prism.cfg` rules → `router-ack` |
-| `previewRule` | `pattern`, `index?`, `process?`, `req` | `router-explain` | `req`, `key`, `text` (one line: on which outputs, or why it waits), `level` (`ok` on an output, `warn` waiting for something to change, `dim`) |
+| `previewRule` | `pattern`, `index?`, `process?`, `req` | `router-queue` | `req`, `process`, `offset`, `total`, `list = { rank, key, label, size, batch, prio, now, level }[]` (`now`: a short line on what the item is doing, such as `on Washer bus (slot 3)`, `↷ shared with wash`, `below batch: 25 of 36`; `level` as in `router-explain`) |
+| `router-explain` | `req`, `key`, `text` (one line: on which outputs, or why it waits), `level` (`ok` on an output, `warn` waiting for something to change, `dim`) |
 | `router-preview` |
 | `alwaysShare` | `process`, `on` (boolean) | Share every item of a process that has a fallback (`on`), or only on overflow; saved in `prism-always-share.cfg` → `router-ack`, rescan |
 | `explain` | `key`, `req?` | `router-explain`: what the item is doing now |
+| `queue` | `process`, `offset?`, `req?` | `router-queue`: one page (≤ 40) of the process's queue in rank order |
 | `reload` | | Re-read `prism.cfg` → `router-ack` |
 
 ## Messages (router → screen)

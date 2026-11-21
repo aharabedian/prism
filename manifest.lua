@@ -11,6 +11,7 @@ return {
   { "lib/prism/control/list_view.lua", "lib/prism/control/list_view.lua" },
   { "lib/prism/control/model.lua", "lib/prism/control/model.lua" },
   { "lib/prism/control/panel_view.lua", "lib/prism/control/panel_view.lua" },
+  { "lib/prism/control/process_view.lua", "lib/prism/control/process_view.lua" },
   { "lib/prism/control/status_view.lua", "lib/prism/control/status_view.lua" },
   { "lib/prism/control/ui.lua", "lib/prism/control/ui.lua" },
   { "lib/prism/files.lua", "lib/prism/files.lua" },

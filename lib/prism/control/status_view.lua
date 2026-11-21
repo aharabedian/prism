@@ -279,7 +279,7 @@ function StatusView.new(ui, m)
     if not st then put(2, TOP, "waiting for the router ...", C.dim, C.bg); return end
     local order, by = groups(st)
     if #order == 0 then put(2, TOP, "no processes yet", C.dim, C.bg); return end
-    put(13, 3, "tap a process for its buses and feeders", C.dim, C.bg)
+    put(13, 3, "tap a process for its page", C.dim, C.bg)
 
     local index = {}                                  -- machine -> its place in st.machines
     for i, mc in ipairs(st.machines or {}) do index[mc] = i end
