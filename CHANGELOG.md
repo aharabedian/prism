@@ -58,6 +58,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   before anything else), then it goes back to its priority; STOP NEXT ends it early. The Now: line says how long
   is left, ITEMS marks it `▲`, OVERRIDES shows `next`, and the log has it starting and ending. Kept in
   `prism-next.cfg` across a restart. Protocol: the `runNext` command; `next` on items and overrides rows.
+- **Glance mode**: with the new `glanceAfter` setting in prism-control.cfg (minutes, off by default), the screen
+  switches to a third of its resolution after that long without a touch (53 × 16 on 160 × 50), so the text reads
+  from across the room: each process's backlog, trend, a dot per machine and held / stalled / time to clear, and
+  the two newest alerts. Any touch goes back to the full screen.
 
 ## [1.4.0] - 2026-11-18
 

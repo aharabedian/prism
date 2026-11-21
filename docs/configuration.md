@@ -246,4 +246,5 @@ Kept next to the config, never touched by `prism-update` or `prism-setup`:
 | `beep` | `true` | Beep when a new alert appears |
 | `history` | `60` | Backlog samples kept for the sparklines |
 | `staleAfter` | `3` | Missed router cycles before showing NO SIGNAL |
+| `glanceAfter` | `false` | Minutes without a touch before **glance mode**: the screen draws at a third of its resolution (53 × 16 on 160 × 50), so text is three times bigger: each process's backlog, trend, machines and time to clear, and the newest alerts. Any touch goes back. `false` = off |
 | `timezone` | `false` | Hours from UTC (`1`, `-5`, `5.5`) for clock times in LOG (`19:40`, `Thu 23:10`); `false` shows how long ago (`3h12m ago`) |

@@ -7,6 +7,7 @@
          Tap an item to route it; tap a rule (or + NEW RULE / MAKE RULE) to
          edit it with a live preview of what it would catch. Tap a process for its page.
   Keyboard: types into the search box, or into the pattern while editing a rule.
+  Glance mode (glanceAfter in prism-control.cfg): big text after a while without a touch; any touch goes back.
 
   Usage: prism-control [path]   (default /home/prism-control.cfg; run prism-setup to write it)
   QUIT button or Ctrl+C to exit. The work is done by the modules in /home/lib/prism/control/.
@@ -29,6 +30,7 @@ local StatusView = require("prism.control.status_view")
 local ListView   = require("prism.control.list_view")
 local PanelView  = require("prism.control.panel_view")
 local ProcessView = require("prism.control.process_view")
+local GlanceView = require("prism.control.glance_view")
 local splash     = require("prism.splash")
 
 local settings = config.loadControl(({ ... })[1] or "/home/prism-control.cfg")
@@ -39,9 +41,18 @@ os.sleep(splash.SECONDS)   -- yields: OpenOS keeps running while the logo shows
 local m = Model.new(settings, modem)
 local status, list, panel = StatusView.new(ui, m), ListView.new(ui, m), PanelView.new(ui, m)
 local process = ProcessView.new(ui, m)
+local glance = GlanceView.new(ui, m)
+local glancing, lastTouch = false, computer.uptime()
+
+-- Glance mode: after glanceAfter minutes without a touch, a third of the resolution; any touch goes back.
+local function setGlance(on)
+  glancing = on
+  if on then component.gpu.setResolution(glance.size()) else component.gpu.setResolution(ui.W, ui.H) end
+end
 
 local function drawAll()
   ui.clearHits()
+  if glancing then glance.draw(); return end
   status.drawHeader()
   status.draw()
   if m.S.procSel then
@@ -68,20 +79,29 @@ local function main()
       dirty = redraw == "full" or (redraw == "machines" and not status.redrawMachines())
     elseif name == "touch" then
       -- touch: screenAddress, x, y, button, player
+      lastTouch = computer.uptime()
       m.S.player = ev[6]                     -- who tapped, for the commands that record it
-      m.blur()
-      ui.tap(math.floor(ev[3]), math.floor(ev[4]))
+      if glancing then
+        setGlance(false)                     -- the tap only wakes the screen
+      else
+        m.blur()
+        ui.tap(math.floor(ev[3]), math.floor(ev[4]))
+      end
       dirty = true
     elseif name == "key_down" then
       -- key_down: keyboardAddress, char, code, player
-      dirty = m.onKey(ev[3], ev[4])
+      lastTouch = computer.uptime()
+      if glancing then setGlance(false); dirty = true
+      else dirty = m.onKey(ev[3], ev[4]) end
     elseif name == "interrupted" then
       m.quit()
     end
 
     if m.tick(computer.uptime()) then dirty = true end
     if not m.S.running then break end
-    if dirty then drawAll() else status.drawHeader() end
+    local after = settings.glanceAfter
+    if after and not glancing and computer.uptime() - lastTouch >= after * 60 then setGlance(true); dirty = true end
+    if dirty then drawAll() elseif not glancing then status.drawHeader() end
   end
 end
 

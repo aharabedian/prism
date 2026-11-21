@@ -33,6 +33,7 @@ C.ROUTER_LISTS = { "overrides", "buses", "stockers", "interfaces", "feeders", "m
 C.CONTROL_TUNING = {
   { "history",    60, "backlog samples kept for the sparklines" },
   { "staleAfter", 3,  "missed router cycles before showing NO SIGNAL" },
+  { "glanceAfter", false, "minutes without a touch before glance mode (big text at a third of the resolution); false = off" },
   { "timezone", false, "hours from UTC for clock times in LOG (1, -5, 5.5); false = show how long ago" },
 }
 -- modemPort = false turns wireless off, so these defaults only replace nil.
