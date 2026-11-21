@@ -103,6 +103,22 @@ function PanelView.new(ui, m)
 
   local function drawItemPanel()
     fill(RX, P, RW, H - 1 - P, C.panel)
+    if S.tab == "log" then
+      put(RX, P, " LOG", C.accent, C.panel)
+      put(RX + 1, P + 2, "What the router did and saw, newest first, kept across restarts.", C.dim, C.panel)
+      put(RX + 1, P + 3, fit(m.settings.timezone and ("Times are clock times (prism-control.cfg: timezone = "
+        .. tostring(m.settings.timezone) .. ").") or "Set timezone in prism-control.cfg for clock times.", RW - 2), C.dim, C.panel)
+      local legend = { { "⚠", "alert started", C.warn }, { "✓", "alert ended", C.good },
+        { "✎", "changed on a screen", C.text }, { "↷", "sharing on/off", C.warn }, { "‖", "held / resumed", C.warn },
+        { "●", "router started", C.info } }
+      for i, l in ipairs(legend) do
+        local x, y = RX + 1 + ((i - 1) % 3) * 22, P + 5 + (i - 1) // 3
+        put(x, y, l[1], l[3], C.panel)
+        put(x + 2, y, l[2], C.dim, C.panel)
+      end
+      put(RX + 1, P + 8, "Tap a row with a process to open its page.", C.dim, C.panel)
+      return
+    end
     if S.tab == "rules" then
       put(RX, P, " RULES", C.accent, C.panel)
       put(RX + 1, P + 2, "Tap a rule to edit or reorder it, or + NEW RULE.", C.dim, C.panel)

@@ -19,6 +19,9 @@
     r.flow       items out and in per process, and machines' busy share (prism.router.flow)
     r.moved      { [process] = { out, arrived } } in the latest scan
     r.heldAt     { [process] = uptime }: since when each held process (store.held) has been held here
+    r.events     the event log (prism.router.events, <base>-log.cfg); r:event(entry) adds one, stamped with
+                 r.clock (prism.clock: real time from a file's lastModified, <dir>/.prism-clock)
+    r.alertAt    { [alert id] = time it started }, for how long an ended alert lasted
 ]]
 
 local component = require("component")
@@ -40,6 +43,9 @@ local status    = require("prism.router.status")
 local commands  = require("prism.router.commands")
 local Telemetry = require("prism.router.telemetry")
 local Flow      = require("prism.router.flow")
+local Events    = require("prism.router.events")
+local Clock     = require("prism.clock")
+local filesystem = require("filesystem")
 
 local Router = {}
 Router.__index = Router
@@ -66,6 +72,11 @@ function Router:setup()
   local cfg = config.loadRouter(self.configPath, log)
   self.cfg = cfg
   self.store = Store.open(self.configPath, cfg, log)
+  if not self.events then
+    self.events = Events.open(self.store.paths.log, log)
+    self.clock = Clock.new(filesystem, (self.configPath:match("^(.*)/[^/]*$") or ".") .. "/.prism-clock")
+    self.alertAt = {}
+  end
   self.reported = {}
   self.health = Health.new(cfg, log)
   self.spilled = {}
@@ -107,6 +118,12 @@ function Router:setup()
 end
 
 ---------------------------------------------------------------- wireless
+
+-- Add an event to the log, stamped with the real time.
+function Router:event(entry)
+  entry.at = self.clock:at(computer.uptime())
+  self.events:add(entry)
+end
 
 function Router:send(target, msg)
   local modem, port = self.modem, self.cfg.modemPort
@@ -178,10 +195,16 @@ function Router:spill(scan)
   local now = {}
   for proc, s in pairs(scan.spilled) do
     now[proc] = true
-    if not before[proc] then log("%s: sharing %d item type(s) with fallbacks", proc, s.types) end
+    if not before[proc] then
+      log("%s: sharing %d item type(s) with fallbacks", proc, s.types)
+      self:event({ kind = "share", process = proc, text = ("%s shares %d item type(s) with fallbacks"):format(proc, s.types) })
+    end
   end
   for proc in pairs(before) do
-    if not now[proc] then log("%s: no longer sharing with fallbacks", proc) end
+    if not now[proc] then
+      log("%s: no longer sharing with fallbacks", proc)
+      self:event({ kind = "share", process = proc, text = proc .. " stops sharing with fallbacks" })
+    end
   end
   self.spilling = now
 end
@@ -225,6 +248,15 @@ function Router:cycle()
   local stuck = self.stats.cycles > 0 and self.health:stuck(computer.uptime(), scan, self.last, self.outputs, store.held,
     stalled) or {}
   local alerts = self.health:alerts(scan.backlog, stalled, self.outputs, self.machines, stuck)
+  local t = self.clock:at(computer.uptime())
+  for _, a in ipairs(self.health.changes.started) do
+    self.alertAt[a.id] = t
+    self.events:add({ at = t, kind = "alert", level = a.level, text = a.text })
+  end
+  for _, a in ipairs(self.health.changes.ended) do
+    self.events:add({ at = t, kind = "ended", text = a.text, lasted = self.alertAt[a.id] and math.floor(t - self.alertAt[a.id]) })
+    self.alertAt[a.id] = nil
+  end
   self.moved = self.flow:update(computer.uptime(), scan, self.stats.cycles > 0 and self.last or nil, function(key)
     return (store:classify(store:labelOf(key, self.last.labels[key]), key))
   end, self.machines)
@@ -246,8 +278,10 @@ function Router:run()
     #self.feeders > 0 and (", feeding every " .. tostring(cfg.feedInterval) .. "s") or "",
     #self.machines > 0 and (", watching machines every " .. tostring(cfg.monitorInterval) .. "s") or "")
 
+  self:event({ kind = "start", text = "router started (" .. VERSION .. ")" })
   local nextScan, nextFeed, nextMonitor = 0, 0, 0
   while true do
+    self.events:save(computer.uptime())
     cfg = self.cfg                                   -- a reload replaces it
     if #self.machines > 0 and computer.uptime() >= nextMonitor then
       for _, m in ipairs(self.machines) do machines.poll(m) end
@@ -286,6 +320,8 @@ function Router:run()
     end
   end
 
+  self:event({ kind = "stop", text = "router stopped" })
+  self.events:save()
   for _, o in ipairs(self.outputs) do o:close() end   -- hand stock back to the network
   if self.modem and self.cfg.modemPort then self.modem.close(self.cfg.modemPort) end
   if self.telemetry then self.telemetry:close() end

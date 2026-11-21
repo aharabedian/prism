@@ -224,6 +224,8 @@ Kept next to the config, never touched by `prism-update` or `prism-setup`:
 | `prism-always-share.cfg` | Processes set to ALWAYS SHARE on the screen |
 | `prism-held.cfg` | Processes put on HOLD on the screen (and who did it) |
 | `prism-processes.cfg` | Overflow marks set on the screen; they win over `processes` in `prism.cfg` |
+| `prism-log.cfg` | The event log: the last 300 alerts started and ended, sharing on and off, holds, edits made on a screen, router starts and stops, with the time. Saved once a minute and when the router stops |
+| `.prism-clock` | A small file the router writes to read the real time from its modification time |
 
 ## Control screen settings
 
@@ -236,3 +238,4 @@ Kept next to the config, never touched by `prism-update` or `prism-setup`:
 | `beep` | `true` | Beep when a new alert appears |
 | `history` | `60` | Backlog samples kept for the sparklines |
 | `staleAfter` | `3` | Missed router cycles before showing NO SIGNAL |
+| `timezone` | `false` | Hours from UTC (`1`, `-5`, `5.5`) for clock times in LOG (`19:40`, `Thu 23:10`); `false` shows how long ago (`3h12m ago`) |

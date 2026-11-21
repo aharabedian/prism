@@ -25,6 +25,7 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | Module (`lib/prism/`) | Interface | Used by |
 |---|---|---|
 | `version` | the release string | all |
+| `clock` | real time from a file's `lastModified` (OpenComputers has no wall clock), carried on with uptime | router |
 | `util` | `keyOf`, `sideName`, `fmtNum`/`fmtSecs`/`fmtTime`/`pct`, `count`, `copy`, `trim` (pure) | all |
 | `log` | `log(fmt, ...)`: one timestamped line | router |
 | `files` | read/write data tables and Lua configs, atomic writes, `.bak` backups | router, setup |
@@ -43,6 +44,7 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `router/database` | staging items in a Database Upgrade: `stage(key, stack)` | exportbus, interface, feeder |
 | `router/machines` | `open`, `poll`, `summary` for monitored GT machines | core, status |
 | `router/health` | stall detection and alerts, with their state between scans | core |
+| `router/events` | the event log in `prism-log.cfg`: add, page newest first (all, alerts, changes), save at most once a minute | core, commands |
 | `router/flow` | items leaving and arriving per process (rates over 5 minutes), and its machines' busy share over the last hour | core, status, telemetry |
 | `router/status` | `build()` the `router-status` message | core |
 | `router/commands` | the command table: `{ fields, run }` per wireless command | core |
@@ -100,7 +102,8 @@ A command that changes routing (assign, rule edit, reload...) triggers an immedi
 2. Add new items to the catalog (`prism-items.cfg`); log new problems once.
 3. `output:apply(queue)` for every output (what each kind takes: [Outputs](#outputs)); feeders do nothing here.
 4. `health`: detect stalls and build alerts; `flow`: count what left and arrived since the last scan.
-5. `status.build`, then broadcast it.
+5. Alerts that started or ended go to the event log, with how long they lasted.
+6. `status.build`, then broadcast it.
 
 ### Export bus filters
 
@@ -185,6 +188,8 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
   machine states it receives in 160 s cells), the queue in rank order with what each item is doing
   (`queue`, asked again with every status), its outputs, sharing (the overflow mark is a field: tap, type,
   Enter), and HOLD / SHARE ON OVERFLOW / ALWAYS SHARE / CLOSE.
+- LOG lists the router's event log, fetched in pages when the tab opens and when `router-status`'s `events`
+  count changes; times are clock times with `timezone` set, else how long ago.
 - ITEMS is grouped by process (collapsible; searching opens every group), or sorted A-Z or by quantity.
   BELOW BATCH lists only items with less than one batch, with how many more each needs.
 
@@ -212,6 +217,7 @@ match the game first if they differ.
 | `os.sleep` (OpenOS) waits while yielding; `gpu.set` draws `▀` with the foreground on top (the splash's half-block pixels) | **Unverified** |
 | `internet.request` streaming, `/home/bin` on the OpenOS shell path | Reported working |
 | `/home/lib/?.lua` appended to `package.path` finds `/home/lib/prism/*.lua`; clearing `package.loaded["prism.*"]` reloads modules on restart | Reported working (modules branch) |
+| `filesystem.lastModified(path)` gives real-world milliseconds, so `prism.clock` can tell the time (the event log's times) | Seen in game in LUMEN; **unverified** in PRISM |
 | `filesystem.makeDirectory` creating `/home/lib/prism/router` (prism-update creates each level itself) | Reported working (modules branch) |
 | `handle.response()` giving the HTTP status after a failed read (404 for a repo with no releases, a missing tag) | Reported working (0.5.0) |
 | `internet.request(url, nil, headers)` to `api.github.com` returning the latest release's `tag_name` | Reported working (0.5.0) |

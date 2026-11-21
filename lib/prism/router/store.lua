@@ -8,6 +8,7 @@
     <base>-always-share.cfg  alwaysShare  { [process] = true }                             set to ALWAYS SHARE on the screen
     <base>-held.cfg       held          { [process] = { by? } }                              put on HOLD on the screen
     <base>-processes.cfg  processes     { [process] = { overflow } }                         overflow marks set on the screen
+    <base>-log.cfg        (prism.router.events reads and writes it: the event log)
 
   Store.open(configPath, cfg, log) -> store
   store.overrides, store.catalog, store.screenRules (nil until rules are edited on the screen)
@@ -34,7 +35,7 @@ function Store.open(configPath, cfg, log)
     cfg = cfg, log = log,
     paths = { overrides = base .. "-overrides.cfg", catalog = base .. "-items.cfg", rules = base .. "-rules.cfg",
               alwaysShare = base .. "-always-share.cfg", held = base .. "-held.cfg",
-              processes = base .. "-processes.cfg" },
+              processes = base .. "-processes.cfg", log = base .. "-log.cfg" },
   }, Store)
   s.overrides = files.readTable(s.paths.overrides)
   s.catalog = files.readTable(s.paths.catalog)

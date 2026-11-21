@@ -36,6 +36,12 @@ versions follow [Semantic Versioning](https://semver.org/).
   seconds (default 1200) while the process used other items raises a warn: `Purified Tin Ore stuck for 20m
   (thermal)`. Items still waiting for a slot don't count, nor do held or stalled processes. `stuckAfter = false`
   turns it off; `prism-setup` writes it.
+- **Event log**: the router keeps its last 300 events in `prism-log.cfg`: alerts starting and ending (with how
+  long they lasted), sharing on and off, holds, edits made on a screen, its own starts and stops. A **LOG** tab
+  lists them newest first, with ALL / ALERTS / CHANGES. Times are clock times (`19:40`, `Thu 23:10`) with the new
+  `timezone` setting in prism-control.cfg, else how long ago. The router reads the real time from a file's
+  modification time (`.prism-clock`). Protocol: the `log` command and `router-log` reply; `events` on
+  `router-status`.
 
 ## [1.4.0] - 2026-11-18
 

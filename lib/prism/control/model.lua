@@ -12,13 +12,15 @@
            reloadRouter, pickProcess, pickFallback, pickBatch, editBatch, blur, pickPriority, setScroll,
            clearFilter, quit,
            selectProcess, cancelProcess, setHold(on), setAlwaysShare(on), editOverflow, setItemSort(how),
-           toggleBelowBatch, toggleGroup(process),
+           toggleBelowBatch, toggleGroup(process), setLogFilter(filter),
            askConfirm(what, fn), confirming(what)
 
   S.status      latest router-status (S.statusAt: when it arrived; S.router: its address)
   S.history     { [process] = backlog samples } for the sparklines
   S.items / S.overrides / S.rules (+ S.rulesSource)   lists fetched for their tabs
-  S.tab         "unassigned" | "items" | "overrides" | "rules";  S.scroll, S.filter
+  S.tab         "unassigned" | "items" | "overrides" | "rules" | "log";  S.scroll, S.filter
+  S.log         the router's event log { list (newest first), now, real, at }: fetched in pages (router-log) when
+                LOG opens and when router-status's `events` count changes; S.logFilter nil | "alerts" | "changes"
   S.itemSort    how ITEMS is ordered: "process" (grouped, S.collapsed[process] = true hides a group),
                 "name" or "qty"; S.belowBatch: ITEMS lists only items with less than one batch
   S.sel         the item being routed: { key, label, size, list, source, process },
@@ -121,8 +123,15 @@ function Model.new(settings, modem)
     end
   end
 
+  local function fetchLog()
+    S.logReq = (S.logReq or 0) + 1
+    S.logBuf = {}
+    m.send({ cmd = "log", offset = 0, filter = S.logFilter, req = S.logReq })
+  end
+
   local function refreshTab()
     if S.tab == "items" then fetchItems()
+    elseif S.tab == "log" then fetchLog()
     elseif S.tab == "overrides" then m.send({ cmd = "overrides" })
     elseif S.tab == "rules" then
       m.send({ cmd = "rules" })
@@ -154,6 +163,7 @@ function Model.new(settings, modem)
   end
 
   function m.setItemSort(how) S.itemSort, S.scroll = how, 0 end
+  function m.setLogFilter(f) S.logFilter, S.scroll = f, 0; fetchLog() end
   function m.toggleBelowBatch() S.belowBatch, S.scroll = not S.belowBatch, 0 end
   function m.toggleGroup(process) S.collapsed[process] = not S.collapsed[process] or nil end
 
@@ -354,6 +364,8 @@ function Model.new(settings, modem)
       checkAlerts(msg)
       S.status, S.statusAt = msg, computer.uptime()
       if S.tab == "items" and not S.fetching then fetchItems() end   -- keep quantities fresh
+      if S.tab == "log" and msg.events ~= S.logEvents then fetchLog() end
+      S.logEvents = msg.events
       askExplain()
       askQueue()
       recordMachines(msg.machines)
@@ -383,6 +395,16 @@ function Model.new(settings, modem)
       if msg.req ~= S.previewReq or not S.ruleEdit then return false end
       S.preview = msg
       return "full"
+    elseif msg.type == "router-log" then
+      if msg.req ~= S.logReq or not S.logBuf then return false end
+      for _, r in ipairs(msg.list or {}) do S.logBuf[#S.logBuf + 1] = r end
+      if #S.logBuf < (msg.total or 0) and #(msg.list or {}) > 0 then
+        m.send({ cmd = "log", offset = #S.logBuf, filter = S.logFilter, req = S.logReq })
+        return false
+      end
+      S.log = { list = S.logBuf, now = msg.now or 0, real = msg.real, at = computer.uptime() }
+      S.logBuf = nil
+      return S.tab == "log" and "full"
     elseif msg.type == "router-queue" then
       if msg.req ~= S.queueReq or msg.process ~= S.procSel then return false end
       S.queue = msg
