@@ -222,7 +222,9 @@ function Router:cycle()
   local stalled = self.health:stalls(computer.uptime(), scan, self.last, self.outputs, self.machines, function(key)
     return (store:classify(store:labelOf(key, self.last.labels[key]), key))
   end, store.held)
-  local alerts = self.health:alerts(scan.backlog, stalled, self.outputs, self.machines)
+  local stuck = self.stats.cycles > 0 and self.health:stuck(computer.uptime(), scan, self.last, self.outputs, store.held,
+    stalled) or {}
+  local alerts = self.health:alerts(scan.backlog, stalled, self.outputs, self.machines, stuck)
   self.moved = self.flow:update(computer.uptime(), scan, self.stats.cycles > 0 and self.last or nil, function(key)
     return (store:classify(store:labelOf(key, self.last.labels[key]), key))
   end, self.machines)

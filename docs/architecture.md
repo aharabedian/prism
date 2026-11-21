@@ -153,6 +153,11 @@ its slots and its feeders stop. It is never stalled, and its machines are never 
 Without monitored machines this relies on items leaving the network, so a process whose input arrives
 exactly as fast as it's processed can be falsely flagged; monitoring its machines fixes that.
 
+An item is **stuck** when it has at least one batch, sits on one of its process's outputs (`holds`), and hasn't
+gone down for `stuckAfter` seconds while the process used other items. It raises a warn (`stuck:<key>`, at most
+five). Items the outputs don't hold are waiting their turn, so they never count; neither do held or stalled
+processes.
+
 Alerts are rebuilt every scan, with stable ids (`stall:wash`, `machine:Washer 1`...). The router logs
 each alert when it starts and when it resolves. The control screen beeps when a new id appears.
 

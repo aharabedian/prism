@@ -11,9 +11,13 @@
     held      { [process] = truthy }: processes on hold are never stalled, and their machines never idle
               with work waiting
     Also sets m.idleFor on idle machines with work ready. Less than one batch isn't work: it can't run.
-  health:alerts(backlog, stalled, outputs, machines) -> { id, level = "bad"|"warn", text }[]
-    Ids are stable (stall:wash, feeder:<name>, machine:<name>, idle:<name>); logs each alert
-    when it starts and when it resolves.
+  health:stuck(now, scan, before, outputs, held, stalled) -> { key, label, process, secs }[]   longest first
+    An item with at least one batch, on one of its process's outputs, that hasn't gone down for cfg.stuckAfter
+    seconds while its process used other items in that time. Not for held or stalled processes, nor shared
+    copies; off when cfg.stuckAfter is false.
+  health:alerts(backlog, stalled, outputs, machines, stuck) -> { id, level = "bad"|"warn", text }[]
+    Ids are stable (stall:wash, feeder:<name>, machine:<name>, idle:<name>, stuck:<key>; at most 5 stuck);
+    logs each alert when it starts and when it resolves.
 ]]
 
 local U = require("prism.util")
@@ -76,7 +80,45 @@ function Health:stalls(now, scan, before, outputs, machines, classify, held)
   return stalled
 end
 
-function Health:alerts(backlog, stalled, outputs, machines)
+function Health:stuck(now, scan, before, outputs, held, stalled)
+  local after = self.cfg.stuckAfter
+  if not after then self.items = {}; return {} end
+  local items, procMoved = self.items or {}, self.procMoved or {}
+  for proc, q in pairs(scan.queues) do
+    for _, e in ipairs(q) do
+      local was = before.present[e.key]
+      if was and e.size < was then procMoved[proc] = now end
+    end
+  end
+  local out, seen = {}, {}
+  for proc, q in pairs(scan.queues) do
+    if not (held or {})[proc] and not stalled[proc] then
+      for _, e in ipairs(q) do
+        local on = false
+        if not e.from and e.size >= e.batch then
+          for _, o in ipairs(outputs) do
+            if o.process == proc and o:holds(e.key) then on = true; break end
+          end
+        end
+        if on then
+          seen[e.key] = true
+          local s, was = items[e.key], before.present[e.key]
+          if not s or (was and e.size < was) then s = { since = now }; items[e.key] = s end
+          local secs = now - s.since
+          if secs >= after and (procMoved[proc] or -1) > s.since then
+            out[#out + 1] = { key = e.key, label = e.label, process = proc, secs = math.floor(secs) }
+          end
+        end
+      end
+    end
+  end
+  for k in pairs(items) do if not seen[k] then items[k] = nil end end
+  self.items, self.procMoved = items, procMoved
+  table.sort(out, function(a, b) if a.secs ~= b.secs then return a.secs > b.secs end return a.key < b.key end)
+  return out
+end
+
+function Health:alerts(backlog, stalled, outputs, machines, stuck)
   local list = {}
   local function add(id, level, text) list[#list + 1] = { id = id, level = level, text = text } end
   local procs = {}
@@ -98,6 +140,11 @@ function Health:alerts(backlog, stalled, outputs, machines)
     elseif m.idleFor and m.idleFor >= self.cfg.idleAlert then
       add("idle:" .. m.name, "warn", ("%s idle %s with work waiting"):format(m.name, U.fmtSecs(m.idleFor)))
     end
+  end
+
+  for i, s in ipairs(stuck or {}) do
+    if i > 5 then break end
+    add("stuck:" .. s.key, "warn", ("%s stuck for %s (%s)"):format(s.label, U.fmtShort(s.secs), s.process))
   end
 
   local seen = {}
