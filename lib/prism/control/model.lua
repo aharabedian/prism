@@ -7,7 +7,7 @@
   m.onKey(char, code) -> redraw?
   m.tick(now) -> redraw?    expire flash messages, confirmations and stuck fetches
   m.start()                 ask the router for status
-  actions: switchTab, selectRow, editRule, newRule, makeRule, saveRule, deleteRule, moveRule,
+  actions: switchTab, selectRow, editRule, newRule, makeRule, makeRuleFrom(pattern), saveRule, deleteRule, moveRule,
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
            reloadRouter, pickProcess, pickFallback, pickBatch, editBatch, blur, pickPriority, setScroll,
            clearFilter, quit,
@@ -277,6 +277,13 @@ function Model.new(settings, modem)
   end
 
   function m.newRule() m.editRule({ pattern = "", priority = 10, batch = 1 }) end
+
+  -- The rule editor with a pattern filled in (UNASSIGNED's rule ideas); its preview shows what it catches.
+  function m.makeRuleFrom(pattern)
+    S.tab, S.scroll = "rules", 0
+    m.send({ cmd = "rules" })
+    m.editRule({ pattern = pattern, priority = 10, batch = 1 })
+  end
 
   -- A rule matching the selected item's exact name, with its current choices.
   function m.makeRule()

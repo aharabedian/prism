@@ -31,7 +31,7 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `files` | read/write data tables and Lua configs, atomic writes, `.bak` backups | router, setup |
 | `config` | the settings and defaults of both config files (`ROUTER_TUNING`, `CONTROL_TUNING`), `loadRouter`, `loadControl` | router, screen, setup |
 | `protocol` | `encode` (trims to fit without changing the message), `decode`, `feederLevel`, page sizes | router, screen |
-| `rules` | `classify` (screen override → cfg override → rules), `clean`, `fromMsg`, `usage`, `preview` (pure) | router |
+| `rules` | `classify` (screen override → cfg override → rules), `clean`, `fromMsg`, `usage`, `preview`, `ideas` (rules that would catch names differing in one word) (pure) | router, screen |
 | `probe` | finding and describing components: export buses, stockers, transposer sides, machines; `snapshot()` of all of them | setup, discover |
 | `gui` | GPU primitives, colors (the SPECTRA logo's, PRISM orange as the accent), buttons and touch targets | screen, setup, splash |
 | `splash` | `show(gpu, w, h, name, version, accent)`: the SPECTRA logo in pixel art while a program starts; `rows(scale)` (pure) | prism-control |
@@ -189,6 +189,8 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
   machine states it receives in 160 s cells), the queue in rank order with what each item is doing
   (`queue`, asked again with every status), its outputs, sharing (the overflow mark is a field: tap, type,
   Enter), and HOLD / SHARE ON OVERFLOW / ALWAYS SHARE / CLOSE.
+- UNASSIGNED groups items whose names differ in one word under the rule that would catch them
+  (`rules.ideas`), with MAKE RULE opening the rule editor with it.
 - LOG lists the router's event log, fetched in pages when the tab opens and when `router-status`'s `events`
   count changes; times are clock times with `timezone` set, else how long ago.
 - ITEMS is grouped by process (collapsible; searching opens every group), or sorted A-Z or by quantity.

@@ -15,6 +15,9 @@
   usage(overrides, cfg, rules, catalog) -> { [ruleIndex] = catalog items it decides }
   preview(overrides, cfg, rules, catalog, msg, limit)
                                         -> fields of a router-preview reply (see docs/protocol.md)
+  ideas(names) -> { pattern, names }[]  rules that would catch names differing in one word: "Purified Pile of
+                                        Iron Dust" and "... of Tin Dust" give "^Purified Pile of .+ Dust$". Each
+                                        name goes to the biggest idea that has it; ideas need 2+ names; biggest first
 ]]
 
 local R = {}
@@ -103,6 +106,40 @@ function R.preview(overrides, cfg, rules, catalog, msg, limit)
   local total = #list
   for i = #list, limit + 1, -1 do list[i] = nil end
   return { total = total, applies = applies, list = list }
+end
+
+local function escape(s) return (s:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")) end
+
+function R.ideas(names)
+  local groups, order = {}, {}
+  for _, name in ipairs(names) do
+    local words = {}
+    for w in name:gmatch("%S+") do words[#words + 1] = w end
+    if #words >= 2 then
+      for i = 1, #words do
+        local parts = {}
+        for j, w in ipairs(words) do parts[j] = j == i and ".+" or escape(w) end
+        local pattern = "^" .. table.concat(parts, " ") .. "$"
+        local g = groups[pattern]
+        if not g then g = { pattern = pattern, names = {} }; groups[pattern] = g; order[#order + 1] = g end
+        g.names[#g.names + 1] = name
+      end
+    end
+  end
+  table.sort(order, function(a, b)
+    if #a.names ~= #b.names then return #a.names > #b.names end
+    return a.pattern < b.pattern
+  end)
+  local taken, out = {}, {}
+  for _, g in ipairs(order) do
+    local free = {}
+    for _, n in ipairs(g.names) do if not taken[n] then free[#free + 1] = n end end
+    if #free >= 2 then
+      for _, n in ipairs(free) do taken[n] = true end
+      out[#out + 1] = { pattern = g.pattern, names = free }
+    end
+  end
+  return out
 end
 
 return R

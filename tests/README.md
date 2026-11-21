@@ -17,6 +17,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 |---|---|
 | `test_overflow_field.lua` | The overflow mark set on the screen: `setOverflow`, `prism-processes.cfg` winning over prism.cfg, going back; the page's field |
 | `test_process_page.lua` | The process page: the `queue` command, then the page's chart, machine bands, queue, outputs, sharing and CLOSE |
+| `test_rule_ideas.lua` | UNASSIGNED grouped under rule ideas, MAKE RULE opening the editor with the pattern |
 | `test_router.lua` | Filter selection, stable slots, clearing, remote assign, status |
 | `test_below_batch.lua` | Items below a full batch: `below` in router-status, the cards' count, ITEMS' BELOW BATCH |
 | `test_explain.lua` | Why an item waits: the `explain` command's reasons, and ROUTE ITEM's Now: line |
@@ -38,7 +39,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_update.lua` | prism-update install/update, keeping config, pointing to prism-setup, rejecting bad downloads, migrating old `router*.cfg` |
 | `test_example_config.lua` | The shipped example config loads and routes with its default rules |
 | `test_who.lua` | Who changed it: the player on every command, overrides keeping who and when, OVERRIDES' by column |
-| `test_units.lua` | Pure modules on their own: `rules` (incl. fallbacks), `router/planner` (incl. spill and its hysteresis), `router/slots`, `router/flow`, `protocol`, `setup/editor` |
+| `test_units.lua` | Pure modules on their own: `rules` (incl. fallbacks), `router/planner` (incl. spill and its hysteresis), `router/slots`, `router/flow`, `rules.ideas`, `protocol`, `setup/editor` |
 | `test_log.lua` | The event log: what's kept, real times, across restarts, paging and filters; the LOG tab with and without `timezone` |
 | `test_modules.lua` | Packaging and contracts: `manifest.lua` lists every file, one version, docs list every setting and command, the program bootstrap, the vendored LENS modules match `../lens` |
 | `helper.lua` | Shared setup (`H`) |

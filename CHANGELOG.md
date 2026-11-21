@@ -46,6 +46,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   log names them for each change, and OVERRIDES shows who made each screen override and how long ago
   (`Aaron · 2h`; `cfg` for prism.cfg's). Protocol: `player` on commands; `by`, `at` and `now` on
   `router-overrides`.
+- **Rule ideas**: UNASSIGNED groups items whose names differ in one word under the rule that would catch them
+  all (`^Purified Pile of .+ Dust$`, "catches 3 here"), with a MAKE RULE button that opens the rule editor with
+  it; the preview shows what it catches before SAVE. Items with no common pattern go under "no rule idea for
+  these".
 
 ## [1.4.0] - 2026-11-18
 
