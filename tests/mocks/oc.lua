@@ -21,6 +21,8 @@
                             read the 160x50 screen the GPU drew
     M.oob, M.beeps, M.cleared, M.setCalls
     M.slept                 seconds waited in os.sleep (which OpenOS adds; time passes)
+    M.epoch                 real-world seconds at uptime 0, for filesystem.lastModified: 2026-11-20 06:00 UTC.
+                            M.noClock: lastModified returns 0, as if the disk couldn't tell
 
   Time only moves when a program waits: pullMultiple(timeout) with no event
   advances computer.uptime() by `timeout`. Returning an event doesn't.
@@ -28,7 +30,7 @@
   lists which calls have been verified in-game.
 ]]
 
-local M = { setCalls = 0, sent = {}, pulls = 0, oob = 0, beeps = 0, web = {} }
+local M = { setCalls = 0, sent = {}, pulls = 0, oob = 0, beeps = 0, web = {}, epoch = 1795154400 }
 
 -- In game, math.random(1, 0x7fffffff) returned a number that wasn't an integer (math.type ~= "integer"),
 -- which crashed the LENS reporting (2026-11-12). Mirror that: every result is a float.
@@ -363,6 +365,7 @@ local component = {
 }
 
 local clock = 0
+function M.clock() return clock end
 local computer = {
   uptime = function() return clock end,
   beep = function() M.beeps = M.beeps + 1 end,
@@ -408,6 +411,12 @@ local filesystem = {
   makeDirectory = function(p) return sh('mkdir -p "' .. p .. '"') end,
   remove = function(p) return os.remove(p) end,
   rename = function(a, b) return os.rename(a, b) end,
+  -- Real-world milliseconds when the file was last written (OpenComputers' lastModified, seen in game in LUMEN):
+  -- here M.epoch plus uptime, so the clock moves with the tests' time.
+  lastModified = function(p)
+    if M.noClock or not sh('test -e "' .. p .. '"') then return 0 end
+    return math.floor((M.epoch + M.clock()) * 1000)
+  end,
 }
 
 -- Like OpenOS internet.request: a callable handle that yields the body; reads of an HTTP error

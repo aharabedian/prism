@@ -12,6 +12,8 @@
   pct(x)             0.426 -> "43%", nil -> ""
   round2(x)          to two decimals, nil stays nil
   natLess(a, b)      a before b with numbers compared by value: "Washer 2" < "Washer 10"
+  fmtWhen(at, now, tz)  when something happened, for lists: with tz (hours from UTC) "19:40" the same day,
+                     "Thu 23:10" within 6 days, else "12 Nov"; without tz "3h12m ago" (at, now: seconds since 1970)
 ]]
 
 local U = {}
@@ -81,6 +83,35 @@ function U.natLess(a, b) return natKey(a) < natKey(b) end
 
 function U.round2(x)
   return x and math.floor(x * 100 + 0.5) / 100 or nil
+end
+
+local DAYS = { "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed" }   -- 1970-01-01 was a Thursday
+local MONTHS = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
+
+-- Day of the month and month (1-12) from days since 1970 (Howard Hinnant's civil_from_days).
+local function civil(days)
+  local z = days + 719468
+  local era = (z >= 0 and z or z - 146096) // 146097
+  local doe = z - era * 146097
+  local yoe = (doe - doe // 1460 + doe // 36524 - doe // 146096) // 365
+  local doy = doe - (365 * yoe + yoe // 4 - yoe // 100)
+  local mp = (5 * doy + 2) // 153
+  local d = doy - (153 * mp + 2) // 5 + 1
+  local m = mp < 10 and mp + 3 or mp - 9
+  return d, m
+end
+
+function U.fmtWhen(at, now, tz)
+  at, now = math.floor(at or 0), math.floor(now or 0)
+  if not tz then return U.fmtShort(now - at):gsub("^<1m$", "now") .. (now - at >= 60 and " ago" or "") end
+  local off = math.floor(tz * 3600)
+  local t, n = at + off, now + off
+  local day, today = t // 86400, n // 86400
+  local hm = ("%02d:%02d"):format(t % 86400 // 3600, t % 3600 // 60)
+  if day == today then return hm end
+  if today - day < 6 and day < today then return DAYS[day % 7 + 1] .. " " .. hm end
+  local d, m = civil(day)
+  return d .. " " .. MONTHS[m]
 end
 
 return U

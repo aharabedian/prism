@@ -26,6 +26,7 @@ local TABS = {
   { id = "items",      label = function(st) return "ITEMS " .. (st and st.catalogCount or "?") end },
   { id = "overrides",  label = function() return "OVERRIDES" end },
   { id = "rules",      label = function() return "RULES" end },
+  { id = "log",        label = function() return "LOG" end },
 }
 
 function ListView.new(ui, m)
@@ -202,6 +203,44 @@ function ListView.new(ui, m)
     end,
   }
 
+  -- LOG: the router's events, newest first. Times are clock times with `timezone` set in prism-control.cfg
+  -- (and a real clock on the router), else how long ago.
+  local GLYPHS = { alert = "⚠", ended = "✓", edit = "✎", share = "↷", hold = "‖", start = "●", stop = "■" }
+  local function glyphColor(r)
+    if r.kind == "alert" then return r.level == "bad" and C.bad or C.warn end
+    return ({ ended = C.good, edit = C.text, share = C.warn, hold = C.warn, start = C.info, stop = C.dim })[r.kind] or C.dim
+  end
+  local LOG_FILTERS = { { nil, "ALL" }, { "alerts", "ALERTS" }, { "changes", "CHANGES" } }
+  MODES.log = {
+    filter = true,
+    rows = function() return S.log and S.log.list or {} end,
+    header = function()
+      return fit("when", 10) .. fit("what", RW - 23) .. rfit("lasted", 6) .. " " .. fit("who", 6)
+    end,
+    row = function(y, r, rb)
+      local lg = S.log
+      local now = lg.now + (require("computer").uptime() - lg.at)
+      put(RX, y, fit(U.fmtWhen(r.at, now, lg.real and m.settings.timezone or nil), 10), C.dim, rb)
+      put(RX + 10, y, GLYPHS[r.kind] or "·", glyphColor(r), rb)
+      local textColor = (r.kind == "alert" or r.kind == "share" or r.kind == "hold") and glyphColor(r) or C.text
+      put(RX + 12, y, fit(r.text or "", RW - 26), textColor, rb)
+      if r.lasted then put(RX + RW - 13, y, rfit(r.lasted < 60 and (r.lasted .. "s") or U.fmtShort(r.lasted), 6), C.dim, rb) end
+      if r.player then put(RX + RW - 6, y, fit(r.player, 6), C.info, rb) end
+    end,
+    empty = function() return S.log and "nothing logged yet" or "loading ..." end,
+    tap = function(r)
+      if r.process then return function() m.selectProcess(r.process) end end
+      return nil
+    end,
+    actions = function(y)
+      local x = RX
+      for _, f in ipairs(LOG_FILTERS) do
+        x = button(x, y, f[2], { on = S.logFilter == f[1], fn = function() m.setLogFilter(f[1]) end })
+      end
+      put(x, y, fit("kept in prism-log.cfg: the last 300 events", W - x), C.dim, C.bg)
+    end,
+  }
+
   MODES.preview = {
     filter = false,
     rows = function() return S.preview and S.preview.list or {} end,
@@ -233,7 +272,7 @@ function ListView.new(ui, m)
     if md.filter and S.filter ~= "" then
       local f, out = S.filter:lower(), {}
       for _, r in ipairs(rows) do
-        local text = (r.label or r.pattern or ""):lower()
+        local text = (r.label or r.pattern or r.text or ""):lower()
         if text:find(f, 1, true) or (r.key and r.key:lower():find(f, 1, true)) then out[#out + 1] = r end
       end
       rows = out

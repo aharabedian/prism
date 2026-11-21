@@ -20,6 +20,13 @@ local function acker(reply)
   return function(ok, text) reply({ type = "router-ack", ok = ok, text = text }) end
 end
 
+-- A change made on a screen, for the event log, with who made it when the screen says.
+local function changed(r, msg, text, kind)
+  local proc = type(msg.process) == "string" and msg.process ~= "ignore" and msg.process or nil
+  r:event({ kind = kind or "edit", text = text, player = type(msg.player) == "string" and msg.player or nil,
+            process = proc })
+end
+
 local COMMANDS = {}
 C.COMMANDS = COMMANDS
 
@@ -37,6 +44,8 @@ COMMANDS.assign = { fields = { key = "string", process = "string" }, run = funct
   r.reported[msg.key], r.reported["batch:" .. msg.key] = nil, nil
   r.log("override: %s -> %s (priority %s, batch %d, fallback %s)", label, msg.process,
     tostring(msg.priority or "default"), batch, fallback or "none")
+  changed(r, msg, ("%s → %s%s%s"):format(label, msg.process, fallback and ("›" .. fallback) or "",
+    batch > 1 and (" ×" .. batch) or ""))
   acker(reply)(true, ("%s -> %s%s%s"):format(label, msg.process, batch > 1 and (" in batches of " .. batch) or "",
     fallback and (", overflow to " .. fallback) or ""))
   return true
@@ -49,6 +58,7 @@ COMMANDS.unassign = { fields = { key = "string" }, run = function(r, msg, reply)
   store:saveOverrides()
   r.reported[msg.key] = nil
   r.log("override removed: %s", msg.key)
+  if had then changed(r, msg, "override removed: " .. nameOf(r, msg.key)) end
   acker(reply)(had, had and ("removed override for " .. nameOf(r, msg.key))
                          or "that override lives in prism.cfg - edit it there")
   return true
@@ -63,13 +73,14 @@ COMMANDS.forget = { fields = { key = "string" }, run = function(r, msg, reply)
   local hadOverride = store.overrides[msg.key] ~= nil
   if hadOverride then store.overrides[msg.key] = nil; store:saveOverrides() end
   local text = "forgot " .. name .. (hadOverride and " and its override" or "")
+  changed(r, msg, text)
   if r.last.present[msg.key] then text = text .. " - it's still in the network, so it'll be re-added" end
   r.log("%s", text)
   acker(reply)(had, text)
   return true
 end }
 
-COMMANDS.forgetAbsent = { run = function(r, _, reply)
+COMMANDS.forgetAbsent = { run = function(r, msg, reply)
   local store = r.store
   local removed, kept = 0, 0
   for key in pairs(store.catalog) do
@@ -80,6 +91,7 @@ COMMANDS.forgetAbsent = { run = function(r, _, reply)
   end
   store:saveCatalog()
   local text = ("forgot %d absent item(s)"):format(removed)
+  changed(r, msg, text)
   if kept > 0 then text = text .. (" - kept %d with overrides"):format(kept) end
   r.log("%s", text)
   acker(reply)(true, text)
@@ -97,6 +109,7 @@ COMMANDS.setRule = { run = function(r, msg, reply)
   else table.insert(list, 1, rule); index = 1 end
   r.store:saveRules()
   r.log("rule #%d: %s -> %s%s", index, rule.pattern, rule.process, rule.fallback and (" (fallback " .. rule.fallback .. ")") or "")
+  changed(r, msg, ("rule #%d %s → %s%s"):format(index, rule.pattern, rule.process, rule.fallback and ("›" .. rule.fallback) or ""))
   acker(reply)(true, ("rule #%d saved: %s -> %s"):format(index, rule.pattern, rule.process))
   return true
 end }
@@ -109,6 +122,7 @@ COMMANDS.deleteRule = { run = function(r, msg, reply)
   table.remove(list, index)
   r.store:saveRules()
   r.log("rule #%d deleted: %s", index, rule.pattern)
+  changed(r, msg, ("rule #%d deleted: %s"):format(index, rule.pattern))
   acker(reply)(true, ("deleted rule #%d (%s)"):format(index, rule.pattern))
   return true
 end }
@@ -120,13 +134,15 @@ COMMANDS.moveRule = { run = function(r, msg, reply)
   if not (target and list[index] and list[target]) then acker(reply)(false, "can't move that rule"); return false end
   list[index], list[target] = list[target], list[index]
   r.store:saveRules()
+  changed(r, msg, ("rule %s moved to #%d"):format(list[target].pattern, target))
   acker(reply)(true, ("rule moved to #%d"):format(target))
   return true
 end }
 
-COMMANDS.resetRules = { run = function(r, _, reply)
+COMMANDS.resetRules = { run = function(r, msg, reply)
   r.store:resetRules()
   r.log("screen rules removed - back to the rules in prism.cfg")
+  changed(r, msg, "rules reset to prism.cfg's")
   acker(reply)(true, "back to the rules in prism.cfg")
   return true
 end }
@@ -141,6 +157,7 @@ COMMANDS.alwaysShare = { fields = { process = "string", on = "boolean" }, run = 
     for _, e in ipairs(r.last.queues[msg.process] or {}) do r.spilled[e.key] = nil end
   end
   r.log("%s: %s", msg.process, msg.on and "always sharing items with a fallback" or "sharing on overflow")
+  changed(r, msg, (msg.on and "ALWAYS SHARE on: %s" or "ALWAYS SHARE off: %s"):format(msg.process))
   acker(reply)(true, msg.process .. (msg.on and ": every item with a fallback is shared"
                                             or ": items with a fallback are shared on overflow"))
   return true
@@ -152,6 +169,7 @@ COMMANDS.setOverflow = { fields = { process = "string" }, run = function(r, msg,
   r.store.processes[msg.process] = n and { overflow = n } or nil
   r.store:saveProcesses()
   r.log("%s: overflow %s", msg.process, n and tostring(n) or "back to prism.cfg")
+  changed(r, msg, ("overflow %s: %s"):format(n and tostring(n) or "back to prism.cfg's", msg.process))
   acker(reply)(true, msg.process .. (n and (": shared past " .. n .. " waiting") or ": overflow back to prism.cfg"))
   return true
 end }
@@ -162,12 +180,14 @@ COMMANDS.hold = { fields = { process = "string", on = "boolean" }, run = functio
   store.held[msg.process] = msg.on and { by = by } or nil
   store:saveHeld()
   r.log("%s: %s%s", msg.process, msg.on and "on hold - its outputs are cleared" or "resumed", by and (" (" .. by .. ")") or "")
+  changed(r, msg, msg.process .. (msg.on and " held: outputs cleared" or " resumed"), "hold")
   acker(reply)(true, msg.process .. (msg.on and ": on hold, its outputs cleared" or ": resumed"))
   return true
 end }
 
-COMMANDS.reload = { run = function(r, _, reply)
+COMMANDS.reload = { run = function(r, msg, reply)
   local ok, err = pcall(r.setup, r)
+  changed(r, msg, ok and "prism.cfg reloaded" or ("reload failed: " .. tostring(err)))
   if not ok then r.stats.lastError = tostring(err); r.log("reload failed: %s", tostring(err)) end
   acker(reply)(ok, ok and "config reloaded" or ("reload failed: " .. tostring(err)))
   return true
@@ -209,6 +229,14 @@ COMMANDS.previewRule = { run = function(r, msg, reply)
   local p = rules.preview(store.overrides, r.cfg, store:rules(), store.catalog, msg, protocol.PAGE)
   p.type, p.req = "router-preview", msg.req
   reply(p)
+end }
+
+COMMANDS.log = { run = function(r, msg, reply)
+  local offset = math.max(0, math.floor(tonumber(msg.offset) or 0))
+  local filter = (msg.filter == "alerts" or msg.filter == "changes") and msg.filter or nil
+  local total, list = r.events:page(offset, protocol.PAGE, filter)
+  reply({ type = "router-log", req = msg.req, offset = offset, total = total, filter = filter, list = list,
+          now = r.clock:at(require("computer").uptime()), real = r.clock.real })
 end }
 
 COMMANDS.items = { run = function(r, msg, reply)

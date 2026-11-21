@@ -17,7 +17,8 @@
     copies; off when cfg.stuckAfter is false.
   health:alerts(backlog, stalled, outputs, machines, stuck) -> { id, level = "bad"|"warn", text }[]
     Ids are stable (stall:wash, feeder:<name>, machine:<name>, idle:<name>, stuck:<key>; at most 5 stuck);
-    logs each alert when it starts and when it resolves.
+    logs each alert when it starts and when it resolves, and leaves health.changes = { started = alerts[],
+    ended = { id, text }[] } for the event log.
 ]]
 
 local U = require("prism.util")
@@ -147,15 +148,16 @@ function Health:alerts(backlog, stalled, outputs, machines, stuck)
     add("stuck:" .. s.key, "warn", ("%s stuck for %s (%s)"):format(s.label, U.fmtShort(s.secs), s.process))
   end
 
-  local seen = {}
+  local seen, started, ended = {}, {}, {}
   for _, a in ipairs(list) do
-    seen[a.id] = true
-    if not self.active[a.id] then self.log("ALERT %s", a.text) end
+    seen[a.id] = self.active[a.id] or a.text            -- the text it started with, for the log's ended entry
+    if not self.active[a.id] then self.log("ALERT %s", a.text); started[#started + 1] = a end
   end
-  for id in pairs(self.active) do
-    if not seen[id] then self.log("resolved: %s", id) end
+  for id, text in pairs(self.active) do
+    if not seen[id] then self.log("resolved: %s", id); ended[#ended + 1] = { id = id, text = text } end
   end
-  self.active = seen
+  table.sort(ended, function(a, b) return a.id < b.id end)
+  self.active, self.changes = seen, { started = started, ended = ended }
   return list
 end
 

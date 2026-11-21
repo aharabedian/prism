@@ -32,6 +32,7 @@ C.ROUTER_LISTS = { "overrides", "buses", "stockers", "interfaces", "feeders", "m
 C.CONTROL_TUNING = {
   { "history",    60, "backlog samples kept for the sparklines" },
   { "staleAfter", 3,  "missed router cycles before showing NO SIGNAL" },
+  { "timezone", false, "hours from UTC for clock times in LOG (1, -5, 5.5); false = show how long ago" },
 }
 -- modemPort = false turns wireless off, so these defaults only replace nil.
 C.CONTROL_DEFAULTS = { modemPort = protocol.DEFAULT_PORT, beep = true }

@@ -28,10 +28,12 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `deleteRule` | `index` | → `router-ack` |
 | `moveRule` | `index`, `dir` (`-1` up, `1` down) | → `router-ack` |
 | `resetRules` | | Delete `prism-rules.cfg`, back to `prism.cfg` rules → `router-ack` |
-| `previewRule` | `pattern`, `index?`, `process?`, `req` | `router-queue` | `req`, `process`, `offset`, `total`, `list = { rank, key, label, size, batch, prio, now, level }[]` (`now`: a short line on what the item is doing, such as `on Washer bus (slot 3)`, `↷ shared with wash`, `below batch: 25 of 36`; `level` as in `router-explain`) |
+| `previewRule` | `pattern`, `index?`, `process?`, `req` | `router-log` | `req`, `offset`, `total`, `filter`, `now` (the router's time), `real` (whether `now` and `at` are real time), `list = { at, kind, text, level?, lasted?, player?, process? }[]`; `kind`: `alert`, `ended` (`lasted` seconds), `share`, `hold`, `edit`, `start`, `stop` |
+| `router-queue` | `req`, `process`, `offset`, `total`, `list = { rank, key, label, size, batch, prio, now, level }[]` (`now`: a short line on what the item is doing, such as `on Washer bus (slot 3)`, `↷ shared with wash`, `below batch: 25 of 36`; `level` as in `router-explain`) |
 | `router-explain` | `req`, `key`, `text` (one line: on which outputs, or why it waits), `level` (`ok` on an output, `warn` waiting for something to change, `dim`) |
 | `router-preview` |
 | `alwaysShare` | `process`, `on` (boolean) | Share every item of a process that has a fallback (`on`), or only on overflow; saved in `prism-always-share.cfg` → `router-ack`, rescan |
+| `log` | `offset?`, `filter?` (`alerts` or `changes`), `req?` | `router-log`: one page (≤ 40) of the event log, newest first |
 | `explain` | `key`, `req?` | `router-explain`: what the item is doing now |
 | `queue` | `process`, `offset?`, `req?` | `router-queue`: one page (≤ 40) of the process's queue in rank order |
 | `setOverflow` | `process`, `overflow?` (number), `player?` | The process's overflow mark, saved in `prism-processes.cfg` (it wins over `processes.<name>.overflow` in prism.cfg); no `overflow` goes back to prism.cfg's → `router-ack`, rescan |
@@ -55,6 +57,7 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `unassignedCount`, `catalogCount` | number | |
 | `knownProcesses` | string[] | Every process named by buses, stockers, feeders, machines, rules or overrides |
 | `alerts` | `{ id, level = "bad"|"warn", text }[]` | |
+| `events` | number | Events added to the log since the router started; the screen fetches LOG again when it changes |
 
 ### Replies
 
