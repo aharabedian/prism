@@ -1,7 +1,7 @@
 --[[ prism.router.status: building the router-status message (fields in docs/protocol.md).
 
   build(r, scan, stalled, alerts) -> router-status table
-    r = the router (prism.router.core): version, cfg, stats, store, outputs, machines
+    r = the router (prism.router.core): version, cfg, stats, store, outputs, machines, flow
   knownProcesses(r) -> sorted process names named by outputs, machines, rules, overrides or `processes`
 ]]
 
@@ -45,6 +45,11 @@ function S.build(r, scan, stalled, alerts)
     return p
   end
   for name, sp in pairs(scan.spilled or {}) do proc(name).spilled = sp.items end
+  for name, p in pairs(s.processes) do
+    local out, arrived = r.flow:rates(name)
+    if out then p.outRate, p.inRate = math.floor(out + 0.5), math.floor(arrived + 0.5) end
+    p.busy = U.round2(r.flow:busy(name))
+  end
   for name, lim in pairs(r.store:limits()) do
     local p = proc(name)
     p.overflow, p.alwaysShare = lim.overflow, lim.alwaysShare

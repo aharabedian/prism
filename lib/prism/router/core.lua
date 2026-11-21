@@ -16,6 +16,8 @@
     r.reported   things already warned about, so the log isn't spammed
     r.lastStatus the latest router-status
     r.telemetry  reporting to LENS (prism.router.telemetry), or nil when lensPort is off
+    r.flow       items out and in per process, and machines' busy share (prism.router.flow)
+    r.moved      { [process] = { out, arrived } } in the latest scan
 ]]
 
 local component = require("component")
@@ -36,6 +38,7 @@ local Health    = require("prism.router.health")
 local status    = require("prism.router.status")
 local commands  = require("prism.router.commands")
 local Telemetry = require("prism.router.telemetry")
+local Flow      = require("prism.router.flow")
 
 local Router = {}
 Router.__index = Router
@@ -50,7 +53,7 @@ end
 function Router.new(configPath)
   return setmetatable({
     version = VERSION, configPath = configPath, log = log,
-    outputs = {}, machines = {},
+    outputs = {}, machines = {}, flow = Flow.new(), moved = {},
     stats = { cycles = 0, writes = 0, cycleMs = 0, lastError = nil },
     last = { labels = {}, present = {}, queues = {} },
   }, Router)
@@ -210,6 +213,9 @@ function Router:cycle()
     return (store:classify(store:labelOf(key, self.last.labels[key]), key))
   end)
   local alerts = self.health:alerts(scan.backlog, stalled, self.outputs, self.machines)
+  self.moved = self.flow:update(computer.uptime(), scan, self.stats.cycles > 0 and self.last or nil, function(key)
+    return (store:classify(store:labelOf(key, self.last.labels[key]), key))
+  end, self.machines)
 
   self.last = { labels = scan.labels, present = scan.present, queues = scan.queues }
   self.stats.cycles = self.stats.cycles + 1

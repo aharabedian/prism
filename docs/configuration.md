@@ -204,6 +204,7 @@ in the text setup).
 | `prism_unassigned_types` | | Item types no rule or override routes |
 | `prism_machine_state` | `process`, `machine`, `state` | 1 for the machine's state, 0 for the others: `running` (working), `idle`, `down` (no power, maintenance, disabled, offline, or idle with work waiting for `idleAlert` seconds) |
 | `prism_machine_progress_ratio` | `process`, `machine` | Recipe progress, 0..1 |
+| `prism_items_out_total` | `process` | Items that left the process's backlog (a counter): quantities that dropped between scans, and items that left the network. A shared item counts for both processes |
 | `prism_scan_seconds` | | How long the latest scan took |
 | `prism_scans_total`, `prism_writes_total` | | Scans, and filter/interface writes, since the router started (counters) |
 

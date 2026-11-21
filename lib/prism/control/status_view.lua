@@ -3,7 +3,8 @@
   StatusView.new(ui, m) -> v
   v.drawHeader()          the top bar: LIVE / NO SIGNAL, alerts, router stats, version mismatch
   v.draw()                the left column: a card per process (backlog, history, its machines, a line
-                          about its outputs and how many items wait below their batch); tapping a card
+                          about its outputs and how many items wait below their batch, its throughput
+                          and time to clear on the right); tapping a card
                           selects the process (m.selectProcess)
   v.redrawMachines() -> false if the machines changed (names/processes), so everything must be redrawn
   When the cards don't fit, the biggest ones first list fewer machines ("+N more"), then shrink to their
@@ -236,13 +237,20 @@ function StatusView.new(ui, m)
     machHeads[name] = { y = y, compact = compact, bg = rowBg }
   end
 
+  -- The outputs line, with the process's throughput right-aligned when the router has measured it.
   local function drawOutputs(y, g)
     local parts = outputParts(g)
+    local limit = LW
+    local rate, kind = ui.rateText(g.p)
+    if rate then
+      limit = LW - len(rate) - 4
+      put(LW - len(rate), y, rate, kind == "growing" and C.warn or C.dim, C.bg)
+    end
     local x = 5
     put(x, y, "↳ ", C.line, C.bg); x = x + 2
     for i, part in ipairs(parts) do
       local text = (i > 1 and "  ·  " or "") .. part[1]
-      if x + len(text) > LW then put(x, y, "  …", C.dim, C.bg); break end
+      if x + len(text) > limit then put(x, y, "  …", C.dim, C.bg); break end
       if i > 1 then put(x, y, "  ·  ", C.line, C.bg) end
       put(x + (i > 1 and 5 or 0), y, part[1], part[2], C.bg)
       x = x + len(text)
