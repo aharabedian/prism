@@ -10,6 +10,9 @@ versions follow [Semantic Versioning](https://semver.org/).
   interface or feeder (and the slot), or why it waits (below its batch and how many more it needs, ranked below
   what its outputs hold, a batch item with no feeder or stocker, nothing serving its process). Protocol: the
   `explain` command and `router-explain` reply.
+- **Below a full batch**: each process card says how many items wait below their batch ("56 below batch"), and
+  ITEMS has a BELOW BATCH button that lists only those items, with how many more each needs. `router-status`
+  processes carry `below`.
 
 ## [1.4.0] - 2026-11-18
 

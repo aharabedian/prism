@@ -12,6 +12,8 @@
     empty()        text when there are no rows
     tap(r)         what tapping a row does (nil: nothing)
     actions(y)     buttons on the action row (optional)
+    info(rows)     text for the right of the info row instead of the position (optional; nil: the position)
+  ITEMS' BELOW BATCH lists only items with less than one batch, with how many more each needs.
   To add a tab: add a descriptor here, a button in TABS, and fetch its data in prism.control.model.
 ]]
 
@@ -104,12 +106,21 @@ function ListView.new(ui, m)
     put(RX + 20, y, ("%d type%s  ·  %s items"):format(r.types, r.types == 1 and "" or "s", U.fmtNum(r.total)), C.dim, C.panel)
   end
 
+  -- Less than one batch in the network: it can't go out until more arrives.
+  local function belowBatch(r) return (r.batch or 1) > 1 and (r.size or 0) > 0 and r.size < r.batch end
+
   MODES.items = {
     filter = true,
-    rows = function() return S.items or {} end,
+    rows = function()
+      if not S.belowBatch then return S.items or {} end
+      local out = {}
+      for _, r in ipairs(S.items or {}) do if belowBatch(r) then out[#out + 1] = r end end
+      return out
+    end,
     arrange = arrangeItems,
     header = function()
-      return fit("item", RW - 34) .. rfit("qty", 7) .. " " .. fit("process", 15) .. rfit("batch", 5) .. rfit("from", 6)
+      return fit("item", RW - 34) .. rfit("qty", 7) .. " " .. fit("process", 15) .. rfit("batch", 5)
+        .. rfit(S.belowBatch and "needs" or "from", 6)
     end,
     row = function(y, r, rb)
       if r.group then return groupRow(y, r) end
@@ -119,18 +130,29 @@ function ListView.new(ui, m)
       local pc = r.process == nil and C.warn or (r.spilled and C.warn) or processColor(r.process)
       put(RX + RW - 26, y, fit(r.process and processText(r) or "unassigned", 15), pc, rb)
       put(RX + RW - 11, y, rfit(batchText(r), 5), C.accent, rb)
-      put(RX + RW - 6, y, rfit(r.source or "", 6), C.dim, rb)
+      if S.belowBatch then put(RX + RW - 6, y, rfit("+" .. U.fmtNum(r.batch - r.size), 6), C.warn, rb)
+      else put(RX + RW - 6, y, rfit(r.source or "", 6), C.dim, rb) end
     end,
-    empty = function() return S.items and "no items seen yet" or "loading ..." end,
+    empty = function()
+      if S.belowBatch then return S.items and "nothing waits below its batch" or "loading ..." end
+      return S.items and "no items seen yet" or "loading ..."
+    end,
+    info = function(rows)
+      if not S.belowBatch then return nil end
+      local n, total = 0, 0
+      for _, r in ipairs(rows) do if not r.group then n, total = n + 1, total + r.size end end
+      return ("%d item%s below their batch  ·  %s in all"):format(n, n == 1 and "" or "s", U.fmtNum(total))
+    end,
     tap = function(r)
       if r.group then return function() m.toggleGroup(r.group) end end
       return function() m.selectRow(r, "items") end
     end,
     actions = function(y)
-      local bx = W
+      local bx = W - len("BELOW BATCH") - 3
       for i = #SORTS, 1, -1 do bx = bx - len(SORTS[i][2]) - 3 end
       local x = dangerButton(RX, y, "clearAbsent", "CLEAR ABSENT", "TAP AGAIN TO CLEAR ABSENT", m.forgetAbsent)
-      put(x, y, fit("forgets absent items without an override", bx - x - 1), C.dim, C.bg)
+      if bx - x - 1 >= 20 then put(x, y, fit("forgets absent items without an override", bx - x - 1), C.dim, C.bg) end
+      bx = button(bx, y, "BELOW BATCH", { on = S.belowBatch, fn = m.toggleBelowBatch })
       for _, sort in ipairs(SORTS) do
         bx = button(bx, y, sort[2], { on = S.itemSort == sort[1], fn = function() m.setItemSort(sort[1]) end })
       end
@@ -271,7 +293,11 @@ function ListView.new(ui, m)
       put(RX, L.INFO_ROW, "type to search", C.dim, C.bg)
     end
     local right = W
-    if #rows > visible then
+    local info = md.info and md.info(rows)
+    if info then
+      right = W - len(info)
+      put(right, L.INFO_ROW, info, C.dim, C.bg)
+    elseif #rows > visible then
       local pos = ("%d-%d of %d"):format(S.scroll + 1, math.min(#rows, S.scroll + visible), #rows)
       right = W - len(pos)
       put(right, L.INFO_ROW, pos, C.dim, C.bg)
