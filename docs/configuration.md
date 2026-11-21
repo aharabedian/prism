@@ -16,6 +16,7 @@ previous version as `<file>.bak`, but hand-written comments are lost.
 | `monitorInterval` | `2` | Seconds between GT machine polls |
 | `stallAfter` | `60` | Seconds of no movement before a process is flagged stalled |
 | `idleAlert` | `30` | Seconds a monitored machine may sit idle with work waiting before an alert |
+| `unassignedAlert` | `false` | Seconds items may stay unassigned before a warn (`3 items unassigned for 10m or more`); `false` = off |
 | `stuckAfter` | `1200` | Seconds an item on one of its process's outputs may stay without going down, while the process uses other items, before a warn (`Purified Tin Ore stuck for 20m (thermal)`). `false` turns it off |
 | `slotsPerBus` | `9` | Filter slots per export bus: 1, 5 or 9 (0, 1 or 2 Capacity Cards) |
 | `network` | first found | Address (or prefix) of the `me_controller` / `me_interface` to scan |
@@ -223,7 +224,7 @@ Kept next to the config, never touched by `prism-update` or `prism-setup`:
 | File | Contents |
 |---|---|
 | `prism-overrides.cfg` | Overrides made on the control screen, with who made each one and when |
-| `prism-items.cfg` | The catalog of every item seen (key → name) |
+| `prism-items.cfg` | The catalog of every item seen (key → name, and when it was first seen) |
 | `prism-rules.cfg` | Rules edited on the screen; replaces `rules` in `prism.cfg`. **RESET** on the screen deletes it |
 | `prism-always-share.cfg` | Processes set to ALWAYS SHARE on the screen |
 | `prism-held.cfg` | Processes put on HOLD on the screen (and who did it) |

@@ -19,6 +19,7 @@ C.ROUTER_TUNING = {
   { "monitorInterval", 2,     "seconds between GT machine polls" },
   { "stallAfter",      60,    "seconds of items waiting with nothing moving before a stall alert" },
   { "idleAlert",       30,    "seconds a monitored machine may sit idle with work waiting" },
+  { "unassignedAlert", false, "seconds items may stay unassigned before a warn; false = off" },
   { "stuckAfter",      1200,  "seconds an item on an output may stay without going down while its process uses others; false = off" },
   { "defaultPriority", 10,    "priority for rules and overrides that don't set one" },
   { "verbose",         false, "log every filter and interface change" },

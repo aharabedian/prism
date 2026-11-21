@@ -166,7 +166,7 @@ function PanelView.new(ui, m)
     local text, color
     local alerts = S.status and S.status.alerts or {}
     if S.msg then
-      text, color = S.msg, S.msgOk and C.good or C.bad
+      text, color = S.msg, S.msgWarn and C.warn or (S.msgOk and C.good or C.bad)
     elseif S.status and S.status.lastError then
       text, color = "router: " .. S.status.lastError, C.bad
     elseif #alerts > 0 then

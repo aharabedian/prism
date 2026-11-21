@@ -209,6 +209,18 @@ function Router:spill(scan)
   self.spilling = now
 end
 
+-- How many unassigned items have stayed unassigned for unassignedAlert seconds (0 when it's off).
+function Router:unassignedFor(scan, now)
+  local since, out = self.unassignedSince or {}, {}
+  local n = 0
+  for _, u in ipairs(scan.unassigned) do
+    out[u.key] = since[u.key] or now
+    if self.cfg.unassignedAlert and now - out[u.key] >= self.cfg.unassignedAlert then n = n + 1 end
+  end
+  self.unassignedSince = out
+  return n
+end
+
 -- What an output of `proc` gets: nothing while the process is on hold, so its outputs clear.
 function Router:queueFor(proc, queues)
   if self.store.held[proc] then return {} end
@@ -227,11 +239,15 @@ function Router:cycle()
   self:spill(scan)
 
   local changed = false
+  local t = self.clock:at(computer.uptime())
   for _, key in ipairs(scan.order) do
     local label = scan.labels[key]
-    if not store.catalog[key] or store.catalog[key].label ~= label then
-      store.catalog[key] = { label = label }
+    local c = store.catalog[key]
+    if not c then
+      store.catalog[key] = { label = label, seen = t }
       changed = true
+    elseif c.label ~= label then
+      c.label, changed = label, true
     end
   end
   if changed then store:saveCatalog() end
@@ -247,8 +263,8 @@ function Router:cycle()
   end, store.held)
   local stuck = self.stats.cycles > 0 and self.health:stuck(computer.uptime(), scan, self.last, self.outputs, store.held,
     stalled) or {}
-  local alerts = self.health:alerts(scan.backlog, stalled, self.outputs, self.machines, stuck)
-  local t = self.clock:at(computer.uptime())
+  local unassigned = self:unassignedFor(scan, computer.uptime())
+  local alerts = self.health:alerts(scan.backlog, stalled, self.outputs, self.machines, stuck, unassigned)
   for _, a in ipairs(self.health.changes.started) do
     self.alertAt[a.id] = t
     self.events:add({ at = t, kind = "alert", level = a.level, text = a.text })

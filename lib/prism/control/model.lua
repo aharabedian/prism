@@ -34,7 +34,8 @@
                 list and panel. S.queue: its queue in rank order (router-queue), asked again with every status
   S.machineCells  { [machine] = { [cell] = { w, n, down, wait } } }: machine states seen per 160 s cell (the
                 last 45), for the process page's bands
-  S.msg/msgOk   the flash message in the footer; S.confirm: an action waiting for a second tap
+  S.msg/msgOk   the flash message in the footer (S.msgWarn: in yellow, for news like a new item);
+                S.confirm: an action waiting for a second tap
   S.player      the player who last touched the screen, sent with every command
 ]]
 
@@ -69,7 +70,7 @@ function Model.new(settings, modem)
 
   ---------------------------------------------------------------- talking to the router
 
-  function m.flash(text, ok) S.msg, S.msgOk, S.msgAt = text, ok, computer.uptime() end
+  function m.flash(text, ok, warn) S.msg, S.msgOk, S.msgWarn, S.msgAt = text, ok, warn, computer.uptime() end
 
   function m.send(t)
     if not modem then m.flash("no network card in this computer", false); return end
@@ -351,6 +352,21 @@ function Model.new(settings, modem)
     end
   end
 
+  -- An item that just appeared with no rule for it: say so in the footer, with one beep. Not for the first status.
+  local function checkNewItems(msg)
+    local keys, fresh = {}, nil
+    for _, u in ipairs(msg.unassigned or {}) do
+      keys[u.key] = true
+      local recent = u.seen and msg.now and msg.now - u.seen < 600
+      if S.unassignedKeys and not S.unassignedKeys[u.key] and recent and not fresh then fresh = u end
+    end
+    S.unassignedKeys = keys
+    if fresh then
+      m.flash(("New item: %s - no rule routes it (UNASSIGNED)"):format(fresh.label or fresh.key), true, true)
+      if BEEP then pcall(computer.beep, 660, 0.15) end
+    end
+  end
+
   local function checkAlerts(msg)
     local ids, fresh = {}, false
     for _, a in ipairs(msg.alerts or {}) do
@@ -370,6 +386,7 @@ function Model.new(settings, modem)
       S.router = from
       pushHistory(msg)
       checkAlerts(msg)
+      checkNewItems(msg)
       S.status, S.statusAt = msg, computer.uptime()
       if S.tab == "items" and not S.fetching then fetchItems() end   -- keep quantities fresh
       if S.tab == "log" and msg.events ~= S.logEvents then fetchLog() end

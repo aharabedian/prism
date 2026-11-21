@@ -79,7 +79,7 @@ function ListView.new(ui, m)
     filter = true,
     rows = function() return S.status and S.status.unassigned or {} end,
     arrange = arrangeUnassigned,
-    header = function() return fit("item", RW - 9) .. rfit("qty", 8) .. " " end,
+    header = function() return fit("item", RW - 17) .. rfit("qty", 8) .. rfit("seen", 8) .. " " end,
     row = function(y, r, rb)
       if r.group then
         fill(RX, y, RW, 1, C.panel)
@@ -89,8 +89,14 @@ function ListView.new(ui, m)
         if r.idea then button(W - 12, y, "MAKE RULE", { fn = function() m.makeRuleFrom(r.group) end }) end
         return
       end
-      put(RX, y, fit(r.label or r.key, RW - 9), C.text, rb)
-      put(RX + RW - 9, y, rfit(U.fmtNum(r.size), 8) .. " ", C.warn, rb)
+      put(RX, y, fit(r.label or r.key, RW - 17), C.text, rb)
+      put(RX + RW - 17, y, rfit(U.fmtNum(r.size), 8), C.warn, rb)
+      local st = S.status
+      if r.seen and st and st.now then
+        local age = st.now - r.seen
+        put(RX + RW - 9, y, rfit(age < 3600 and ("new " .. U.fmtAge(age):gsub("^now$", "<1m")) or U.fmtAge(age), 8) .. " ",
+          age < 3600 and C.accent or C.dim, rb)
+      end
     end,
     empty = function() return "nothing unassigned - every item has a home" end,
     tap = function(r)

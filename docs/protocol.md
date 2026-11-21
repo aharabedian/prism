@@ -55,7 +55,8 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `buses` | `{ name, process, filters = { label... }, kind? }[]` | Export buses, then stockers (`kind = "stocker"`), then interfaces (`kind = "interface"`); for those two `filters` are the stocked items. `filters` may be dropped to fit the packet |
 | `feeders` | `{ name, process, state, level, label?, batch?, fed }[]` | `level`: `ok`, `idle`, `warn` or `bad` (since 0.6.0; for older routers the screen reads `state`) |
 | `machines` | `{ name, process, state, progress?, eu?, idle? }[]` | `progress`/`eu` are 0..1; `idle` is seconds idle with work waiting |
-| `unassigned` | `{ key, label, size }[]` | Top 25 by quantity |
+| `unassigned` | `{ key, label, size, seen? }[]` | Top 25 by quantity; `seen` is when the item was first seen (the router's time) |
+| `now`, `clockReal` | number, boolean | The router's time (`prism.clock`), and whether it's real time |
 | `unassignedCount`, `catalogCount` | number | |
 | `knownProcesses` | string[] | Every process named by buses, stockers, feeders, machines, rules or overrides |
 | `alerts` | `{ id, level = "bad"|"warn", text }[]` | |
