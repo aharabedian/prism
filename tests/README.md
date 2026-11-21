@@ -32,6 +32,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_showcase.lua` | A busy ore line on the screen (nine processes, every kind of output) for the README's images: `make docs-images` |
 | `test_control_rules.lua` | Screen: process cards and machines, alerts, beep, rule editor, MAKE RULE, trimmed and compact cards, version badge |
 | `test_discover.lua` | prism-discover output |
+| `test_run_next.lua` | RUN NEXT: first on the outputs, explain, items, ending by itself and logged; the screen's RUN NEXT / STOP NEXT and OVERRIDES |
 | `test_setup.lua` | prism-setup for router and screen: rules, hardware, wireless, start on boot, re-runs, backups, cancelling; both programs running on its output |
 | `test_setup_screen.lua` | prism-setup's editor on 80x25 and 160x50 screens: assigning, naming, dropping, feeders, general settings, review and save, quitting, falling back to the text setup |
 | `test_lens.lua` | Reporting to LENS: describe at start, snapshots with backlog, machine states and alerts, answering hello with the LENS token only, ports kept apart, off, lensPort = modemPort refused, routing carrying on when reporting fails |

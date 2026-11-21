@@ -11,6 +11,8 @@
     <base>-held.cfg       held          { [process] = { by? } }                              put on HOLD on the screen
     <base>-processes.cfg  processes     { [process] = { overflow } }                         overflow marks set on the screen
     <base>-log.cfg        (prism.router.events reads and writes it: the event log)
+    <base>-next.cfg       next          { [key] = { ends, by? } }                            RUN NEXT: first in its
+                                        process until `ends` (prism.clock time)
 
   Store.open(configPath, cfg, log) -> store
   store.overrides, store.catalog, store.screenRules (nil until rules are edited on the screen)
@@ -19,8 +21,10 @@
   store:limits()                   { [process] = { overflow?, alwaysShare?, overflowFrom? } } for planner.spill;
                                    an overflow set on the screen wins over prism.cfg's (overflowFrom "screen" | "cfg")
   store:labelOf(key, fallback)     the catalog label, else fallback
+  store:nextLeft(key, now) -> seconds | nil   RUN NEXT time left; store:expireNext(now) drops ended ones
+  Store.NEXT_BOOST                 added to the priority of an item set to RUN NEXT
   store:saveOverrides(), store:saveCatalog(), store:saveRules(), store:saveAlwaysShare(), store:saveHeld(),
-                                   store:saveProcesses()
+                                   store:saveProcesses(), store:saveNext()
   store:editableRules()            screenRules, copied from cfg.rules the first time
   store:resetRules()               delete prism-rules.cfg and go back to cfg.rules
 ]]
@@ -28,7 +32,7 @@
 local files = require("prism.files")
 local rules = require("prism.rules")
 
-local Store = {}
+local Store = { NEXT_BOOST = 1000000 }
 Store.__index = Store
 
 function Store.open(configPath, cfg, log)
@@ -37,13 +41,15 @@ function Store.open(configPath, cfg, log)
     cfg = cfg, log = log,
     paths = { overrides = base .. "-overrides.cfg", catalog = base .. "-items.cfg", rules = base .. "-rules.cfg",
               alwaysShare = base .. "-always-share.cfg", held = base .. "-held.cfg",
-              processes = base .. "-processes.cfg", log = base .. "-log.cfg" },
+              processes = base .. "-processes.cfg", log = base .. "-log.cfg",
+              next = base .. "-next.cfg" },
   }, Store)
   s.overrides = files.readTable(s.paths.overrides)
   s.catalog = files.readTable(s.paths.catalog)
   s.alwaysShare = files.readTable(s.paths.alwaysShare)
   s.held = files.readTable(s.paths.held)
   s.processes = files.readTable(s.paths.processes)
+  s.next = files.readTable(s.paths.next)
   if files.exists(s.paths.rules) then
     s.screenRules = rules.clean(files.readTable(s.paths.rules), "prism-rules.cfg", log)
   end
@@ -85,6 +91,24 @@ function Store:saveRules() self:save("rules", self.screenRules) end
 function Store:saveAlwaysShare() self:save("alwaysShare", self.alwaysShare) end
 function Store:saveHeld() self:save("held", self.held) end
 function Store:saveProcesses() self:save("processes", self.processes) end
+function Store:saveNext() self:save("next", self.next) end
+
+-- RUN NEXT: seconds left for the item at time `now`, or nil.
+function Store:nextLeft(key, now)
+  local n = self.next[key]
+  if type(n) == "table" and tonumber(n.ends) and n.ends > now then return math.floor(n.ends - now) end
+  return nil
+end
+
+-- Drop RUN NEXT entries that ended; returns their keys.
+function Store:expireNext(now)
+  local gone = {}
+  for key, n in pairs(self.next) do
+    if not (type(n) == "table" and tonumber(n.ends) and n.ends > now) then gone[#gone + 1] = key; self.next[key] = nil end
+  end
+  if #gone > 0 then self:saveNext() end
+  return gone
+end
 
 function Store:editableRules()
   if not self.screenRules then

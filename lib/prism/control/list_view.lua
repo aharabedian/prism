@@ -174,7 +174,8 @@ function ListView.new(ui, m)
       put(RX, y, fit(r.label or r.key, RW - 34), present and C.text or C.dim, rb)
       put(RX + RW - 34, y, rfit(present and U.fmtNum(r.size) or "absent", 7) .. " ", present and C.text or C.dim, rb)
       local pc = r.process == nil and C.warn or (r.spilled and C.warn) or processColor(r.process)
-      put(RX + RW - 26, y, fit(r.process and processText(r) or "unassigned", 15), pc, rb)
+      put(RX + RW - 26, y, fit(r.process and ((r.next and "▲ " or "") .. processText(r)) or "unassigned", 15),
+        r.next and C.accent or pc, rb)
       put(RX + RW - 11, y, rfit(batchText(r), 5), C.accent, rb)
       if S.belowBatch then put(RX + RW - 6, y, rfit("+" .. U.fmtNum(r.batch - r.size), 6), C.warn, rb)
       else put(RX + RW - 6, y, rfit(r.source or "", 6), C.dim, rb) end
@@ -215,7 +216,7 @@ function ListView.new(ui, m)
       put(RX, y, fit(r.label or r.key, RW - 37), C.text, rb)
       put(RX + RW - 37, y, fit(processText(r), 14), processColor(r.process), rb)
       put(RX + RW - 23, y, rfit(batchText(r), 5), C.accent, rb)
-      put(RX + RW - 18, y, rfit(r.priority or "-", 5), C.text, rb)
+      put(RX + RW - 18, y, rfit(r.next and "next" or (r.priority or "-"), 5), r.next and C.accent or C.text, rb)
       local by = r.source == "cfg" and "cfg" or ((r.by or "screen") .. (r.at and S.overridesAt
         and (" · " .. U.fmtAge(S.overridesNow + (require("computer").uptime() - S.overridesAt) - r.at)) or ""))
       put(RX + RW - 11, y, fit(by, 11), r.source == "cfg" and C.dim or C.info, rb)

@@ -8,7 +8,8 @@
   ranked below what its outputs hold; else it waits for the next scan. A shared item says so too.
   row(r, proc, rank, e) -> text, level
     a short version for one entry of a process's queue (the process page): "on Washer bus (slot 3)",
-    "↷ shared with wash", "shared from chembath", "below batch: 25 of 36", "rank 12; outputs hold 9" ...
+    "↷ shared with wash", "shared from chembath", "below batch: 25 of 36", "rank 12; outputs hold 9", "▲ next" ...
+  An item set to RUN NEXT starts its item() line with "Run next (24m left): ".
   queue(r, proc, offset, n) -> total, rows   rows = { rank, key, label, size, batch, prio, now, level }[]
   Uses only the output interface (holds, size, takesBatches), so a new output kind needs nothing here.
 ]]
@@ -21,7 +22,7 @@ local function rankIn(queue, key)
   for i, e in ipairs(queue or {}) do if e.key == key then return i, e end end
 end
 
-function E.item(r, key)
+local function itemNow(r, key)
   local store, last = r.store, r.last
   local size = last.present[key]
   if not size or size == 0 then return { text = "Not in the network now.", level = "dim" } end
@@ -83,9 +84,18 @@ local function heldBy(r, proc, key)
   return held[1] .. (#held > 1 and (", +" .. (#held - 1)) or "")
 end
 
+-- An item set to RUN NEXT says so first.
+function E.item(r, key)
+  local e = itemNow(r, key)
+  local left = r.store:nextLeft(key, r.clock and r.clock:at(require("computer").uptime()) or 0)
+  if left then e.text = ("Run next (%s left): %s"):format(U.fmtShort(left), e.text) end
+  return e
+end
+
 function E.row(r, proc, rank, e)
   if r.store.held[proc] then return "held", "warn" end
   local on = heldBy(r, proc, e.key)
+  if e.prio and e.prio >= require("prism.router.store").NEXT_BOOST then return "▲ next" .. (on and ("; on " .. on) or ""), "ok" end
   if e.from then return "shared from " .. e.from .. (on and ("; on " .. on) or ""), on and "ok" or "dim" end
   local shared = r.spilled[e.key] and e.fallback
   if on then return "on " .. on .. (shared and ("; ↷ " .. e.fallback) or ""), "ok" end
