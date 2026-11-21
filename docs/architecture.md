@@ -94,7 +94,8 @@ A command that changes routing (assign, rule edit, reload...) triggers an immedi
 
 1. `getItemsInNetwork()`, then `planner.plan`: merge stacks of the same `name:damage` (NBT variants),
    classify each item (screen override → cfg override → rules) into process, priority and batch, and
-   rank each process's queue by priority, then quantity.
+   rank each process's queue by priority, then quantity. An item set to RUN NEXT (`prism-next.cfg`) gets a
+   priority above every other until it ends; ended ones are dropped and logged.
    Then `planner.spill` shares items with a `fallback` from a process past its `overflow` or set to always share:
    a copy joins the fallback's queue ([Fallbacks and overflow](configuration.md#fallbacks-and-overflow)).
    Which items are shared is kept until the next scan, for the hysteresis. Everything after this step

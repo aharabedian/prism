@@ -100,7 +100,9 @@ First match wins:
 
 `process = "ignore"` means "leave it alone and don't report it as unassigned".
 
-Within a process, items are ranked by **priority** (higher first), then by quantity waiting.
+Within a process, items are ranked by **priority** (higher first), then by quantity waiting. **RUN NEXT** on
+the screen (ROUTE ITEM) puts an item first in its process for 30 minutes, then it goes back to its priority
+(kept in `prism-next.cfg`, so it survives a restart; STOP NEXT ends it early).
 
 ## Fallbacks and overflow
 
@@ -229,6 +231,7 @@ Kept next to the config, never touched by `prism-update` or `prism-setup`:
 | `prism-always-share.cfg` | Processes set to ALWAYS SHARE on the screen |
 | `prism-held.cfg` | Processes put on HOLD on the screen (and who did it) |
 | `prism-processes.cfg` | Overflow marks set on the screen; they win over `processes` in `prism.cfg` |
+| `prism-next.cfg` | Items set to RUN NEXT, and when that ends |
 | `prism-log.cfg` | The event log: the last 300 alerts started and ended, sharing on and off, holds, edits made on a screen, router starts and stops, with the time. Saved once a minute and when the router stops |
 | `.prism-clock` | A small file the router writes to read the real time from its modification time |
 

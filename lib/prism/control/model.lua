@@ -7,7 +7,7 @@
   m.onKey(char, code) -> redraw?
   m.tick(now) -> redraw?    expire flash messages, confirmations and stuck fetches
   m.start()                 ask the router for status
-  actions: switchTab, selectRow, editRule, newRule, makeRule, makeRuleFrom(pattern), saveRule, deleteRule, moveRule,
+  actions: switchTab, selectRow, editRule, newRule, makeRule, makeRuleFrom(pattern), runNext(on), saveRule, deleteRule, moveRule,
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
            reloadRouter, pickProcess, pickFallback, pickBatch, editBatch, blur, pickPriority, setScroll,
            clearFilter, quit,
@@ -23,7 +23,7 @@
                 LOG opens and when router-status's `events` count changes; S.logFilter nil | "alerts" | "changes"
   S.itemSort    how ITEMS is ordered: "process" (grouped, S.collapsed[process] = true hides a group),
                 "name" or "qty"; S.belowBatch: ITEMS lists only items with less than one batch
-  S.sel         the item being routed: { key, label, size, list, source, process },
+  S.sel         the item being routed: { key, label, size, list, source, process, next (RUN NEXT seconds left) },
                 with the choices S.selProc, S.selFallback, S.selPrio, S.selBatch
   S.explain     the router's line on what S.sel is doing now: { key, text, level } (router-explain); asked
                 again with every status while an item is selected
@@ -178,7 +178,7 @@ function Model.new(settings, modem)
   function m.selectRow(row, list)
     S.procSel = nil
     S.sel = { key = row.key, label = row.label, size = row.size, list = list,
-              source = row.source, process = row.process }
+              source = row.source, process = row.process, next = row.next }
     S.selProc  = row.process
     S.selFallback = row.fallback
     S.selPrio  = row.priority or 10
@@ -210,6 +210,15 @@ function Model.new(settings, modem)
     m.send({ cmd = "forget", key = S.sel.key })
     m.flash(("forgetting %s ..."):format(S.sel.label or S.sel.key), true)
     S.sel = nil
+  end
+
+  -- RUN NEXT: the item goes first in its process for 30 minutes (on), or back to its priority.
+  function m.runNext(on)
+    local sel = S.sel
+    if not sel then return end
+    m.send({ cmd = "runNext", key = sel.key, on = on, minutes = 30 })
+    sel.next = on and 1800 or nil
+    m.flash(on and ("%s goes first ..."):format(sel.label or sel.key) or ("%s back to its priority ..."):format(sel.label or sel.key), true)
   end
 
   function m.forgetAbsent()

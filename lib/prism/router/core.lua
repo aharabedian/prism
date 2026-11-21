@@ -232,8 +232,13 @@ function Router:cycle()
   local store = self.store
   self.stats.lastError = nil               -- only report problems from this cycle
 
+  local now = self.clock:at(computer.uptime())
+  for _, key in ipairs(store:expireNext(now)) do
+    self:event({ kind = "edit", text = "run next ended: " .. (store:labelOf(key, self.last.labels[key]) or key) })
+  end
   local scan = planner.plan(self.net.getItemsInNetwork() or {}, function(label, key)
     local proc, prio, batch, _, _, fallback = store:classify(label, key)
+    if proc and proc ~= "ignore" and store:nextLeft(key, now) then prio = (prio or 0) + Store.NEXT_BOOST end
     return proc, prio, batch, fallback
   end)
   self:spill(scan)

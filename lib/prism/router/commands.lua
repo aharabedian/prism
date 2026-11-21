@@ -165,6 +165,23 @@ COMMANDS.alwaysShare = { fields = { process = "string", on = "boolean" }, run = 
   return true
 end }
 
+COMMANDS.runNext = { fields = { key = "string", on = "boolean" }, run = function(r, msg, reply)
+  local store = r.store
+  local name = nameOf(r, msg.key)
+  local minutes = math.max(1, math.min(240, math.floor(tonumber(msg.minutes) or 30)))
+  if msg.on then
+    store.next[msg.key] = { ends = r.clock:at(require("computer").uptime()) + minutes * 60,
+                            by = type(msg.player) == "string" and msg.player or nil }
+  else
+    store.next[msg.key] = nil
+  end
+  store:saveNext()
+  r.log("run next: %s %s", name, msg.on and ("for " .. minutes .. " min") or "stopped")
+  changed(r, msg, msg.on and ("run next: %s for %dm"):format(name, minutes) or ("run next stopped: " .. name))
+  acker(reply)(true, msg.on and ("%s goes first for %d minutes"):format(name, minutes) or (name .. " back to its priority"))
+  return true
+end }
+
 COMMANDS.setOverflow = { fields = { process = "string" }, run = function(r, msg, reply)
   local n = tonumber(msg.overflow)
   if n then n = math.max(0, math.floor(n)) end
@@ -203,11 +220,13 @@ end }
 
 COMMANDS.overrides = { run = function(r, _, reply)
   local store, list = r.store, {}
+  local now = r.clock:at(require("computer").uptime())
   local function add(key, o, source)
     list[#list + 1] = { key = key, process = o.process, priority = o.priority, batch = o.batch,
                         fallback = rules.validFallback(o.process, o.fallback),
                         label = o.label or store:labelOf(key, r.last.labels[key]), source = source,
-                        by = source == "gui" and o.by or nil, at = source == "gui" and o.at or nil }
+                        by = source == "gui" and o.by or nil, at = source == "gui" and o.at or nil,
+                        next = store:nextLeft(key, now) }
   end
   for key, o in pairs(r.cfg.overrides) do if not store.overrides[key] then add(key, o, "cfg") end end
   for key, o in pairs(store.overrides) do add(key, o, "gui") end
@@ -244,12 +263,13 @@ end }
 
 COMMANDS.items = { run = function(r, msg, reply)
   local all = {}
+  local now = r.clock:at(require("computer").uptime())
   for key, c in pairs(r.store.catalog) do
     local label = c.label or key
     local proc, prio, batch, src, _, fallback = r.store:classify(label, key)
     all[#all + 1] = { key = key, label = label, size = r.last.present[key] or 0,
                       process = proc, priority = prio, batch = batch, source = src, fallback = fallback,
-                      spilled = r.spilled[key] ~= nil }
+                      spilled = r.spilled[key] ~= nil, next = r.store:nextLeft(key, now) }
   end
   table.sort(all, function(a, b) return a.label:lower() < b.label:lower() end)
   local offset = math.max(0, math.floor(tonumber(msg.offset) or 0))

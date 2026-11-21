@@ -152,6 +152,10 @@ function PanelView.new(ui, m)
     if sel.source == "gui" then x = button(x, P + 11, "REMOVE OVERRIDE", { color = C.bad, fg = C.bg, fn = m.removeOverride }) end
     if sel.list == "items" then x = button(x, P + 11, "FORGET", { color = C.bad, fg = C.bg, fn = m.forget }) end
     if sel.label then x = button(x, P + 11, "MAKE RULE", { fn = m.makeRule }) end
+    if sel.process and sel.process ~= "ignore" and sel.list ~= "unassigned" then
+      if sel.next then x = button(x, P + 11, "STOP NEXT", { on = true, fn = function() m.runNext(false) end })
+      else x = button(x, P + 11, "RUN NEXT", { fn = function() m.runNext(true) end }) end
+    end
     button(x, P + 11, "CANCEL", { fn = m.cancelSelection })
   end
 

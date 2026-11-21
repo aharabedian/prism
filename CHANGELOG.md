@@ -54,6 +54,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   orange for the last hour), and an item that appears with no rule for it shows in the footer with one beep. The
   new `unassignedAlert` setting (seconds, off by default) warns when items stay unassigned that long. Protocol:
   `seen` on `router-status` unassigned rows; `now` and `clockReal` on `router-status`.
+- **Run next**: RUN NEXT in ROUTE ITEM puts an item first in its process for 30 minutes (every output takes it
+  before anything else), then it goes back to its priority; STOP NEXT ends it early. The Now: line says how long
+  is left, ITEMS marks it `▲`, OVERRIDES shows `next`, and the log has it starting and ending. Kept in
+  `prism-next.cfg` across a restart. Protocol: the `runNext` command; `next` on items and overrides rows.
 
 ## [1.4.0] - 2026-11-18
 
