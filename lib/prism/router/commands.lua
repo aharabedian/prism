@@ -212,6 +212,12 @@ COMMANDS.explain = { fields = { key = "string" }, run = function(r, msg, reply)
   reply({ type = "router-explain", req = msg.req, key = msg.key, text = e.text, level = e.level })
 end }
 
+COMMANDS.queue = { fields = { process = "string" }, run = function(r, msg, reply)
+  local offset = math.max(0, math.floor(tonumber(msg.offset) or 0))
+  local total, list = explain.queue(r, msg.process, offset, protocol.PAGE)
+  reply({ type = "router-queue", req = msg.req, process = msg.process, offset = offset, total = total, list = list })
+end }
+
 ---------------------------------------------------------------- dispatch
 
 function C.handle(r, msg, reply)

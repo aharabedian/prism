@@ -5,7 +5,7 @@
          monitored machines with live progress.
   Right: UNASSIGNED, ITEMS (everything ever seen), OVERRIDES and RULES.
          Tap an item to route it; tap a rule (or + NEW RULE / MAKE RULE) to
-         edit it with a live preview of what it would catch.
+         edit it with a live preview of what it would catch. Tap a process for its page.
   Keyboard: types into the search box, or into the pattern while editing a rule.
 
   Usage: prism-control [path]   (default /home/prism-control.cfg; run prism-setup to write it)
@@ -28,6 +28,7 @@ local Model      = require("prism.control.model")
 local StatusView = require("prism.control.status_view")
 local ListView   = require("prism.control.list_view")
 local PanelView  = require("prism.control.panel_view")
+local ProcessView = require("prism.control.process_view")
 local splash     = require("prism.splash")
 
 local settings = config.loadControl(({ ... })[1] or "/home/prism-control.cfg")
@@ -37,13 +38,18 @@ splash.show(component.gpu, ui.W, ui.H, "PRISM", require("prism.version"), ui.C.a
 os.sleep(splash.SECONDS)   -- yields: OpenOS keeps running while the logo shows
 local m = Model.new(settings, modem)
 local status, list, panel = StatusView.new(ui, m), ListView.new(ui, m), PanelView.new(ui, m)
+local process = ProcessView.new(ui, m)
 
 local function drawAll()
   ui.clearHits()
   status.drawHeader()
   status.draw()
-  list.draw()
-  panel.draw()
+  if m.S.procSel then
+    process.draw()                           -- a process's page takes the whole right side
+  else
+    list.draw()
+    panel.draw()
+  end
   panel.drawFooter()
 end
 

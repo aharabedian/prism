@@ -6,6 +6,10 @@
   Reasons, first that applies: not in the network; unassigned; ignored; on outputs (which, and the slot);
   no output for its process; less than one batch; a batch item with only outputs that can't take batches;
   ranked below what its outputs hold; else it waits for the next scan. A shared item says so too.
+  row(r, proc, rank, e) -> text, level
+    a short version for one entry of a process's queue (the process page): "on Washer bus (slot 3)",
+    "↷ shared with wash", "shared from chembath", "below batch: 25 of 36", "rank 12; outputs hold 9" ...
+  queue(r, proc, offset, n) -> total, rows   rows = { rank, key, label, size, batch, prio, now, level }[]
   Uses only the output interface (holds, size, takesBatches), so a new output kind needs nothing here.
 ]]
 
@@ -59,6 +63,51 @@ function E.item(r, key)
       most, sharedText), level = "dim" }
   end
   return { text = "Waiting for the next scan to place it" .. sharedText .. ".", level = "dim" }
+end
+
+-- Outputs of `proc` holding the item: "Washer bus (slot 3)", "+1" more.
+local function heldBy(r, proc, key)
+  local held = {}
+  for _, o in ipairs(r.outputs) do
+    if o.process == proc then
+      local place = o:holds(key)
+      if place then held[#held + 1] = o.name .. " (" .. place .. ")" end
+    end
+  end
+  if #held == 0 then return nil end
+  return held[1] .. (#held > 1 and (", +" .. (#held - 1)) or "")
+end
+
+function E.row(r, proc, rank, e)
+  local on = heldBy(r, proc, e.key)
+  if e.from then return "shared from " .. e.from .. (on and ("; on " .. on) or ""), on and "ok" or "dim" end
+  local shared = r.spilled[e.key] and e.fallback
+  if on then return "on " .. on .. (shared and ("; ↷ " .. e.fallback) or ""), "ok" end
+  if shared then return "↷ shared with " .. e.fallback, "warn" end
+  local serves, batches, most = 0, false, 0
+  for _, o in ipairs(r.outputs) do
+    if o.process == proc then
+      serves, most = serves + 1, math.max(most, o.size or 1)
+      if o.takesBatches then batches = true end
+    end
+  end
+  if serves == 0 then return "nothing serves " .. proc, "warn" end
+  if e.size < e.batch then return ("below batch: %s of %d"):format(U.fmtNum(e.size), e.batch), "warn" end
+  if e.batch > 1 and not batches then return "needs a feeder or stocker", "warn" end
+  if rank > most then return ("rank %d; outputs hold %d"):format(rank, most), "dim" end
+  return "next scan places it", "dim"
+end
+
+function E.queue(r, proc, offset, n)
+  local q = r.last.queues[proc] or {}
+  local rows = {}
+  for i = offset + 1, math.min(#q, offset + n) do
+    local e = q[i]
+    local now, level = E.row(r, proc, i, e)
+    rows[#rows + 1] = { rank = i, key = e.key, label = e.label, size = e.size, batch = e.batch, prio = e.prio,
+      now = now, level = level }
+  end
+  return #q, rows
 end
 
 return E

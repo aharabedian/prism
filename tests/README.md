@@ -15,6 +15,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 
 | File | Covers |
 |---|---|
+| `test_process_page.lua` | The process page: the `queue` command, then the page's chart, machine bands, queue, outputs, sharing and CLOSE |
 | `test_router.lua` | Filter selection, stable slots, clearing, remote assign, status |
 | `test_below_batch.lua` | Items below a full batch: `below` in router-status, the cards' count, ITEMS' BELOW BATCH |
 | `test_explain.lua` | Why an item waits: the `explain` command's reasons, and ROUTE ITEM's Now: line |

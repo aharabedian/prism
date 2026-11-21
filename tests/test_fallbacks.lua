@@ -132,7 +132,7 @@ local steps = {
   end,
   function()
     H.screen("fallback-process")
-    check(M.find("PROCESS chembath", PT) and M.find("Fallbacks: shared on overflow (past 1500 waiting)", PT)
+    check(M.find("PROCESS chembath", 3, RX) and M.find("Fallbacks: shared on overflow (past 1500 waiting)", PT)
       and M.find("↷ 300 items shared with their fallbacks", PT), "tapping a process shows its overflow and what's shared")
     local _, by = M.find("Bath", PT + 5)
     check(by and M.row(by):find("stocker", 1, true) and M.row(by):find("3: Crushed Platinum Ore", 1, true),
@@ -156,7 +156,7 @@ local steps = {
     return tap(" CLOSE ", PT + 11)
   end,
   function()
-    check(M.find("PROCESS chembath", PT) == nil, "CLOSE closes the process panel")
+    check(M.find("PROCESS chembath", 3, RX) == nil, "CLOSE closes the process page")
     return tap(" ITEMS ", 3)
   end,
   function() items.req = lastSent().req; return msg(items) end,

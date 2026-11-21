@@ -18,6 +18,11 @@ versions follow [Semantic Versioning](https://semver.org/).
   minute and how busy its machines were in the last hour, with what that means (`they are the limit`,
   `items reach them more slowly than they run`, `they wait for items`). `router-status` processes carry
   `outRate`, `inRate` and `busy`; LENS gets `prism_items_out_total{process}`.
+- **Process page**: tapping a process card turns the right side into its page. It shows what's waiting and its
+  throughput, a backlog chart, each machine's last 2 hours as a band with its busy share, the queue in rank
+  order with what each item is doing (`on Washer bus (slot 1)`, `↷ shared with wash`, `below batch: 25 of 36`,
+  `rank 12; outputs hold 9`), its outputs, sharing, and SHARE ON OVERFLOW / ALWAYS SHARE / CLOSE. It replaces
+  the process panel. Protocol: the `queue` command and `router-queue` reply.
 
 ## [1.4.0] - 2026-11-18
 

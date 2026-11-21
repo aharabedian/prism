@@ -26,7 +26,10 @@
                 again with every status while an item is selected
   S.ruleEdit    the rule being edited: { index?, pattern, process, fallback?, priority, batch }; S.preview
   S.batchEdit   the digits typed into the Batch field while it has focus (nil: not focused)
-  S.procSel     the process tapped in the PROCESSES list (its panel: overflow, ALWAYS SHARE)
+  S.procSel     the process tapped in the PROCESSES list: its page (prism.control.process_view) replaces the
+                list and panel. S.queue: its queue in rank order (router-queue), asked again with every status
+  S.machineCells  { [machine] = { [cell] = { w, n, down, wait } } }: machine states seen per 160 s cell (the
+                last 45), for the process page's bands
   S.msg/msgOk   the flash message in the footer; S.confirm: an action waiting for a second tap
 ]]
 
@@ -51,7 +54,7 @@ function Model.new(settings, modem)
     items = nil, itemsBuf = nil, itemsReq = 0, fetching = false, fetchAt = 0,
     rules = nil, rulesSource = nil,
     ruleEdit = nil, preview = nil, previewReq = 0,
-    explain = nil, explainReq = 0,
+    explain = nil, explainReq = 0, queue = nil, queueReq = 0, machineCells = {},
     tab = "unassigned", scroll = 0, filter = "", itemSort = "process", collapsed = {},
     sel = nil, selProc = nil, selFallback = nil, selPrio = 10, selBatch = 1, procSel = nil, batchEdit = nil,
     msg = nil, msgOk = true, msgAt = 0,
@@ -88,6 +91,31 @@ function Model.new(settings, modem)
     if not S.sel then return end
     S.explainReq = S.explainReq + 1
     m.send({ cmd = "explain", key = S.sel.key, req = S.explainReq })
+  end
+
+  local function askQueue()
+    if not S.procSel then return end
+    S.queueReq = S.queueReq + 1
+    m.send({ cmd = "queue", process = S.procSel, req = S.queueReq })
+  end
+
+  -- One count per machine reading in the current cell: working, down (no power, maintenance, disabled,
+  -- offline), idle with work waiting.
+  local CELL, CELLS = 160, 45
+  local DOWN = { ["no power"] = true, maintenance = true, disabled = true, offline = true }
+  local function recordMachines(list)
+    local cur = math.floor(computer.uptime() / CELL)
+    for _, mc in ipairs(list or {}) do
+      local cells = S.machineCells[mc.name] or {}
+      S.machineCells[mc.name] = cells
+      local c = cells[cur] or { w = 0, n = 0, down = 0, wait = 0 }
+      cells[cur] = c
+      c.n = c.n + 1
+      if mc.state == "working" then c.w = c.w + 1
+      elseif DOWN[mc.state] then c.down = c.down + 1
+      elseif mc.idle then c.wait = c.wait + 1 end
+      for k in pairs(cells) do if k <= cur - CELLS then cells[k] = nil end end
+    end
   end
 
   local function refreshTab()
@@ -192,10 +220,11 @@ function Model.new(settings, modem)
 
   function m.selectProcess(name)
     S.sel, S.ruleEdit, S.preview = nil, nil, nil
-    S.procSel = name
+    S.procSel, S.queue = name, nil
+    askQueue()
   end
 
-  function m.cancelProcess() S.procSel = nil end
+  function m.cancelProcess() S.procSel, S.queue = nil, nil end
 
   function m.setAlwaysShare(on)
     if not S.procSel then return end
@@ -303,11 +332,14 @@ function Model.new(settings, modem)
       S.status, S.statusAt = msg, computer.uptime()
       if S.tab == "items" and not S.fetching then fetchItems() end   -- keep quantities fresh
       askExplain()
+      askQueue()
+      recordMachines(msg.machines)
       return "full"
     elseif msg.type == "router-machines" then
       if not S.status then return false end
       local sameCount = #(msg.machines or {}) == #(S.status.machines or {})
       S.status.machines = msg.machines
+      recordMachines(msg.machines)
       return sameCount and "machines" or "full"
     elseif msg.type == "router-items" then
       if msg.req ~= S.itemsReq or not S.itemsBuf then return false end
@@ -327,6 +359,10 @@ function Model.new(settings, modem)
     elseif msg.type == "router-preview" then
       if msg.req ~= S.previewReq or not S.ruleEdit then return false end
       S.preview = msg
+      return "full"
+    elseif msg.type == "router-queue" then
+      if msg.req ~= S.queueReq or msg.process ~= S.procSel then return false end
+      S.queue = msg
       return "full"
     elseif msg.type == "router-explain" then
       if msg.req ~= S.explainReq or not S.sel or msg.key ~= S.sel.key then return false end

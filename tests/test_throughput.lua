@@ -79,12 +79,12 @@ local steps = {
   end,
   function()
     H.screen("throughput-panel")
-    seen.rates = M.find(("Out %d/min  ·  in 0/min  (last 5 min)  ·  clears in"):format(w.outRate), M.H - 14) ~= nil
-    seen.limit = M.find("Machines busy 100% in the last hour: they are the limit.", M.H - 14) ~= nil
+    seen.rates = M.find(("Out %d/min  ·  in 0/min  (last 5 min)  ·  clears in"):format(w.outRate), 3) ~= nil
+    seen.limit = M.find("Machines busy 100% in the last hour: they are the limit.", 3) ~= nil
     return msg(slow)
   end,
   function()
-    seen.slow = M.find("Machines busy 35% in the last hour while items wait", M.H - 14) ~= nil
+    seen.slow = M.find("Machines busy 35% in the last hour while items wait", 3) ~= nil
     return tap(" QUIT ", M.H)
   end,
 }
@@ -98,7 +98,7 @@ end
 H.run("prism-control.lua")
 check(seen.clears, "the wash card: out a minute and how long until it clears")
 check(seen.growing, "the export card: growing, in yellow")
-check(seen.rates, "the process panel: out, in and time to clear")
+check(seen.rates, "the process page: out, in and time to clear")
 check(seen.limit and seen.slow, "and what the machines' busy share means")
 
 H.done()
