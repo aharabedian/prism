@@ -11,6 +11,7 @@
     <base>-held.cfg       held          { [process] = { by? } }                              put on HOLD on the screen
     <base>-processes.cfg  processes     { [process] = { overflow } }                         overflow marks set on the screen
     <base>-log.cfg        (prism.router.events reads and writes it: the event log)
+    <base>-history.cfg    (prism.router.daily reads and writes it: 24 hours per process)
     <base>-next.cfg       next          { [key] = { ends, by? } }                            RUN NEXT: first in its
                                         process until `ends` (prism.clock time)
 
@@ -42,7 +43,7 @@ function Store.open(configPath, cfg, log)
     paths = { overrides = base .. "-overrides.cfg", catalog = base .. "-items.cfg", rules = base .. "-rules.cfg",
               alwaysShare = base .. "-always-share.cfg", held = base .. "-held.cfg",
               processes = base .. "-processes.cfg", log = base .. "-log.cfg",
-              next = base .. "-next.cfg" },
+              next = base .. "-next.cfg", history = base .. "-history.cfg" },
   }, Store)
   s.overrides = files.readTable(s.paths.overrides)
   s.catalog = files.readTable(s.paths.catalog)

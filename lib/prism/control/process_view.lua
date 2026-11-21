@@ -5,7 +5,8 @@
   v.draw()   top to bottom:
                PROCESS <name>; what's waiting, its throughput and what its machines' busy share means (or that
                it's held), and the supply it needs (prism.cfg `supplies`), with how long it has been low
-               BACKLOG: a chart of the screen's own samples (m.S.history, one per status)
+               BACKLOG: 5 MIN, a chart of the screen's own samples (m.S.history, one per status), or 24 H, the
+               router's 24 hours (m.S.dayHist, router-history: backlog, and items out as a row under it)
                MACHINES: each machine's last 2 hours as a band (m.S.machineCells), and its busy share
                QUEUE: the process's queue in rank order with what each item is doing (m.S.queue, router-queue)
                OUTPUTS: each bus, stocker, interface and feeder with what it holds
@@ -39,7 +40,7 @@ function ProcessView.new(ui, m)
     local cols = {}
     for i = 1, w do
       local v0 = vals[#vals - w + i]
-      cols[i] = v0 and math.floor(math.max(0, v0) / max * h * 8 + 0.5) or -1
+      cols[i] = v0 and math.floor(math.max(0, v0) / max * h * 8 + 0.5) or -1   -- nil or false: no data
     end
     for row = 0, h - 1 do                            -- row 0 is the bottom
       local s = {}
@@ -51,11 +52,57 @@ function ProcessView.new(ui, m)
     end
   end
 
+  -- The router's 24 hours (router-history), CW columns: the last value in each column's slots; false = no data.
+  local function day(CW)
+    local h = S.dayHist
+    local vals, outs = {}, {}
+    for i = 1, CW do
+      local a, b = math.floor((i - 1) * 144 / CW) + 1, math.floor(i * 144 / CW)
+      local last, o = false, false
+      for k = a, b do
+        if h.backlog[k] then last = h.backlog[k] end
+        if h.out[k] then o = (o or 0) + h.out[k] end
+      end
+      vals[i], outs[i] = last, o
+    end
+    return vals, outs
+  end
+
+  local function spanButtons(y)
+    local x = button(W - 14, y, "5 MIN", { on = S.chartSpan ~= "24h", fn = function() m.setChartSpan("5m") end })
+    button(x, y, "24 H", { on = S.chartSpan == "24h", fn = function() m.setChartSpan("24h") end })
+  end
+
+  local function backlog24(y, CW)
+    heading(y, "BACKLOG", "last 24 hours, one point per 10 minutes")
+    spanButtons(y)
+    if not S.dayHist or S.dayHist.process ~= S.procSel then put(RX, y + 1, "asking the router ...", C.dim, C.bg); return y + 10 end
+    local vals, outs = day(CW)
+    local max, omax = 1, 1
+    for i = 1, CW do
+      if vals[i] then max = math.max(max, vals[i]) end
+      if outs[i] then omax = math.max(omax, outs[i]) end
+    end
+    chart(RX, y + 1, CW, 6, vals, max)
+    put(RX + CW + 2, y + 1, U.fmtNum(max), C.dim, C.bg)
+    put(RX + CW + 2, y + 6, "0", C.dim, C.bg)
+    local s = {}
+    for i = 1, CW do s[i] = outs[i] and BLOCKS[math.max(1, math.floor(outs[i] / omax * 8 + 0.5))] or " " end
+    put(RX, y + 7, table.concat(s), C.good, C.bg)
+    put(RX + CW + 2, y + 7, "out", C.dim, C.bg)
+    put(RX, y + 8, "-24h", C.dim, C.bg)
+    put(RX + math.floor(CW / 2) - 2, y + 8, "-12h", C.dim, C.bg)
+    put(RX + CW - 3, y + 8, "now", C.dim, C.bg)
+    return y + 10
+  end
+
   local function backlog(y, name)
+    local CW = math.min(60, RW - 8)
+    if S.chartSpan == "24h" then return backlog24(y, CW) end
     local hist = S.history[name] or {}
     local every = S.status and S.status.interval or 5
-    local CW = math.min(60, RW - 8)
     heading(y, "BACKLOG", ("last %s, one point per scan"):format(U.fmtShort(#hist * every):gsub("^<", "")))
+    spanButtons(y)
     local max = 1
     for _, n in ipairs(hist) do max = math.max(max, n) end
     chart(RX, y + 1, CW, 6, hist, max)

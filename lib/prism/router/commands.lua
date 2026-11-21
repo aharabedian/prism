@@ -261,6 +261,13 @@ COMMANDS.log = { run = function(r, msg, reply)
           now = r.clock:at(require("computer").uptime()), real = r.clock.real })
 end }
 
+COMMANDS.history = { fields = { process = "string" }, run = function(r, msg, reply)
+  local now = r.clock:at(require("computer").uptime())
+  local backlog, out = r.daily:values(msg.process, now)
+  reply({ type = "router-history", req = msg.req, process = msg.process, slot = 600, now = now,
+          backlog = backlog, out = out })
+end }
+
 COMMANDS.items = { run = function(r, msg, reply)
   local all = {}
   local now = r.clock:at(require("computer").uptime())
