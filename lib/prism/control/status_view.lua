@@ -1,7 +1,9 @@
 --[[ prism.control.status_view: the header and the left column, one card per process.
 
   StatusView.new(ui, m) -> v
-  v.drawHeader()          the top bar: LIVE / NO SIGNAL, alerts, router stats, version mismatch
+  v.drawHeader(hits)      the top bar: LIVE / NO SIGNAL, alerts, a button per router when it hears several (with
+                          hits: register their touch targets, which only a full redraw does), router stats,
+                          version mismatch
   v.draw()                the left column: a card per process (backlog, history, its machines, a line
                           about its outputs and how many items wait below their batch, its throughput
                           and time to clear on the right); tapping a card
@@ -27,7 +29,7 @@ function StatusView.new(ui, m)
   local LW = L.LW
   local v = {}
 
-  function v.drawHeader()
+  function v.drawHeader(hits)
     fill(1, 1, W, 1, C.panel)
     put(1, 1, " PRISM ", C.bg, C.accent)
     local st = S.status
@@ -46,8 +48,22 @@ function StatusView.new(ui, m)
       put(x, 1, text, C.good, C.panel)
     end
     local n = st.alerts and #st.alerts or 0
+    local bx = x + len(text) + 3
     if n > 0 then
-      put(x + len(text) + 3, 1, (" ⚠ %d ALERT%s "):format(n, n == 1 and "" or "S"), C.bg, C.bad)
+      local badge = (" ⚠ %d ALERT%s "):format(n, n == 1 and "" or "S")
+      put(bx, 1, badge, C.bg, C.bad)
+      bx = bx + len(badge) + 3
+    end
+    if #S.order > 1 then
+      put(bx, 1, "ROUTER", C.dim, C.panel)
+      bx = bx + 7
+      for _, addr in ipairs(S.order) do
+        local r = S.routers[addr]
+        local an = addr ~= S.router and #(r.status.alerts or {}) or 0
+        local label = ui.fit(r.name, 12):gsub("%s+$", "") .. (an > 0 and (" ⚠" .. an) or "")
+        bx = ui.button(bx, 1, label, { on = addr == S.router, fg = an > 0 and C.warn or nil,
+          fn = hits and function() m.pickRouter(addr) end or nil })
+      end
     end
     local right = ("cycle %d  ·  %dms  ·  %s writes  ·  up %s "):format(
       st.cycles or 0, st.cycleMs or 0, U.fmtNum(st.writes), U.fmtTime(st.uptime))

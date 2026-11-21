@@ -23,6 +23,7 @@ C.ROUTER_TUNING = {
   { "stuckAfter",      1200,  "seconds an item on an output may stay without going down while its process uses others; false = off" },
   { "defaultPriority", 10,    "priority for rules and overrides that don't set one" },
   { "verbose",         false, "log every filter and interface change" },
+  { "name",            "prism", "this router's name on control screens that hear several routers" },
   { "lensPort",        false, "port to report to LENS on (4243); false = off. Not modemPort" },
   { "lensNode",        "prism", "this router's name in LENS" },
   { "lensToken",       nil,   "LENS shared secret; separate from token. nil = none" },

@@ -24,6 +24,7 @@ previous version as `<file>.bak`, but hand-written comments are lost.
 | `modemPort` | none | Wireless port for the control screen; `nil` or `false` disables networking |
 | `token` | none | Shared secret; commands without it are ignored. Set the same `token` in `prism-control.cfg` |
 | `verbose` | `false` | Log every filter and interface change |
+| `name` | `"prism"` | This router's name on a control screen that hears several routers (one per subnet, say). Give each its own |
 | `lensPort` | `false` | Port to report to [LENS](#reporting-to-lens) on (LENS uses 4243); `false` = off. Must differ from `modemPort` |
 | `lensNode` | `"prism"` | This router's name in LENS. Give each router its own |
 | `lensToken` | `nil` | LENS shared secret, set the same on the LENS hub. Separate from `token` |

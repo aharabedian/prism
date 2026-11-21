@@ -19,6 +19,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_overflow_field.lua` | The overflow mark set on the screen: `setOverflow`, `prism-processes.cfg` winning over prism.cfg, going back; the page's field |
 | `test_process_page.lua` | The process page: the `queue` command, then the page's chart, machine bands, queue, outputs, sharing and CLOSE |
 | `test_rule_ideas.lua` | UNASSIGNED grouped under rule ideas, MAKE RULE opening the editor with the pattern |
+| `test_routers.lua` | Several routers on one screen: the name in status, the header's buttons, switching, ignoring the other router |
 | `test_router.lua` | Filter selection, stable slots, clearing, remote assign, status |
 | `test_below_batch.lua` | Items below a full batch: `below` in router-status, the cards' count, ITEMS' BELOW BATCH |
 | `test_explain.lua` | Why an item waits: the `explain` command's reasons, and ROUTE ITEM's Now: line |

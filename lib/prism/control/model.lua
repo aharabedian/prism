@@ -7,7 +7,8 @@
   m.onKey(char, code) -> redraw?
   m.tick(now) -> redraw?    expire flash messages, confirmations and stuck fetches
   m.start()                 ask the router for status
-  actions: switchTab, selectRow, editRule, newRule, makeRule, makeRuleFrom(pattern), runNext(on), saveRule, deleteRule, moveRule,
+  actions: pickRouter(address), switchTab, selectRow, editRule, newRule, makeRule, makeRuleFrom(pattern),
+           runNext(on), saveRule, deleteRule, moveRule,
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
            reloadRouter, pickProcess, pickFallback, pickBatch, editBatch, blur, pickPriority, setScroll,
            clearFilter, quit,
@@ -15,7 +16,10 @@
            toggleBelowBatch, toggleGroup(process), setLogFilter(filter),
            askConfirm(what, fn), confirming(what)
 
-  S.status      latest router-status (S.statusAt: when it arrived; S.router: its address)
+  S.status      latest router-status of the router shown (S.statusAt: when it arrived; S.router: its address)
+  S.routers     every router heard: { [address] = { name, status, at } }; S.order: their addresses, in the
+                order heard. The first one heard is shown until m.pickRouter picks another; statuses from the
+                others only update their entry (and the header). Each router has its own S.history.
   S.history     { [process] = backlog samples } for the sparklines
   S.items / S.overrides / S.rules (+ S.rulesSource)   lists fetched for their tabs
   S.tab         "unassigned" | "items" | "overrides" | "rules" | "log";  S.scroll, S.filter
@@ -54,7 +58,7 @@ function Model.new(settings, modem)
 
   local S = {
     running = true,
-    status = nil, statusAt = nil, lastCycle = nil, router = nil,
+    status = nil, statusAt = nil, lastCycle = nil, router = nil, routers = {}, order = {}, histories = {},
     history = {}, alertIds = {}, alertTick = 0,
     overrides = nil,
     items = nil, itemsBuf = nil, itemsReq = 0, fetching = false, fetchAt = 0,
@@ -334,6 +338,22 @@ function Model.new(settings, modem)
     m.flash("resetting rules ...", true)
   end
 
+  -- Show another router: its last status, cards and lists; commands go to it from now on.
+  function m.pickRouter(addr)
+    local r = S.routers[addr]
+    if not r or addr == S.router then return end
+    S.router = addr
+    S.histories[addr] = S.histories[addr] or {}
+    S.history = S.histories[addr]
+    S.status, S.statusAt, S.lastCycle = r.status, r.at, nil
+    S.sel, S.procSel, S.queue, S.ruleEdit, S.preview, S.explain = nil, nil, nil, nil, nil, nil
+    S.items, S.overrides, S.rules, S.log = nil, nil, nil, nil
+    S.unassignedKeys, S.alertIds = nil, {}
+    for _, a in ipairs(r.status.alerts or {}) do S.alertIds[a.id] = true end
+    S.scroll = 0
+    refreshTab()
+  end
+
   function m.reloadRouter()
     m.send({ cmd = "reload" })
     m.flash("reload sent ...", true)
@@ -392,7 +412,17 @@ function Model.new(settings, modem)
     if not msg then return false end
 
     if msg.type == "router-status" then
-      S.router = from
+      local known = S.routers[from]
+      local alertsBefore = known and #(known.status.alerts or {})
+      if not known then S.order[#S.order + 1] = from end
+      S.routers[from] = { name = msg.name or "prism", status = msg, at = computer.uptime() }
+      S.router = S.router or from
+      if from ~= S.router then
+        -- another router: only its header button changes (when it's new or its alert count changed)
+        return (not known or alertsBefore ~= #(msg.alerts or {})) and "full"
+      end
+      S.histories[from] = S.histories[from] or {}
+      S.history = S.histories[from]
       pushHistory(msg)
       checkAlerts(msg)
       checkNewItems(msg)
@@ -404,6 +434,8 @@ function Model.new(settings, modem)
       askQueue()
       recordMachines(msg.machines)
       return "full"
+    elseif from ~= S.router and S.router then
+      return false                                        -- replies and machines from a router not shown
     elseif msg.type == "router-machines" then
       if not S.status then return false end
       local sameCount = #(msg.machines or {}) == #(S.status.machines or {})
