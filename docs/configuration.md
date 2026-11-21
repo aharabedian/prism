@@ -184,7 +184,8 @@ Keys are `itemname:damage`. The router logs the key of every unassigned item, an
 **Feeders** send batch items in exact multiples, and **stockers** offer them to a multiblock, which only
 takes whole recipes. Export buses skip them, and the router logs a warning if a process has batch items
 but no feeder or stocker. A remainder smaller than N waits in the network until more arrives: it isn't
-stocked, and it doesn't make its process stalled or its machines idle.
+stocked, and it doesn't make its process stalled or its machines idle. The control screen counts these items
+on each process's card ("56 below batch"), and ITEMS' BELOW BATCH lists them with how many more each needs.
 
 ## Reporting to LENS
 

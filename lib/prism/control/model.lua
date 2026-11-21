@@ -11,7 +11,7 @@
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
            reloadRouter, pickProcess, pickFallback, pickBatch, editBatch, blur, pickPriority, setScroll,
            clearFilter, quit,
-           selectProcess, cancelProcess, setAlwaysShare(on), setItemSort(how), toggleGroup(process),
+           selectProcess, cancelProcess, setAlwaysShare(on), setItemSort(how), toggleBelowBatch, toggleGroup(process),
            askConfirm(what, fn), confirming(what)
 
   S.status      latest router-status (S.statusAt: when it arrived; S.router: its address)
@@ -19,7 +19,7 @@
   S.items / S.overrides / S.rules (+ S.rulesSource)   lists fetched for their tabs
   S.tab         "unassigned" | "items" | "overrides" | "rules";  S.scroll, S.filter
   S.itemSort    how ITEMS is ordered: "process" (grouped, S.collapsed[process] = true hides a group),
-                "name" or "qty"
+                "name" or "qty"; S.belowBatch: ITEMS lists only items with less than one batch
   S.sel         the item being routed: { key, label, size, list, source, process },
                 with the choices S.selProc, S.selFallback, S.selPrio, S.selBatch
   S.explain     the router's line on what S.sel is doing now: { key, text, level } (router-explain); asked
@@ -123,6 +123,7 @@ function Model.new(settings, modem)
   end
 
   function m.setItemSort(how) S.itemSort, S.scroll = how, 0 end
+  function m.toggleBelowBatch() S.belowBatch, S.scroll = not S.belowBatch, 0 end
   function m.toggleGroup(process) S.collapsed[process] = not S.collapsed[process] or nil end
 
   function m.setScroll(n) S.scroll = math.max(0, n) end

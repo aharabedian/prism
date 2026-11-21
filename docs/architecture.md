@@ -164,13 +164,14 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 - All edits are commands to the router; the screen re-fetches after each `router-ack`.
 - ROUTE ITEM's "Now:" line is the router's `explain` for the selected item, asked again with every status.
 - The left column is one card per process: header (backlog, history, machines working), its machines,
-  and a line about its outputs (export buses "N filters", stockers/interfaces "N stocked", feeders, and
-  anything wrong). Things without a process get a last "(no process)" card.
+  and a line about its outputs (export buses "N filters", stockers/interfaces "N stocked", feeders, items
+  below their batch, and anything wrong). Things without a process get a last "(no process)" card.
 - When the cards don't fit, the biggest first list fewer machines ("+N more"), then shrink to their
   header with machines as dots (the outputs line stays only if something's wrong).
 - Tapping a card opens its panel (overflow, what's shared, each bus/stocker/feeder, SHARE ON OVERFLOW /
   ALWAYS SHARE).
 - ITEMS is grouped by process (collapsible; searching opens every group), or sorted A-Z or by quantity.
+  BELOW BATCH lists only items with less than one batch, with how many more each needs.
 
 ## Wireless protocol
 

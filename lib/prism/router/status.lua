@@ -36,7 +36,8 @@ function S.build(r, scan, stalled, alerts)
     knownProcesses = S.knownProcesses(r), machines = machines.summary(r.machines), alerts = alerts,
   }
   for proc, b in pairs(scan.backlog) do
-    s.processes[proc] = { types = b.types, items = b.items, buses = 0, stalled = stalled[proc] }
+    s.processes[proc] = { types = b.types, items = b.items, buses = 0, stalled = stalled[proc],
+                          below = b.items > b.ready and b.items - b.ready or nil }
   end
   local function proc(name)
     local p = s.processes[name] or { types = 0, items = 0, buses = 0 }

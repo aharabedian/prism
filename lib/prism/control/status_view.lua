@@ -3,7 +3,8 @@
   StatusView.new(ui, m) -> v
   v.drawHeader()          the top bar: LIVE / NO SIGNAL, alerts, router stats, version mismatch
   v.draw()                the left column: a card per process (backlog, history, its machines, a line
-                          about its outputs); tapping a card selects the process (m.selectProcess)
+                          about its outputs and how many items wait below their batch); tapping a card
+                          selects the process (m.selectProcess)
   v.redrawMachines() -> false if the machines changed (names/processes), so everything must be redrawn
   When the cards don't fit, the biggest ones first list fewer machines ("+N more"), then shrink to their
   header row (machines as dots, the outputs line only when something's wrong).
@@ -133,6 +134,7 @@ function StatusView.new(ui, m)
         parts[#parts + 1] = { filters[k] .. (k == "bus" and (filters[k] == 1 and " filter" or " filters") or " stocked"), C.good }
       end
     end
+    if (g.p.below or 0) > 0 then parts[#parts + 1] = { U.fmtNum(g.p.below) .. " below batch", C.dim } end
     if #empty > 0 then
       parts[#parts + 1] = { table.concat(empty, ", ") .. (#empty == 1 and " is idle" or " are idle"), C.warn }
     end
