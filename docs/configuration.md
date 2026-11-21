@@ -116,7 +116,7 @@ rules = {
 
 | Trigger | Set by | Effect |
 |---|---|---|
-| `overflow = N` | `processes` in `prism.cfg` | While more than N items wait unshared, items with a fallback are shared, lowest-ranked (priority, then quantity) first, until N or fewer are left unshared. Whole items are shared, even the biggest stack if it's the only one with a fallback. Sharing stops once the unshared items plus it fit under 3/4 of N, so items don't flip back and forth |
+| `overflow = N` | `processes` in `prism.cfg`, or the **Share past** field on the process's page (saved in `prism-processes.cfg`, which wins; empty it to go back to prism.cfg's) | While more than N items wait unshared, items with a fallback are shared, lowest-ranked (priority, then quantity) first, until N or fewer are left unshared. Whole items are shared, even the biggest stack if it's the only one with a fallback. Sharing stops once the unshared items plus it fit under 3/4 of N, so items don't flip back and forth |
 | Always share | Tap the process on the screen → ALWAYS SHARE (saved in `prism-always-share.cfg`) | Every item with a fallback is shared until SHARE ON OVERFLOW; then `overflow` decides again |
 
 - Items without a fallback count toward `overflow` but are never shared.
@@ -222,6 +222,7 @@ Kept next to the config, never touched by `prism-update` or `prism-setup`:
 | `prism-rules.cfg` | Rules edited on the screen; replaces `rules` in `prism.cfg`. **RESET** on the screen deletes it |
 | `prism-always-share.cfg` | Processes set to ALWAYS SHARE on the screen |
 | `prism-held.cfg` | Processes put on HOLD on the screen (and who did it) |
+| `prism-processes.cfg` | Overflow marks set on the screen; they win over `processes` in `prism.cfg` |
 
 ## Control screen settings
 

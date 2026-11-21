@@ -28,6 +28,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   while held; the card shows `‖` and `HELD by Aaron 12m`. RESUME sets the outputs again. Kept in
   `prism-held.cfg`, so it survives a restart. Protocol: the `hold` command; `held`, `heldBy`, `heldFor` on
   `router-status` processes.
+- **Overflow mark on the screen**: the process page's **Share past** field sets how many items may wait before
+  items with a fallback are shared. Tap it, type, Enter. It's saved in `prism-processes.cfg` and wins over
+  `processes.<name>.overflow` in prism.cfg; an empty field goes back to prism.cfg's. Protocol: the `setOverflow`
+  command; `overflowFrom` on `router-status` processes.
 
 ## [1.4.0] - 2026-11-18
 

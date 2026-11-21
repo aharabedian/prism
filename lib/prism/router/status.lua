@@ -57,7 +57,7 @@ function S.build(r, scan, stalled, alerts)
   end
   for name, lim in pairs(r.store:limits()) do
     local p = proc(name)
-    p.overflow, p.alwaysShare = lim.overflow, lim.alwaysShare
+    p.overflow, p.alwaysShare, p.overflowFrom = lim.overflow, lim.alwaysShare, lim.overflowFrom
   end
   for _, o in ipairs(r.outputs) do
     local p = s.processes[o.process] or { types = 0, items = 0, buses = 0 }

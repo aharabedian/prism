@@ -8,7 +8,8 @@
                MACHINES: each machine's last 2 hours as a band (m.S.machineCells), and its busy share
                QUEUE: the process's queue in rank order with what each item is doing (m.S.queue, router-queue)
                OUTPUTS: each bus, stocker, interface and feeder with what it holds
-               sharing (overflow, ALWAYS SHARE), then HOLD (or RESUME), SHARE ON OVERFLOW, ALWAYS SHARE, CLOSE
+               sharing: the overflow mark as a field (m.S.overflowEdit while typing), what's shared, then
+               HOLD (or RESUME), SHARE ON OVERFLOW, ALWAYS SHARE, CLOSE
   ProcessView.CELL = 160, ProcessView.CELLS = 45   seconds per band cell, cells per band (2 hours)
 ]]
 
@@ -182,17 +183,25 @@ function ProcessView.new(ui, m)
     local y = backlog(9, name)
     y = machines(y, name, 4)
 
-    local bottom = H - 9                             -- OUTPUTS, sharing and the buttons below this
+    local bottom = H - 10                            -- OUTPUTS, sharing and the buttons below this
     queue(y, name, bottom - 2)
 
     heading(bottom, "OUTPUTS")
     outputs(name, bottom + 1, 3)
+    -- The overflow mark: tap, type, Enter (an empty field goes back to prism.cfg's).
+    local editing = S.overflowEdit ~= nil
+    put(RX, H - 6, "Share past", C.dim, C.bg)
+    put(RX + 11, H - 6, " " .. fit(editing and (S.overflowEdit .. "_") or (p.overflow and tostring(p.overflow) or "-"), 7) .. " ",
+      editing and C.accent or C.text, C.field)
+    ui.hit(RX + 11, H - 6, RX + 19, H - 6, m.editOverflow)
+    put(RX + 21, H - 6, fit(editing and "type a number, Enter saves (empty: prism.cfg's)"
+      or ("items waiting  ·  " .. (p.overflowFrom == "screen" and "set here, tap to change" or "tap to type")), RW - 21), C.dim, C.bg)
     if p.alwaysShare then
       put(RX, H - 5, fit("Fallbacks: always shared", RW), C.warn, C.bg)
     elseif p.overflow then
       put(RX, H - 5, fit(("Fallbacks: shared on overflow (past %s waiting)"):format(U.fmtNum(p.overflow)), RW), C.text, C.bg)
     else
-      put(RX, H - 5, fit(("Fallbacks: never shared (set processes.%s.overflow in prism.cfg)"):format(name), RW), C.dim, C.bg)
+      put(RX, H - 5, fit("Fallbacks: never shared (no overflow mark)", RW), C.dim, C.bg)
     end
     if (p.spilled or 0) > 0 then
       put(RX, H - 4, fit(("↷ %s items shared with their fallbacks"):format(U.fmtNum(p.spilled)), RW), C.warn, C.bg)

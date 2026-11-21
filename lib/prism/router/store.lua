@@ -7,14 +7,17 @@
     <base>-rules.cfg      screenRules   { pattern, process, priority?, batch?, fallback? }[] rules edited on the screen
     <base>-always-share.cfg  alwaysShare  { [process] = true }                             set to ALWAYS SHARE on the screen
     <base>-held.cfg       held          { [process] = { by? } }                              put on HOLD on the screen
+    <base>-processes.cfg  processes     { [process] = { overflow } }                         overflow marks set on the screen
 
   Store.open(configPath, cfg, log) -> store
   store.overrides, store.catalog, store.screenRules (nil until rules are edited on the screen)
   store:rules()                    the rules in use: screenRules, else cfg.rules
   store:classify(label, key, rules?)  see prism.rules.classify
-  store:limits()                   { [process] = { overflow?, alwaysShare? } } for planner.spill
+  store:limits()                   { [process] = { overflow?, alwaysShare?, overflowFrom? } } for planner.spill;
+                                   an overflow set on the screen wins over prism.cfg's (overflowFrom "screen" | "cfg")
   store:labelOf(key, fallback)     the catalog label, else fallback
-  store:saveOverrides(), store:saveCatalog(), store:saveRules(), store:saveAlwaysShare(), store:saveHeld()
+  store:saveOverrides(), store:saveCatalog(), store:saveRules(), store:saveAlwaysShare(), store:saveHeld(),
+                                   store:saveProcesses()
   store:editableRules()            screenRules, copied from cfg.rules the first time
   store:resetRules()               delete prism-rules.cfg and go back to cfg.rules
 ]]
@@ -30,12 +33,14 @@ function Store.open(configPath, cfg, log)
   local s = setmetatable({
     cfg = cfg, log = log,
     paths = { overrides = base .. "-overrides.cfg", catalog = base .. "-items.cfg", rules = base .. "-rules.cfg",
-              alwaysShare = base .. "-always-share.cfg", held = base .. "-held.cfg" },
+              alwaysShare = base .. "-always-share.cfg", held = base .. "-held.cfg",
+              processes = base .. "-processes.cfg" },
   }, Store)
   s.overrides = files.readTable(s.paths.overrides)
   s.catalog = files.readTable(s.paths.catalog)
   s.alwaysShare = files.readTable(s.paths.alwaysShare)
   s.held = files.readTable(s.paths.held)
+  s.processes = files.readTable(s.paths.processes)
   if files.exists(s.paths.rules) then
     s.screenRules = rules.clean(files.readTable(s.paths.rules), "prism-rules.cfg", log)
   end
@@ -51,7 +56,10 @@ end
 function Store:limits()
   local out = {}
   for proc, p in pairs(self.cfg.processes) do
-    if type(p) == "table" and tonumber(p.overflow) then out[proc] = { overflow = tonumber(p.overflow) } end
+    if type(p) == "table" and tonumber(p.overflow) then out[proc] = { overflow = tonumber(p.overflow), overflowFrom = "cfg" } end
+  end
+  for proc, p in pairs(self.processes) do
+    if type(p) == "table" and tonumber(p.overflow) then out[proc] = { overflow = tonumber(p.overflow), overflowFrom = "screen" } end
   end
   for proc, on in pairs(self.alwaysShare) do
     if on then out[proc] = out[proc] or {}; out[proc].alwaysShare = true end
@@ -73,6 +81,7 @@ function Store:saveCatalog() self:save("catalog", self.catalog) end
 function Store:saveRules() self:save("rules", self.screenRules) end
 function Store:saveAlwaysShare() self:save("alwaysShare", self.alwaysShare) end
 function Store:saveHeld() self:save("held", self.held) end
+function Store:saveProcesses() self:save("processes", self.processes) end
 
 function Store:editableRules()
   if not self.screenRules then
