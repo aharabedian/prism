@@ -35,6 +35,7 @@ previous version as `<file>.bak`, but hand-written comments are lost.
 | `feeders` | `{}` | Batch feeders, see below |
 | `machines` | `{}` | Monitored GT machines, see below |
 | `processes` | `{}` | Per-process settings: `overflow`, see [Fallbacks and overflow](#fallbacks-and-overflow) |
+| `supplies` | `{}` | What a process needs from elsewhere (acid for a chemical bath), see [Supplies](#supplies) |
 | `rules` | `{}` | Pattern rules, see below |
 | `overrides` | `{}` | Per-item overrides, see below |
 
@@ -132,6 +133,32 @@ rules = {
   marked `↷`, and lists show `process›fallback`.
 - A process whose machines have stopped still raises its stall alert for the items it keeps.
 
+## Supplies
+
+A process can name a fluid or item it needs, and how much of it should be in an ME network:
+
+```lua
+supplies = {
+  { process = "chembath", fluid = "Sulfuric Acid", min = 8000, network = "3f2a" },  -- 8000 L in the main net
+},
+```
+
+| Key | Meaning |
+|---|---|
+| `process` | The process that needs it |
+| `fluid` or `item` | Its name as AE2 shows it (not case-sensitive) |
+| `min` | The amount it needs: litres (mB) for a fluid, items for an item |
+| `network` | Address (or prefix) of an `me_controller` or `me_interface` to read it from, through an adapter; default the network PRISM scans. PRISM only reads it and never moves anything from it |
+| `name` | Shown on the screen; default the fluid or item |
+
+When the amount stays below `min` for a minute, the process is **low**: its items with a fallback are shared as
+with ALWAYS SHARE, and one warn (`chembath low on Sulfuric Acid: 2100 of 8000 L`) replaces its stall and idle
+alerts. When it stays above `min` for a minute, it goes back. The card and the process page show it, and LENS
+gets `prism_supply_amount{process, supply}`.
+
+Reading fluids (`getFluidsInNetwork`) **hasn't been checked in game yet**: run `prism-discover --fluids` on the
+router and check that your fluid shows with the amount you expect (see the [verification table](architecture.md#in-game-verification-status)).
+
 ## Rules
 
 `prism-setup` writes a starting set for the processes you pick:
@@ -214,6 +241,7 @@ in the text setup).
 | `prism_machine_state` | `process`, `machine`, `state` | 1 for the machine's state, 0 for the others: `running` (working), `idle`, `down` (no power, maintenance, disabled, offline, or idle with work waiting for `idleAlert` seconds) |
 | `prism_machine_progress_ratio` | `process`, `machine` | Recipe progress, 0..1 |
 | `prism_items_out_total` | `process` | Items that left the process's backlog (a counter): quantities that dropped between scans, and items that left the network. A shared item counts for both processes |
+| `prism_supply_amount` | `process`, `supply` | How much of a process's [supply](#supplies) is in its network |
 | `prism_scan_seconds` | | How long the latest scan took |
 | `prism_scans_total`, `prism_writes_total` | | Scans, and filter/interface writes, since the router started (counters) |
 

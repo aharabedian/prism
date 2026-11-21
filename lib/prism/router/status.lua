@@ -51,6 +51,7 @@ function S.build(r, scan, stalled, alerts)
     if out then p.outRate, p.inRate = math.floor(out + 0.5), math.floor(arrived + 0.5) end
     p.busy = U.round2(r.flow:busy(name))
   end
+  for name, sup in pairs(r.supplies and r.supplies:rows() or {}) do proc(name).supply = sup end
   for name, h in pairs(r.store.held) do
     local p = proc(name)
     p.held, p.heldBy = true, type(h) == "table" and h.by or nil

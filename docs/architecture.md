@@ -45,6 +45,7 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `router/machines` | `open`, `poll`, `summary` for monitored GT machines | core, status |
 | `router/health` | stall detection and alerts, with their state between scans | core |
 | `router/events` | the event log in `prism-log.cfg`: add, page newest first (all, alerts, changes), save at most once a minute | core, commands |
+| `router/supplies` | what processes need from elsewhere (prism.cfg `supplies`): read each scan, low after a minute below `min` | core, status, telemetry |
 | `router/flow` | items leaving and arriving per process (rates over 5 minutes), and its machines' busy share over the last hour | core, status, telemetry |
 | `router/status` | `build()` the `router-status` message | core |
 | `router/commands` | the command table: `{ fields, run }` per wireless command | core |
@@ -152,6 +153,9 @@ waiting when its process has items ready):
 - a feeder for it moved items
 - a monitored machine for it was `working`
 
+A process low on a [supply](configuration.md#supplies) shares every item with a fallback, and one supply warn
+replaces its stall and idle alerts (it is never stalled, and its machines are never idle with work waiting).
+
 A process on hold (HOLD on its page, kept in `prism-held.cfg`) gets an empty queue: every output of it clears
 its slots and its feeders stop. It is never stalled, and its machines are never idle with work waiting.
 
@@ -237,6 +241,7 @@ match the game first if they differ.
 | A multiblock with the same item in two stocking buses still runs | **Unverified**; docs say one stocker per multiblock |
 | Two multiblocks whose stocking buses hold the same item both pull from its stock (sharing with a fallback) | Reported working (fallbacks branch) |
 | ME interface block as an output: `setInterfaceConfiguration` on slots 2..9, the interface restocking as another network's import bus empties it, clearing a slot handing its stock back | Reported working (interfaces branch) |
+| `getFluidsInNetwork()` on an `me_controller` / `me_interface` (`{ name, label, amount }`, amount in mB) and how long it takes on a big network, for `supplies`. Probe: `prism-discover --fluids` | **Unverified** |
 | `me_interface.getInterfaceConfiguration(slot)` (only for the slot 1 marker in prism-setup/discover; missing = "(empty)") | **Unverified** |
 | `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
 | `/home/.shrc` run by the shell at boot (start on boot) | **Unverified** |

@@ -3,7 +3,8 @@
 
   ProcessView.new(ui, m) -> v
   v.draw()   top to bottom:
-               PROCESS <name>; what's waiting, its throughput and what its machines' busy share means
+               PROCESS <name>; what's waiting, its throughput and what its machines' busy share means (or that
+               it's held), and the supply it needs (prism.cfg `supplies`), with how long it has been low
                BACKLOG: a chart of the screen's own samples (m.S.history, one per status)
                MACHINES: each machine's last 2 hours as a band (m.S.machineCells), and its busy share
                QUEUE: the process's queue in rank order with what each item is doing (m.S.queue, router-queue)
@@ -179,8 +180,15 @@ function ProcessView.new(ui, m)
       put(RX, 7, fit(("‖ Held%s for %s: its outputs are cleared and its stall and idle alerts are off."):format(
         p.heldBy and (" by " .. p.heldBy) or "", U.fmtShort(p.heldFor or 0)), RW), C.warn, C.bg)
     elseif busy then put(RX, 7, fit(busy, RW), (kind == "limit" or kind == "slow") and C.warn or C.dim, C.bg) end
+    local sup = p.supply
+    if sup then
+      local text = ("Needs %s: %s of %s%s"):format(sup.name, U.fmtNum(sup.amount or 0), U.fmtNum(sup.min), sup.unit or "")
+      if sup.low then text = "⚠ " .. text .. (sup.lowFor and (", low for " .. U.fmtShort(sup.lowFor)) or "")
+        .. ": items with a fallback are shared" end
+      put(RX, 8, fit(text, RW), sup.low and C.warn or C.dim, C.bg)
+    end
 
-    local y = backlog(9, name)
+    local y = backlog(10, name)
     y = machines(y, name, 4)
 
     local bottom = H - 10                            -- OUTPUTS, sharing and the buttons below this

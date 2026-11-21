@@ -29,7 +29,7 @@ C.ROUTER_TUNING = {
   { "lensToken",       nil,   "LENS shared secret; separate from token. nil = none" },
 }
 C.ROUTER_DEFAULTS = { slotsPerBus = 9 }
-C.ROUTER_LISTS = { "overrides", "buses", "stockers", "interfaces", "feeders", "machines", "processes" }
+C.ROUTER_LISTS = { "overrides", "buses", "stockers", "interfaces", "feeders", "machines", "processes", "supplies" }
 
 C.CONTROL_TUNING = {
   { "history",    60, "backlog samples kept for the sparklines" },

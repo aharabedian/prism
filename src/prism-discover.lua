@@ -1,6 +1,9 @@
 --[[ prism-discover.lua - list the components the PRISM router can use, as prism.cfg lines.
   prism-setup does the same interactively; this is for writing prism.cfg by hand.
 
+  prism-discover --fluids   also lists the fluids each ME network holds and how long reading them takes (the
+                            check for `supplies` in prism.cfg)
+
   Tip: to tell your export buses apart, drop a different "marker" item into
   slot 1 of each bus's filter by hand (cobblestone in the washer bus, dirt in
   the centrifuge bus, ...) before running this. The marker is printed next to
@@ -15,6 +18,7 @@ for name in pairs(package.loaded) do if name:find("^prism%.") then package.loade
 if not pcall(require, "prism.version") then error("PRISM's modules are missing from /home/lib/prism - run prism-update", 0) end
 
 local component = require("component")
+local computer  = require("computer")
 local VERSION   = require("prism.version")
 local U         = require("prism.util")
 local probe     = require("prism.probe")
@@ -84,4 +88,38 @@ section("GT machines (prism.cfg 'machines') - toggle one with a soft mallet to s
     return ('  { address = "%s", process = "?", name = "?" }, -- %s%s'):format(a:sub(1, 8), m.state,
       m.where ~= "" and (" " .. m.where) or "")
   end), "none - put an adapter against each GT machine you want to watch")
+-- --fluids: what getFluidsInNetwork gives on each network (unverified in game), for `supplies` in prism.cfg.
+local args = { ... }
+local wantFluids = false
+for _, a in ipairs(args) do if a == "--fluids" then wantFluids = true end end
+if wantFluids then
+  local lines = {}
+  for _, ctype in ipairs({ "me_controller", "me_interface" }) do
+    for _, addr in ipairs(probe.addresses(ctype)) do
+      local p = component.proxy(addr)
+      lines[#lines + 1] = ("  %s %s"):format(ctype, addr)
+      if not p.getFluidsInNetwork then
+        lines[#lines + 1] = "    no getFluidsInNetwork on this component"
+      else
+        local t0 = computer.uptime()
+        local ok, res = pcall(p.getFluidsInNetwork)
+        local took = computer.uptime() - t0
+        if not ok or type(res) ~= "table" then
+          lines[#lines + 1] = "    getFluidsInNetwork failed: " .. tostring(res)
+        else
+          local list = {}
+          for _, f in ipairs(res) do if type(f) == "table" then list[#list + 1] = f end end
+          table.sort(list, function(a, b) return (tonumber(a.amount) or 0) > (tonumber(b.amount) or 0) end)
+          lines[#lines + 1] = ("    %d fluid(s), the call took %.2f s; amounts as given (mB = L):"):format(#list, took)
+          for i = 1, math.min(#list, 20) do
+            local f = list[i]
+            lines[#lines + 1] = ("    %-28s %12s   (%s)"):format(tostring(f.label), tostring(f.amount), tostring(f.name))
+          end
+          if #list > 20 then lines[#lines + 1] = ("    ... and %d more"):format(#list - 20) end
+        end
+      end
+    end
+  end
+  section("Fluids in each ME network (for 'supplies' in prism.cfg: fluid = \"<label>\"):", lines, "no ME networks found")
+end
 print("")

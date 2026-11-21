@@ -152,6 +152,11 @@ function StatusView.new(ui, m)
       end
     end
     if (g.p.below or 0) > 0 then parts[#parts + 1] = { U.fmtNum(g.p.below) .. " below batch", C.dim } end
+    local sup = g.p.supply
+    if sup and sup.low then
+      parts[#parts + 1] = { ("%s low: %s of %s%s"):format(sup.name, U.fmtNum(sup.amount or 0), U.fmtNum(sup.min),
+        sup.unit or ""), C.warn }
+    end
     if g.p.held then
       parts[#parts + 1] = { ("HELD%s %s: outputs cleared"):format(g.p.heldBy and (" by " .. g.p.heldBy) or "",
         U.fmtShort(g.p.heldFor or 0)), C.warn }

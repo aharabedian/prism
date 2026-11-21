@@ -39,6 +39,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_setup_screen.lua` | prism-setup's editor on 80x25 and 160x50 screens: assigning, naming, dropping, feeders, general settings, review and save, quitting, falling back to the text setup |
 | `test_lens.lua` | Reporting to LENS: describe at start, snapshots with backlog, machine states and alerts, answering hello with the LENS token only, ports kept apart, off, lensPort = modemPort refused, routing carrying on when reporting fails |
 | `test_stuck.lua` | Stuck items: on an output and not going down while the process uses others; not waiting items, not with `stuckAfter = false`; clearing |
+| `test_supplies.lua` | Supplies: a fluid read from another network, low after a minute (sharing, one warn instead of stall and idle alerts), back; `prism-discover --fluids`; the card and page |
 | `test_throughput.lua` | Items out and in per minute, machines' busy share, `prism_items_out_total`, and the cards' and panel's throughput lines |
 | `test_update.lua` | prism-update install/update, keeping config, pointing to prism-setup, rejecting bad downloads, migrating old `router*.cfg` |
 | `test_example_config.lua` | The shipped example config loads and routes with its default rules |
