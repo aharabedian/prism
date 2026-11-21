@@ -11,7 +11,7 @@
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
            reloadRouter, pickProcess, pickFallback, pickBatch, editBatch, blur, pickPriority, setScroll,
            clearFilter, quit,
-           selectProcess, cancelProcess, setAlwaysShare(on), setItemSort(how), toggleBelowBatch, toggleGroup(process),
+           selectProcess, cancelProcess, setHold(on), setAlwaysShare(on), setItemSort(how), toggleBelowBatch, toggleGroup(process),
            askConfirm(what, fn), confirming(what)
 
   S.status      latest router-status (S.statusAt: when it arrived; S.router: its address)
@@ -31,6 +31,7 @@
   S.machineCells  { [machine] = { [cell] = { w, n, down, wait } } }: machine states seen per 160 s cell (the
                 last 45), for the process page's bands
   S.msg/msgOk   the flash message in the footer; S.confirm: an action waiting for a second tap
+  S.player      the player who last touched the screen (sent with hold)
 ]]
 
 local computer      = require("computer")
@@ -225,6 +226,12 @@ function Model.new(settings, modem)
   end
 
   function m.cancelProcess() S.procSel, S.queue = nil, nil end
+
+  function m.setHold(on)
+    if not S.procSel then return end
+    m.send({ cmd = "hold", process = S.procSel, on = on, player = S.player })
+    m.flash((on and "%s: holding ..." or "%s: resuming ..."):format(S.procSel), true)
+  end
 
   function m.setAlwaysShare(on)
     if not S.procSel then return end

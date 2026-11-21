@@ -23,6 +23,11 @@ versions follow [Semantic Versioning](https://semver.org/).
   order with what each item is doing (`on Washer bus (slot 1)`, `↷ shared with wash`, `below batch: 25 of 36`,
   `rank 12; outputs hold 9`), its outputs, sharing, and SHARE ON OVERFLOW / ALWAYS SHARE / CLOSE. It replaces
   the process panel. Protocol: the `queue` command and `router-queue` reply.
+- **Hold a process**: HOLD on a process's page clears its export buses, stockers and interfaces and stops its
+  feeders, so its items stay in the network (to rebuild a machine, say). It raises no stall or idle alerts
+  while held; the card shows `‖` and `HELD by Aaron 12m`. RESUME sets the outputs again. Kept in
+  `prism-held.cfg`, so it survives a restart. Protocol: the `hold` command; `held`, `heldBy`, `heldFor` on
+  `router-status` processes.
 
 ## [1.4.0] - 2026-11-18
 

@@ -146,6 +146,16 @@ COMMANDS.alwaysShare = { fields = { process = "string", on = "boolean" }, run = 
   return true
 end }
 
+COMMANDS.hold = { fields = { process = "string", on = "boolean" }, run = function(r, msg, reply)
+  local store = r.store
+  local by = type(msg.player) == "string" and msg.player or nil
+  store.held[msg.process] = msg.on and { by = by } or nil
+  store:saveHeld()
+  r.log("%s: %s%s", msg.process, msg.on and "on hold - its outputs are cleared" or "resumed", by and (" (" .. by .. ")") or "")
+  acker(reply)(true, msg.process .. (msg.on and ": on hold, its outputs cleared" or ": resumed"))
+  return true
+end }
+
 COMMANDS.reload = { run = function(r, _, reply)
   local ok, err = pcall(r.setup, r)
   if not ok then r.stats.lastError = tostring(err); r.log("reload failed: %s", tostring(err)) end

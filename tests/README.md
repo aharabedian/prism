@@ -21,6 +21,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_explain.lua` | Why an item waits: the `explain` command's reasons, and ROUTE ITEM's Now: line |
 | `test_fallbacks.lua` | Sharing with fallbacks on overflow, items never shared, always share (persisted), status/list fields, and the screen: process panel, ALWAYS SHARE, Fallback row |
 | `test_stockers.lua` | GT stocking input buses: top items incl. batch items, stable slots, auto-pull off, no database, unloaded bus, less than one batch left (not stocked, no stall/idle), screen row |
+| `test_hold.lua` | Holding a process: outputs cleared, no stall or idle alerts, status and explain, kept across a restart, RESUME; the screen's HOLD / RESUME and the card |
 | `test_interfaces.lua` | ME interfaces another network pulls from: top batch-1 items, clearing at start and exit, one rewrite per item running out, status, screen row, configuration errors |
 | `test_feeders.lua` | Exact-batch feeding against a machine that only consumes full batches; catalog paging, forget |
 | `test_monitor_rules.lua` | Machine states, stall/idle alerts, rule commands and preview |

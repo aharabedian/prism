@@ -5,9 +5,11 @@
   feeder for it moved items, a monitored machine for it was working.
 
   Health.new(cfg, log) -> health
-  health:stalls(now, scan, before, outputs, machines, classify) -> { [process] = seconds stalled }
+  health:stalls(now, scan, before, outputs, machines, classify, held) -> { [process] = seconds stalled }
     before    { present = { [key] = qty } } from the previous scan
     classify  function(key) -> process, for items that left the network
+    held      { [process] = truthy }: processes on hold are never stalled, and their machines never idle
+              with work waiting
     Also sets m.idleFor on idle machines with work ready. Less than one batch isn't work: it can't run.
   health:alerts(backlog, stalled, outputs, machines) -> { id, level = "bad"|"warn", text }[]
     Ids are stable (stall:wash, feeder:<name>, machine:<name>, idle:<name>); logs each alert
@@ -23,7 +25,8 @@ function Health.new(cfg, log)
   return setmetatable({ cfg = cfg, log = log, stallState = {}, fedAtScan = {}, active = {} }, Health)
 end
 
-function Health:stalls(now, scan, before, outputs, machines, classify)
+function Health:stalls(now, scan, before, outputs, machines, classify, held)
+  held = held or {}
   local moved, working, hasOutput = {}, {}, {}
 
   for proc, q in pairs(scan.queues) do
@@ -49,7 +52,7 @@ function Health:stalls(now, scan, before, outputs, machines, classify)
   self.fedAtScan = fedNow
   for _, m in ipairs(machines) do
     if m.state == "working" then working[m.process or ""] = true end
-    local waiting = m.process and scan.backlog[m.process] and scan.backlog[m.process].ready > 0
+    local waiting = m.process and not held[m.process] and scan.backlog[m.process] and scan.backlog[m.process].ready > 0
     if m.state == "idle" and waiting then
       m.idleSince = m.idleSince or now
       m.idleFor = math.floor(now - m.idleSince)
@@ -62,7 +65,7 @@ function Health:stalls(now, scan, before, outputs, machines, classify)
   for proc in pairs(scan.backlog) do
     local s = self.stallState[proc] or {}
     self.stallState[proc] = s
-    if moved[proc] or working[proc] or not hasOutput[proc] or scan.backlog[proc].ready == 0 then
+    if moved[proc] or working[proc] or not hasOutput[proc] or scan.backlog[proc].ready == 0 or held[proc] then
       s.since = nil
     else
       s.since = s.since or now

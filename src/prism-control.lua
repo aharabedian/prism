@@ -69,6 +69,7 @@ local function main()
     elseif name == "touch" then
       -- touch: screenAddress, x, y, button, player
       m.blur()
+      m.S.player = ev[6]                     -- who tapped, for the commands that record it
       ui.tap(math.floor(ev[3]), math.floor(ev[4]))
       dirty = true
     elseif name == "key_down" then

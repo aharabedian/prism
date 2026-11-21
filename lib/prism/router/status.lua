@@ -50,6 +50,11 @@ function S.build(r, scan, stalled, alerts)
     if out then p.outRate, p.inRate = math.floor(out + 0.5), math.floor(arrived + 0.5) end
     p.busy = U.round2(r.flow:busy(name))
   end
+  for name, h in pairs(r.store.held) do
+    local p = proc(name)
+    p.held, p.heldBy = true, type(h) == "table" and h.by or nil
+    p.heldFor = r.heldAt and r.heldAt[name] and math.floor(computer.uptime() - r.heldAt[name]) or 0
+  end
   for name, lim in pairs(r.store:limits()) do
     local p = proc(name)
     p.overflow, p.alwaysShare = lim.overflow, lim.alwaysShare

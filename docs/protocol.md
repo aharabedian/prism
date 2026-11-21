@@ -34,6 +34,7 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `alwaysShare` | `process`, `on` (boolean) | Share every item of a process that has a fallback (`on`), or only on overflow; saved in `prism-always-share.cfg` → `router-ack`, rescan |
 | `explain` | `key`, `req?` | `router-explain`: what the item is doing now |
 | `queue` | `process`, `offset?`, `req?` | `router-queue`: one page (≤ 40) of the process's queue in rank order |
+| `hold` | `process`, `on` (boolean), `player?` | Put a process on hold (`on`): its outputs are cleared and its stall and idle alerts stop; or resume it. Saved in `prism-held.cfg` → `router-ack`, rescan |
 | `reload` | | Re-read `prism.cfg` → `router-ack` |
 
 ## Messages (router → screen)
@@ -45,7 +46,7 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `version` | string | Router version |
 | `uptime`, `interval`, `cycles`, `cycleMs`, `writes` | number | Housekeeping |
 | `lastError` | string? | Problem during the last scan |
-| `processes` | `{ [name] = { types, items, buses, stalled?, spilled?, overflow?, alwaysShare?, below?, outRate?, inRate?, busy? } }` | Backlog per process, after [spilling](configuration.md#fallbacks-and-overflow). `buses` counts outputs; `stalled` is seconds; `spilled` is items shared with fallbacks this scan; `overflow` and `alwaysShare` are its settings; `below` is items in stacks below their batch; `outRate` / `inRate` are items leaving / arriving per minute over the last 5 minutes (from the second scan on); `busy` is the share of scans its monitored machines were working over the last hour, 0..1 |
+| `processes` | `{ [name] = { types, items, buses, stalled?, spilled?, overflow?, alwaysShare?, below?, outRate?, inRate?, busy? } }` | Backlog per process, after [spilling](configuration.md#fallbacks-and-overflow). `buses` counts outputs; `stalled` is seconds; `spilled` is items shared with fallbacks this scan; `overflow` and `alwaysShare` are its settings; `below` is items in stacks below their batch; `outRate` / `inRate` are items leaving / arriving per minute over the last 5 minutes (from the second scan on); `busy` is the share of scans its monitored machines were working over the last hour, 0..1; `held`, `heldBy` and `heldFor` (seconds) while it's on hold |
 | `buses` | `{ name, process, filters = { label... }, kind? }[]` | Export buses, then stockers (`kind = "stocker"`), then interfaces (`kind = "interface"`); for those two `filters` are the stocked items. `filters` may be dropped to fit the packet |
 | `feeders` | `{ name, process, state, level, label?, batch?, fed }[]` | `level`: `ok`, `idle`, `warn` or `bad` (since 0.6.0; for older routers the screen reads `state`) |
 | `machines` | `{ name, process, state, progress?, eu?, idle? }[]` | `progress`/`eu` are 0..1; `idle` is seconds idle with work waiting |

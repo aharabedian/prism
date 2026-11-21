@@ -6,6 +6,7 @@
     <base>-overrides.cfg  (entries may also have fallback)
     <base>-rules.cfg      screenRules   { pattern, process, priority?, batch?, fallback? }[] rules edited on the screen
     <base>-always-share.cfg  alwaysShare  { [process] = true }                             set to ALWAYS SHARE on the screen
+    <base>-held.cfg       held          { [process] = { by? } }                              put on HOLD on the screen
 
   Store.open(configPath, cfg, log) -> store
   store.overrides, store.catalog, store.screenRules (nil until rules are edited on the screen)
@@ -13,7 +14,7 @@
   store:classify(label, key, rules?)  see prism.rules.classify
   store:limits()                   { [process] = { overflow?, alwaysShare? } } for planner.spill
   store:labelOf(key, fallback)     the catalog label, else fallback
-  store:saveOverrides(), store:saveCatalog(), store:saveRules(), store:saveAlwaysShare()
+  store:saveOverrides(), store:saveCatalog(), store:saveRules(), store:saveAlwaysShare(), store:saveHeld()
   store:editableRules()            screenRules, copied from cfg.rules the first time
   store:resetRules()               delete prism-rules.cfg and go back to cfg.rules
 ]]
@@ -29,11 +30,12 @@ function Store.open(configPath, cfg, log)
   local s = setmetatable({
     cfg = cfg, log = log,
     paths = { overrides = base .. "-overrides.cfg", catalog = base .. "-items.cfg", rules = base .. "-rules.cfg",
-              alwaysShare = base .. "-always-share.cfg" },
+              alwaysShare = base .. "-always-share.cfg", held = base .. "-held.cfg" },
   }, Store)
   s.overrides = files.readTable(s.paths.overrides)
   s.catalog = files.readTable(s.paths.catalog)
   s.alwaysShare = files.readTable(s.paths.alwaysShare)
+  s.held = files.readTable(s.paths.held)
   if files.exists(s.paths.rules) then
     s.screenRules = rules.clean(files.readTable(s.paths.rules), "prism-rules.cfg", log)
   end
@@ -70,6 +72,7 @@ function Store:saveOverrides() self:save("overrides", self.overrides) end
 function Store:saveCatalog() self:save("catalog", self.catalog) end
 function Store:saveRules() self:save("rules", self.screenRules) end
 function Store:saveAlwaysShare() self:save("alwaysShare", self.alwaysShare) end
+function Store:saveHeld() self:save("held", self.held) end
 
 function Store:editableRules()
   if not self.screenRules then

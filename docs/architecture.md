@@ -147,6 +147,9 @@ waiting when its process has items ready):
 - a feeder for it moved items
 - a monitored machine for it was `working`
 
+A process on hold (HOLD on its page, kept in `prism-held.cfg`) gets an empty queue: every output of it clears
+its slots and its feeders stop. It is never stalled, and its machines are never idle with work waiting.
+
 Without monitored machines this relies on items leaving the network, so a process whose input arrives
 exactly as fast as it's processed can be falsely flagged; monitoring its machines fixes that.
 
