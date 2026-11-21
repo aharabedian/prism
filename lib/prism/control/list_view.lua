@@ -164,14 +164,16 @@ function ListView.new(ui, m)
     filter = true,
     rows = function() return S.overrides or {} end,
     header = function()
-      return fit("item", RW - 34) .. fit("process", 16) .. rfit("batch", 6) .. rfit("prio", 6) .. rfit("from", 6)
+      return fit("item", RW - 37) .. fit("process", 14) .. rfit("batch", 5) .. rfit("prio", 5) .. "  " .. fit("by", 11)
     end,
     row = function(y, r, rb)
-      put(RX, y, fit(r.label or r.key, RW - 34), C.text, rb)
-      put(RX + RW - 34, y, fit(processText(r), 16), processColor(r.process), rb)
-      put(RX + RW - 18, y, rfit(batchText(r), 6), C.accent, rb)
-      put(RX + RW - 12, y, rfit(r.priority or "-", 6), C.text, rb)
-      put(RX + RW - 6, y, rfit(r.source or "", 6), C.dim, rb)
+      put(RX, y, fit(r.label or r.key, RW - 37), C.text, rb)
+      put(RX + RW - 37, y, fit(processText(r), 14), processColor(r.process), rb)
+      put(RX + RW - 23, y, rfit(batchText(r), 5), C.accent, rb)
+      put(RX + RW - 18, y, rfit(r.priority or "-", 5), C.text, rb)
+      local by = r.source == "cfg" and "cfg" or ((r.by or "screen") .. (r.at and S.overridesAt
+        and (" · " .. U.fmtAge(S.overridesNow + (require("computer").uptime() - S.overridesAt) - r.at)) or ""))
+      put(RX + RW - 11, y, fit(by, 11), r.source == "cfg" and C.dim or C.info, rb)
     end,
     empty = function() return S.overrides and "no overrides yet" or "loading ..." end,
     tap = function(r) return function() m.selectRow(r, "overrides") end end,

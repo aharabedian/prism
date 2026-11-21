@@ -37,6 +37,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_throughput.lua` | Items out and in per minute, machines' busy share, `prism_items_out_total`, and the cards' and panel's throughput lines |
 | `test_update.lua` | prism-update install/update, keeping config, pointing to prism-setup, rejecting bad downloads, migrating old `router*.cfg` |
 | `test_example_config.lua` | The shipped example config loads and routes with its default rules |
+| `test_who.lua` | Who changed it: the player on every command, overrides keeping who and when, OVERRIDES' by column |
 | `test_units.lua` | Pure modules on their own: `rules` (incl. fallbacks), `router/planner` (incl. spill and its hysteresis), `router/slots`, `router/flow`, `protocol`, `setup/editor` |
 | `test_log.lua` | The event log: what's kept, real times, across restarts, paging and filters; the LOG tab with and without `timezone` |
 | `test_modules.lua` | Packaging and contracts: `manifest.lua` lists every file, one version, docs list every setting and command, the program bootstrap, the vendored LENS modules match `../lens` |

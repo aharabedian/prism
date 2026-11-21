@@ -1,7 +1,8 @@
 --[[ prism.router.store: the router's data files, and classifying items with them.
 
   Files next to prism.cfg (<base> = the config path without .cfg):
-    <base>-overrides.cfg  overrides     { [key] = { process, priority?, batch?, label? } }   made on the screen
+    <base>-overrides.cfg  overrides     { [key] = { process, priority?, batch?, label?, by?, at? } }  made on the
+                                        screen (by: the player, at: when, prism.clock)
     <base>-items.cfg      catalog       { [key] = { label } }                                every item ever seen
     <base>-overrides.cfg  (entries may also have fallback)
     <base>-rules.cfg      screenRules   { pattern, process, priority?, batch?, fallback? }[] rules edited on the screen
