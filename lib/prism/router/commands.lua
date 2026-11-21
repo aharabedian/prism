@@ -146,6 +146,16 @@ COMMANDS.alwaysShare = { fields = { process = "string", on = "boolean" }, run = 
   return true
 end }
 
+COMMANDS.setOverflow = { fields = { process = "string" }, run = function(r, msg, reply)
+  local n = tonumber(msg.overflow)
+  if n then n = math.max(0, math.floor(n)) end
+  r.store.processes[msg.process] = n and { overflow = n } or nil
+  r.store:saveProcesses()
+  r.log("%s: overflow %s", msg.process, n and tostring(n) or "back to prism.cfg")
+  acker(reply)(true, msg.process .. (n and (": shared past " .. n .. " waiting") or ": overflow back to prism.cfg"))
+  return true
+end }
+
 COMMANDS.hold = { fields = { process = "string", on = "boolean" }, run = function(r, msg, reply)
   local store = r.store
   local by = type(msg.player) == "string" and msg.player or nil

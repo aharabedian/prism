@@ -11,7 +11,8 @@
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
            reloadRouter, pickProcess, pickFallback, pickBatch, editBatch, blur, pickPriority, setScroll,
            clearFilter, quit,
-           selectProcess, cancelProcess, setHold(on), setAlwaysShare(on), setItemSort(how), toggleBelowBatch, toggleGroup(process),
+           selectProcess, cancelProcess, setHold(on), setAlwaysShare(on), editOverflow, setItemSort(how),
+           toggleBelowBatch, toggleGroup(process),
            askConfirm(what, fn), confirming(what)
 
   S.status      latest router-status (S.statusAt: when it arrived; S.router: its address)
@@ -26,6 +27,7 @@
                 again with every status while an item is selected
   S.ruleEdit    the rule being edited: { index?, pattern, process, fallback?, priority, batch }; S.preview
   S.batchEdit   the digits typed into the Batch field while it has focus (nil: not focused)
+  S.overflowEdit  the digits typed into the process page's overflow field (nil: not focused)
   S.procSel     the process tapped in the PROCESSES list: its page (prism.control.process_view) replaces the
                 list and panel. S.queue: its queue in rank order (router-queue), asked again with every status
   S.machineCells  { [machine] = { [cell] = { w, n, down, wait } } }: machine states seen per 160 s cell (the
@@ -214,7 +216,21 @@ function Model.new(settings, modem)
   function m.pickBatch(v) if S.ruleEdit then S.ruleEdit.batch = v else S.selBatch = v end end
   -- The Batch field: editBatch() focuses it (typing then replaces the batch), blur() drops focus (any tap).
   function m.editBatch() S.batchEdit = "" end
-  function m.blur() S.batchEdit = nil end
+
+  -- The process page's overflow field: editOverflow() focuses it; Enter sends what was typed (empty: back to
+  -- prism.cfg's); a tap elsewhere sends it if something was typed.
+  local function sendOverflow()
+    local t = S.overflowEdit
+    S.overflowEdit = nil
+    if not S.procSel or t == nil then return end
+    m.send({ cmd = "setOverflow", process = S.procSel, overflow = tonumber(t), player = S.player })
+    m.flash(("%s: overflow %s ..."):format(S.procSel, t ~= "" and t or "back to prism.cfg"), true)
+  end
+  function m.editOverflow() S.overflowEdit = "" end
+  function m.blur()
+    S.batchEdit = nil
+    if S.overflowEdit and S.overflowEdit ~= "" then sendOverflow() else S.overflowEdit = nil end
+  end
   function m.pickPriority(v) if S.ruleEdit then S.ruleEdit.priority = v else S.selPrio = v end end
 
   ---------------------------------------------------------------- processes
@@ -225,7 +241,7 @@ function Model.new(settings, modem)
     askQueue()
   end
 
-  function m.cancelProcess() S.procSel, S.queue = nil, nil end
+  function m.cancelProcess() S.procSel, S.queue, S.overflowEdit = nil, nil, nil end
 
   function m.setHold(on)
     if not S.procSel then return end
@@ -399,9 +415,22 @@ function Model.new(settings, modem)
     return true
   end
 
-  -- Typing edits the Batch field while it has focus, else the rule pattern while editing a rule, else
-  -- the search filter.
+  local function overflowKey(char, code)
+    local t = S.overflowEdit
+    if code == 14 then S.overflowEdit = t:sub(1, -2); return true end
+    if code == 28 then sendOverflow(); return true end
+    if char and char >= 48 and char <= 57 then
+      if #t < 7 then S.overflowEdit = t .. string.char(char) end
+      return true
+    end
+    S.overflowEdit = nil
+    return true
+  end
+
+  -- Typing edits the Batch or overflow field while it has focus, else the rule pattern while editing a rule,
+  -- else the search filter.
   function m.onKey(char, code)
+    if S.overflowEdit then return overflowKey(char, code) end
     if S.batchEdit and batchKey(char, code) then return true end
     local r = S.ruleEdit
     local text = r and r.pattern or S.filter

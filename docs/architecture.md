@@ -178,7 +178,8 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 - Tapping a card opens its page in place of the list and panel: what's waiting and its throughput, a
   backlog chart from the screen's own samples, each machine's last 2 hours as a band (the screen counts the
   machine states it receives in 160 s cells), the queue in rank order with what each item is doing
-  (`queue`, asked again with every status), its outputs, sharing, and SHARE ON OVERFLOW / ALWAYS SHARE / CLOSE.
+  (`queue`, asked again with every status), its outputs, sharing (the overflow mark is a field: tap, type,
+  Enter), and HOLD / SHARE ON OVERFLOW / ALWAYS SHARE / CLOSE.
 - ITEMS is grouped by process (collapsible; searching opens every group), or sorted A-Z or by quantity.
   BELOW BATCH lists only items with less than one batch, with how many more each needs.
 
