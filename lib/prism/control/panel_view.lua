@@ -2,7 +2,8 @@
 
   PanelView.new(ui, m) -> v
   v.draw()        the process panel (its overflow and outputs) while a process is selected, the rule editor while a rule is
-                  edited, else ROUTE ITEM (or the RULES help)
+                  edited, else ROUTE ITEM (or the RULES help). ROUTE ITEM's "Now:" line is the router's explanation
+                  of what the item is doing (m.S.explain)
   v.drawFooter()  flash message / router error / rotating alerts, RELOAD CFG and QUIT
 ]]
 
@@ -10,6 +11,8 @@ local U        = require("prism.util")
 local protocol = require("prism.protocol")
 
 local PanelView = {}
+
+local NOW_COLORS = { ok = "good", warn = "warn", dim = "dim" }
 
 function PanelView.new(ui, m)
   local S, C, L, W, H = m.S, ui.C, ui.L, ui.W, ui.H
@@ -120,6 +123,9 @@ function PanelView.new(ui, m)
     local info = sel.key .. (sel.size and sel.size > 0 and ("   ×" .. U.fmtNum(sel.size)) or "")
                          .. (src and ("   (" .. src .. ")") or "")
     put(RX + 1, P + 2, fit(info, RW - 2), C.dim, C.panel)
+    local ex = S.explain and S.explain.key == sel.key and S.explain
+    put(RX + 1, P + 3, fit("Now: " .. (ex and tostring(ex.text) or "asking the router ..."), RW - 2),
+      ex and C[NOW_COLORS[ex.level] or "dim"] or C.dim, C.panel)
 
     processButtons(P + 4, S.selProc)
     fallbackButtons(P + 7, S.selProc, S.selFallback)
