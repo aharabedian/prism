@@ -32,6 +32,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   items with a fallback are shared. Tap it, type, Enter. It's saved in `prism-processes.cfg` and wins over
   `processes.<name>.overflow` in prism.cfg; an empty field goes back to prism.cfg's. Protocol: the `setOverflow`
   command; `overflowFrom` on `router-status` processes.
+- **Stuck items**: an item on one of its process's buses or stockers that hasn't gone down for `stuckAfter`
+  seconds (default 1200) while the process used other items raises a warn: `Purified Tin Ore stuck for 20m
+  (thermal)`. Items still waiting for a slot don't count, nor do held or stalled processes. `stuckAfter = false`
+  turns it off; `prism-setup` writes it.
 
 ## [1.4.0] - 2026-11-18
 

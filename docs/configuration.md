@@ -16,6 +16,7 @@ previous version as `<file>.bak`, but hand-written comments are lost.
 | `monitorInterval` | `2` | Seconds between GT machine polls |
 | `stallAfter` | `60` | Seconds of no movement before a process is flagged stalled |
 | `idleAlert` | `30` | Seconds a monitored machine may sit idle with work waiting before an alert |
+| `stuckAfter` | `1200` | Seconds an item on one of its process's outputs may stay without going down, while the process uses other items, before a warn (`Purified Tin Ore stuck for 20m (thermal)`). `false` turns it off |
 | `slotsPerBus` | `9` | Filter slots per export bus: 1, 5 or 9 (0, 1 or 2 Capacity Cards) |
 | `network` | first found | Address (or prefix) of the `me_controller` / `me_interface` to scan |
 | `database` | first found | Address (or prefix) of the Database Upgrade. Only needed for `buses`, `interfaces` and `feeders` |

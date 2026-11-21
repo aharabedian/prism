@@ -35,6 +35,7 @@ alert and error. `prism-discover` shows what the computer can actually see.
 | A process's buses and stockers are empty, and it shows `‖` | It's on hold. Tap it, then RESUME |
 | Nothing is shared with the fallback | Only items whose rule or override has a `fallback` are shared, and only past the process's `overflow` (tap the process to see it) or with ALWAYS SHARE. A fallback in an override beats the rule's |
 | Fallback process shows **NONE** in red | Items are shared with it but it has no bus, stocker, interface or feeder |
+| `<item> stuck for 20m (<process>)` | The item is on a bus or stocker, and its machines take the process's other items but not this one. Check that the machine has a recipe for it (and the fluid or circuit it needs), or route it elsewhere. `stuckAfter = false` turns this off |
 | A stuck process isn't flagged stalled | Its items are shared and the fallback is using them, which counts as progress for both. Monitor its machines to catch it ([machines](configuration.md#machines)) |
 
 ## Control screen
