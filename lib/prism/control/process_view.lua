@@ -8,7 +8,7 @@
                MACHINES: each machine's last 2 hours as a band (m.S.machineCells), and its busy share
                QUEUE: the process's queue in rank order with what each item is doing (m.S.queue, router-queue)
                OUTPUTS: each bus, stocker, interface and feeder with what it holds
-               sharing (overflow, ALWAYS SHARE), then SHARE ON OVERFLOW, ALWAYS SHARE, CLOSE
+               sharing (overflow, ALWAYS SHARE), then HOLD (or RESUME), SHARE ON OVERFLOW, ALWAYS SHARE, CLOSE
   ProcessView.CELL = 160, ProcessView.CELLS = 45   seconds per band cell, cells per band (2 hours)
 ]]
 
@@ -174,7 +174,10 @@ function ProcessView.new(ui, m)
         tail ~= "" and ("  ·  " .. tail) or ""), RW), net < 0 and C.warn or C.text, C.bg)
     end
     local busy, kind = ui.busyText(p)
-    if busy then put(RX, 7, fit(busy, RW), (kind == "limit" or kind == "slow") and C.warn or C.dim, C.bg) end
+    if p.held then
+      put(RX, 7, fit(("‖ Held%s for %s: its outputs are cleared and its stall and idle alerts are off."):format(
+        p.heldBy and (" by " .. p.heldBy) or "", U.fmtShort(p.heldFor or 0)), RW), C.warn, C.bg)
+    elseif busy then put(RX, 7, fit(busy, RW), (kind == "limit" or kind == "slow") and C.warn or C.dim, C.bg) end
 
     local y = backlog(9, name)
     y = machines(y, name, 4)
@@ -197,6 +200,8 @@ function ProcessView.new(ui, m)
       put(RX, H - 4, "nothing going to fallbacks", C.dim, C.bg)
     end
     local x = RX
+    if p.held then x = button(x, H - 2, "RESUME", { color = C.good, fg = C.bg, fn = function() m.setHold(false) end })
+    else x = button(x, H - 2, "HOLD", { color = C.warn, fg = C.bg, fn = function() m.setHold(true) end }) end
     x = button(x, H - 2, "SHARE ON OVERFLOW", { on = not p.alwaysShare, fn = function() m.setAlwaysShare(false) end })
     x = button(x, H - 2, "ALWAYS SHARE", { on = p.alwaysShare == true, fn = function() m.setAlwaysShare(true) end })
     button(x, H - 2, "CLOSE", { fn = m.cancelProcess })

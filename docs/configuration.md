@@ -221,6 +221,7 @@ Kept next to the config, never touched by `prism-update` or `prism-setup`:
 | `prism-items.cfg` | The catalog of every item seen (key → name) |
 | `prism-rules.cfg` | Rules edited on the screen; replaces `rules` in `prism.cfg`. **RESET** on the screen deletes it |
 | `prism-always-share.cfg` | Processes set to ALWAYS SHARE on the screen |
+| `prism-held.cfg` | Processes put on HOLD on the screen (and who did it) |
 
 ## Control screen settings
 

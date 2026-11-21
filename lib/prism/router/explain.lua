@@ -3,7 +3,7 @@
   item(r, key) -> { text, level }
     r      the router (prism.router.core): store, last (the latest scan's labels, present, queues), outputs, spilled
     level  "ok" (on an output now), "warn" (waiting for something the player can fix or wait for), "dim"
-  Reasons, first that applies: not in the network; unassigned; ignored; on outputs (which, and the slot);
+  Reasons, first that applies: not in the network; unassigned; ignored; its process held; on outputs (which, and the slot);
   no output for its process; less than one batch; a batch item with only outputs that can't take batches;
   ranked below what its outputs hold; else it waits for the next scan. A shared item says so too.
   row(r, proc, rank, e) -> text, level
@@ -30,6 +30,11 @@ function E.item(r, key)
   if proc == nil then return { text = "Unassigned: no rule or override matches its name.", level = "warn" } end
   if proc == "ignore" then return { text = "Ignored: it stays in the network.", level = "dim" } end
 
+  if store.held[proc] then
+    local h = store.held[proc]
+    return { text = ("Held: %s is on hold%s, so its outputs are cleared."):format(proc,
+      type(h) == "table" and h.by and (" (" .. h.by .. ")") or ""), level = "warn" }
+  end
   local rank, e = rankIn(last.queues[proc], key)
   local shared = r.spilled[key] and fallback
   local held, serves, batches, most = {}, 0, false, 0
@@ -79,6 +84,7 @@ local function heldBy(r, proc, key)
 end
 
 function E.row(r, proc, rank, e)
+  if r.store.held[proc] then return "held", "warn" end
   local on = heldBy(r, proc, e.key)
   if e.from then return "shared from " .. e.from .. (on and ("; on " .. on) or ""), on and "ok" or "dim" end
   local shared = r.spilled[e.key] and e.fallback

@@ -18,6 +18,7 @@
     r.telemetry  reporting to LENS (prism.router.telemetry), or nil when lensPort is off
     r.flow       items out and in per process, and machines' busy share (prism.router.flow)
     r.moved      { [process] = { out, arrived } } in the latest scan
+    r.heldAt     { [process] = uptime }: since when each held process (store.held) has been held here
 ]]
 
 local component = require("component")
@@ -185,6 +186,12 @@ function Router:spill(scan)
   self.spilling = now
 end
 
+-- What an output of `proc` gets: nothing while the process is on hold, so its outputs clear.
+function Router:queueFor(proc, queues)
+  if self.store.held[proc] then return {} end
+  return queues[proc] or {}
+end
+
 function Router:cycle()
   local t0 = computer.uptime()
   local store = self.store
@@ -207,11 +214,14 @@ function Router:cycle()
   if changed then store:saveCatalog() end
   self:warn(scan)
 
-  for _, o in ipairs(self.outputs) do o:apply(scan.queues[o.process] or {}) end
+  self.heldAt = self.heldAt or {}
+  for proc in pairs(store.held) do self.heldAt[proc] = self.heldAt[proc] or computer.uptime() end
+  for proc in pairs(self.heldAt) do if not store.held[proc] then self.heldAt[proc] = nil end end
+  for _, o in ipairs(self.outputs) do o:apply(self:queueFor(o.process, scan.queues)) end
 
   local stalled = self.health:stalls(computer.uptime(), scan, self.last, self.outputs, self.machines, function(key)
     return (store:classify(store:labelOf(key, self.last.labels[key]), key))
-  end)
+  end, store.held)
   local alerts = self.health:alerts(scan.backlog, stalled, self.outputs, self.machines)
   self.moved = self.flow:update(computer.uptime(), scan, self.stats.cycles > 0 and self.last or nil, function(key)
     return (store:classify(store:labelOf(key, self.last.labels[key]), key))
@@ -254,7 +264,7 @@ function Router:run()
       nextScan = computer.uptime() + cfg.interval
     end
     if #self.feeders > 0 and computer.uptime() >= nextFeed then
-      for _, f in ipairs(self.feeders) do f:step(self.last.queues[f.process] or {}) end
+      for _, f in ipairs(self.feeders) do f:step(self:queueFor(f.process, self.last.queues)) end
       nextFeed = computer.uptime() + cfg.feedInterval
     end
 

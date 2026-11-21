@@ -136,6 +136,11 @@ function StatusView.new(ui, m)
       end
     end
     if (g.p.below or 0) > 0 then parts[#parts + 1] = { U.fmtNum(g.p.below) .. " below batch", C.dim } end
+    if g.p.held then
+      parts[#parts + 1] = { ("HELD%s %s: outputs cleared"):format(g.p.heldBy and (" by " .. g.p.heldBy) or "",
+        U.fmtShort(g.p.heldFor or 0)), C.warn }
+      empty = {}                                    -- its outputs are empty because it's held
+    end
     if #empty > 0 then
       parts[#parts + 1] = { table.concat(empty, ", ") .. (#empty == 1 and " is idle" or " are idle"), C.warn }
     end
@@ -206,8 +211,8 @@ function StatusView.new(ui, m)
     local spilling = p.alwaysShare or (p.spilled or 0) > 0
     local rowBg = S.procSel == name and C.sel or C.panel
     fill(1, y, LW, 1, rowBg)
-    local label = stalled and ("⚠ " .. name) or (spilling and ("↷ " .. name)) or name
-    local color = (none or stalled) and C.bad or (p.alwaysShare and C.warn) or C.accent
+    local label = p.held and ("‖ " .. name) or stalled and ("⚠ " .. name) or (spilling and ("↷ " .. name)) or name
+    local color = p.held and C.warn or (none or stalled) and C.bad or (p.alwaysShare and C.warn) or C.accent
     if name == "-" then
       put(2, y, "(no process)", C.dim, rowBg)
     else
@@ -242,7 +247,7 @@ function StatusView.new(ui, m)
     local parts = outputParts(g)
     local limit = LW
     local rate, kind = ui.rateText(g.p)
-    if rate then
+    if rate and not g.p.held then
       limit = LW - len(rate) - 4
       put(LW - len(rate), y, rate, kind == "growing" and C.warn or C.dim, C.bg)
     end
