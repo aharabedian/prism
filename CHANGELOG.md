@@ -42,6 +42,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   `timezone` setting in prism-control.cfg, else how long ago. The router reads the real time from a file's
   modification time (`.prism-clock`). Protocol: the `log` command and `router-log` reply; `events` on
   `router-status`.
+- **Who changed it**: the control screen sends the name of the player who tapped with every command. The event
+  log names them for each change, and OVERRIDES shows who made each screen override and how long ago
+  (`Aaron · 2h`; `cfg` for prism.cfg's). Protocol: `player` on commands; `by`, `at` and `now` on
+  `router-overrides`.
 
 ## [1.4.0] - 2026-11-18
 

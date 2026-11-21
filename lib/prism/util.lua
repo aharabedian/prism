@@ -12,6 +12,7 @@
   pct(x)             0.426 -> "43%", nil -> ""
   round2(x)          to two decimals, nil stays nil
   natLess(a, b)      a before b with numbers compared by value: "Washer 2" < "Washer 10"
+  fmtAge(s)          how old, in one unit: 30 -> "now", 300 -> "5m", 7300 -> "2h", 200000 -> "2d"
   fmtWhen(at, now, tz)  when something happened, for lists: with tz (hours from UTC) "19:40" the same day,
                      "Thu 23:10" within 6 days, else "12 Nov"; without tz "3h12m ago" (at, now: seconds since 1970)
 ]]
@@ -99,6 +100,14 @@ local function civil(days)
   local d = doy - (153 * mp + 2) // 5 + 1
   local m = mp < 10 and mp + 3 or mp - 9
   return d, m
+end
+
+function U.fmtAge(s)
+  s = math.floor(s or 0)
+  if s < 60 then return "now" end
+  if s < 3600 then return s // 60 .. "m" end
+  if s < 86400 then return s // 3600 .. "h" end
+  return s // 86400 .. "d"
 end
 
 function U.fmtWhen(at, now, tz)

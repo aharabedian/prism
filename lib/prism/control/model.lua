@@ -35,7 +35,7 @@
   S.machineCells  { [machine] = { [cell] = { w, n, down, wait } } }: machine states seen per 160 s cell (the
                 last 45), for the process page's bands
   S.msg/msgOk   the flash message in the footer; S.confirm: an action waiting for a second tap
-  S.player      the player who last touched the screen (sent with hold)
+  S.player      the player who last touched the screen, sent with every command
 ]]
 
 local computer      = require("computer")
@@ -74,6 +74,7 @@ function Model.new(settings, modem)
   function m.send(t)
     if not modem then m.flash("no network card in this computer", false); return end
     t.token = TOKEN
+    if t.player == nil then t.player = S.player end   -- who tapped: the router logs it with changes
     local data = serialization.serialize(t)
     if S.router then modem.send(S.router, PORT, data) else modem.broadcast(PORT, data) end
   end
@@ -387,6 +388,7 @@ function Model.new(settings, modem)
       return S.tab == "items" and "full"
     elseif msg.type == "router-overrides" then
       S.overrides = msg.list or {}
+      S.overridesNow, S.overridesAt = msg.now, msg.now and computer.uptime() or nil
       return S.tab == "overrides" and "full"
     elseif msg.type == "router-rules" then
       S.rules, S.rulesSource = msg.list or {}, msg.source

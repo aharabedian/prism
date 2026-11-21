@@ -38,7 +38,9 @@ COMMANDS.assign = { fields = { key = "string", process = "string" }, run = funct
   local batch = math.max(1, math.floor(tonumber(msg.batch) or 1))
   local fallback = rules.validFallback(msg.process, msg.fallback)
   store.overrides[msg.key] = { process = msg.process, priority = tonumber(msg.priority),
-                               batch = batch > 1 and batch or nil, fallback = fallback, label = label }
+                               batch = batch > 1 and batch or nil, fallback = fallback, label = label,
+                               by = type(msg.player) == "string" and msg.player or nil,
+                               at = r.clock:at(require("computer").uptime()) }
   store:saveOverrides()
   if not store.catalog[msg.key] then store.catalog[msg.key] = { label = label }; store:saveCatalog() end
   r.reported[msg.key], r.reported["batch:" .. msg.key] = nil, nil
@@ -204,12 +206,13 @@ COMMANDS.overrides = { run = function(r, _, reply)
   local function add(key, o, source)
     list[#list + 1] = { key = key, process = o.process, priority = o.priority, batch = o.batch,
                         fallback = rules.validFallback(o.process, o.fallback),
-                        label = o.label or store:labelOf(key, r.last.labels[key]), source = source }
+                        label = o.label or store:labelOf(key, r.last.labels[key]), source = source,
+                        by = source == "gui" and o.by or nil, at = source == "gui" and o.at or nil }
   end
   for key, o in pairs(r.cfg.overrides) do if not store.overrides[key] then add(key, o, "cfg") end end
   for key, o in pairs(store.overrides) do add(key, o, "gui") end
   table.sort(list, function(a, b) return (a.label or a.key):lower() < (b.label or b.key):lower() end)
-  reply({ type = "router-overrides", list = list })
+  reply({ type = "router-overrides", list = list, now = r.clock:at(require("computer").uptime()) })
 end }
 
 COMMANDS.rules = { run = function(r, _, reply)

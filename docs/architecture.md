@@ -174,7 +174,8 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 - Redraws fully on status, touch and key events; machine updates redraw only the machine cells and
   each card's "N/M working" (everything, if machines were added, removed or moved to another process).
 - Item lists are fetched in pages, because wireless packets are limited to about 8 KB.
-- All edits are commands to the router; the screen re-fetches after each `router-ack`.
+- All edits are commands to the router; the screen re-fetches after each `router-ack`. Every command carries
+  the player who tapped; OVERRIDES shows who made each screen override and how long ago.
 - ROUTE ITEM's "Now:" line is the router's `explain` for the selected item, asked again with every status.
 - The left column is one card per process: header (backlog, history, machines working), its machines,
   and a line about its outputs (export buses "N filters", stockers/interfaces "N stocked", feeders, items
@@ -228,4 +229,5 @@ match the game first if they differ.
 | `me_interface.getInterfaceConfiguration(slot)` (only for the slot 1 marker in prism-setup/discover; missing = "(empty)") | **Unverified** |
 | `io.read()` line input for `prism-setup` (returns `nil` on Ctrl+D) | **Unverified** |
 | `/home/.shrc` run by the shell at boot (start on boot) | **Unverified** |
+| The player's name in `touch` events (the screen sends it as `player`) | Seen in game in LUMEN and LENS; **unverified** in PRISM |
 | prism-setup's editor: `touch` and `scroll` events from a tier 2 screen, `component.isAvailable("screen")`, `key_down` codes (Enter 28, Esc 1, Backspace 14, arrows 200/208/203/205) | Reported working (1.1.0) |

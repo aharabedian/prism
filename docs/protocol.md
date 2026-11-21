@@ -6,6 +6,8 @@ directly to whoever asked. The control screen sends commands to the router's add
 a status, and broadcasts before that.
 
 If `token` is set in `prism.cfg`, every command must carry the same `token` field or it's ignored.
+Every command from the control screen also carries `player`: who tapped (from the `touch` event). The router
+writes it into the event log for changes, and keeps it with screen overrides.
 
 Packets are limited to about 8 KB (`modem.maxPacketSize()`). The router trims `unassigned` / `list`
 until a message fits and sets `truncated = true` when it had to, then drops `buses[].filters`. That's why
@@ -66,7 +68,7 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `router-machines` | `machines` (as in status), broadcast between scans |
 | `router-ack` | `ok`, `text` |
 | `router-items` | `req`, `offset`, `total`, `list = { key, label, size, process?, priority?, batch?, fallback?, spilled, source? }[]` (`source` is `gui`, `cfg` or `rule`; `spilled`: shared with its fallback in the latest scan) |
-| `router-overrides` | `list = { key, label?, process, priority?, batch?, fallback?, source }[]` |
+| `router-overrides` | `now` (the router's time), `list = { key, label?, process, priority?, batch?, fallback?, source, by?, at? }[]` (`by`, `at`: who made a screen override and when) |
 | `router-rules` | `source` (`config` or `screen`), `list = { index, pattern, process, priority?, batch?, fallback?, used }[]` (`used` = catalog items this rule currently decides) |
 | `router-preview` | `req`, and either `error`, or `total`, `applies`, `list = { key, label, now?, effect }[]` (≤ 40; `effect` is `applies`, `override wins` or `rule #N wins`) |
 

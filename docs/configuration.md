@@ -218,7 +218,7 @@ Kept next to the config, never touched by `prism-update` or `prism-setup`:
 
 | File | Contents |
 |---|---|
-| `prism-overrides.cfg` | Overrides made on the control screen |
+| `prism-overrides.cfg` | Overrides made on the control screen, with who made each one and when |
 | `prism-items.cfg` | The catalog of every item seen (key → name) |
 | `prism-rules.cfg` | Rules edited on the screen; replaces `rules` in `prism.cfg`. **RESET** on the screen deletes it |
 | `prism-always-share.cfg` | Processes set to ALWAYS SHARE on the screen |
