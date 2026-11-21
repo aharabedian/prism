@@ -274,4 +274,18 @@ do
     and require("prism.util").fmtShort(30) == "<1m", "fmtShort")
 end
 
+---------------------------------------------------------------- rule ideas
+do
+  local ideas = rules.ideas({ "Purified Pile of Iron Dust", "Purified Pile of Copper Dust", "Purified Pile of Tin Dust",
+    "Tiny Pile of Gold Dust", "Tiny Pile of Silver Dust", "Centrifuged Iron Ore", "Nether Quartz", "Flint", "Iron (Rod)" })
+  check(#ideas == 2 and ideas[1].pattern == "^Purified Pile of .+ Dust$" and #ideas[1].names == 3,
+    "names differing in one word: the rule that catches them, biggest first")
+  check(ideas[2].pattern == "^Tiny Pile of .+ Dust$" and #ideas[2].names == 2, "each name in one idea only")
+  check(("Purified Pile of Zinc Dust"):find(ideas[1].pattern) and not ("Tiny Pile of Zinc Dust"):find(ideas[1].pattern),
+    "the pattern is a working Lua pattern")
+  local esc = rules.ideas({ "Iron (Rod)", "Gold (Rod)" })
+  check(esc[1] and esc[1].pattern == "^.+ %(Rod%)$" and ("Tin (Rod)"):find(esc[1].pattern), "magic characters are escaped")
+  check(#rules.ideas({ "Flint", "Clay" }) == 0, "one-word names give no idea")
+end
+
 H.done()

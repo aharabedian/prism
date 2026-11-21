@@ -164,6 +164,10 @@ item's display name:
 | `[AB]` | `A` or `B` |
 | `%d+` | digits |
 
+On the control screen, UNASSIGNED suggests rules for items whose names differ in one word
+(`^Purified Pile of .+ Dust$` for "Purified Pile of Iron Dust" and "Purified Pile of Tin Dust"); MAKE RULE opens
+the rule editor with it, and the preview shows everything it would catch before you save.
+
 Put specific rules above general ones. The control screen's rule editor shows exactly which items a
 pattern catches, and whether an override or an earlier rule wins, before you save. Malformed patterns
 are rejected (and skipped with a log line if they're in a file).

@@ -18,6 +18,7 @@
 ]]
 
 local U = require("prism.util")
+local rules = require("prism.rules")
 
 local ListView = {}
 
@@ -48,16 +49,54 @@ function ListView.new(ui, m)
 
   local MODES = {}
 
+  -- UNASSIGNED groups items whose names differ in one word under the rule that would catch them (rules.ideas),
+  -- each with MAKE RULE; the rest go under "no rule idea for these".
+  local function arrangeUnassigned(rows)
+    local names, byName = {}, {}
+    for _, r in ipairs(rows) do
+      local n = r.label or r.key
+      if not byName[n] then names[#names + 1] = n; byName[n] = {} end
+      table.insert(byName[n], r)
+    end
+    local ideas = rules.ideas(names)
+    if #ideas == 0 then return rows end
+    local out, placed = {}, {}
+    local function addRows(n) for _, r in ipairs(byName[n]) do out[#out + 1] = r end; placed[n] = true end
+    for _, idea in ipairs(ideas) do
+      out[#out + 1] = { group = idea.pattern, idea = true, types = #idea.names }
+      for _, n in ipairs(idea.names) do addRows(n) end
+    end
+    local rest = {}
+    for _, n in ipairs(names) do if not placed[n] then rest[#rest + 1] = n end end
+    if #rest > 0 then
+      out[#out + 1] = { group = "no rule idea for these", types = #rest }
+      for _, n in ipairs(rest) do addRows(n) end
+    end
+    return out
+  end
+
   MODES.unassigned = {
     filter = true,
     rows = function() return S.status and S.status.unassigned or {} end,
+    arrange = arrangeUnassigned,
     header = function() return fit("item", RW - 9) .. rfit("qty", 8) .. " " end,
     row = function(y, r, rb)
+      if r.group then
+        fill(RX, y, RW, 1, C.panel)
+        put(RX, y, fit("▾ " .. r.group, 34), r.idea and C.accent or C.warn, C.panel)
+        put(RX + 34, y, fit(r.idea and ("catches %d here"):format(r.types) or ("%d item%s"):format(r.types,
+          r.types == 1 and "" or "s"), 18), C.dim, C.panel)
+        if r.idea then button(W - 12, y, "MAKE RULE", { fn = function() m.makeRuleFrom(r.group) end }) end
+        return
+      end
       put(RX, y, fit(r.label or r.key, RW - 9), C.text, rb)
       put(RX + RW - 9, y, rfit(U.fmtNum(r.size), 8) .. " ", C.warn, rb)
     end,
     empty = function() return "nothing unassigned - every item has a home" end,
-    tap = function(r) return function() m.selectRow(r, "unassigned") end end,
+    tap = function(r)
+      if r.group then return nil end
+      return function() m.selectRow(r, "unassigned") end
+    end,
   }
 
   -- ITEMS sorted by name or quantity, or grouped by process under headers that collapse when tapped
@@ -342,8 +381,8 @@ function ListView.new(ui, m)
       local pos = ("%d-%d of %d"):format(S.scroll + 1, math.min(#rows, S.scroll + visible), #rows)
       right = W - len(pos)
       put(right, L.INFO_ROW, pos, C.dim, C.bg)
-    elseif S.tab == "unassigned" and st and (st.unassignedCount or 0) > #rows and S.filter == "" then
-      local note = ("router sent top %d of %d"):format(#rows, st.unassignedCount)
+    elseif S.tab == "unassigned" and st and (st.unassignedCount or 0) > #(st.unassigned or {}) and S.filter == "" then
+      local note = ("router sent top %d of %d"):format(#st.unassigned, st.unassignedCount)
       put(W - len(note), L.INFO_ROW, note, C.dim, C.bg)
     end
     if S.tab == "items" and S.fetching then put(right - 13, L.INFO_ROW, "refreshing… ", C.dim, C.bg) end
