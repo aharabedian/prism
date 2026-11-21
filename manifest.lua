@@ -25,6 +25,7 @@ return {
   { "lib/prism/protocol.lua", "lib/prism/protocol.lua" },
   { "lib/prism/router/commands.lua", "lib/prism/router/commands.lua" },
   { "lib/prism/router/core.lua", "lib/prism/router/core.lua" },
+  { "lib/prism/router/daily.lua", "lib/prism/router/daily.lua" },
   { "lib/prism/router/database.lua", "lib/prism/router/database.lua" },
   { "lib/prism/router/events.lua", "lib/prism/router/events.lua" },
   { "lib/prism/router/explain.lua", "lib/prism/router/explain.lua" },

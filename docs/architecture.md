@@ -45,6 +45,7 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `router/machines` | `open`, `poll`, `summary` for monitored GT machines | core, status |
 | `router/health` | stall detection and alerts, with their state between scans | core |
 | `router/events` | the event log in `prism-log.cfg`: add, page newest first (all, alerts, changes), save at most once a minute | core, commands |
+| `router/daily` | each process's last 24 hours (backlog and items out per 10 minutes) in `prism-history.cfg` | core, commands |
 | `router/supplies` | what processes need from elsewhere (prism.cfg `supplies`): read each scan, low after a minute below `min` | core, status, telemetry |
 | `router/flow` | items leaving and arriving per process (rates over 5 minutes), and its machines' busy share over the last hour | core, status, telemetry |
 | `router/status` | `build()` the `router-status` message | core |
@@ -195,7 +196,7 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 - When the cards don't fit, the biggest first list fewer machines ("+N more"), then shrink to their
   header with machines as dots (the outputs line stays only if something's wrong).
 - Tapping a card opens its page in place of the list and panel: what's waiting and its throughput, a
-  backlog chart from the screen's own samples, each machine's last 2 hours as a band (the screen counts the
+  backlog chart (5 MIN: the screen's own samples; 24 H: the router's, from `history`, with items out under it), each machine's last 2 hours as a band (the screen counts the
   machine states it receives in 160 s cells), the queue in rank order with what each item is doing
   (`queue`, asked again with every status), its outputs, sharing (the overflow mark is a field: tap, type,
   Enter), and HOLD / SHARE ON OVERFLOW / ALWAYS SHARE / CLOSE.

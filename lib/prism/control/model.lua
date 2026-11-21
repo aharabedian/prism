@@ -8,7 +8,7 @@
   m.tick(now) -> redraw?    expire flash messages, confirmations and stuck fetches
   m.start()                 ask the router for status
   actions: pickRouter(address), switchTab, selectRow, editRule, newRule, makeRule, makeRuleFrom(pattern),
-           runNext(on), saveRule, deleteRule, moveRule,
+           runNext(on), setChartSpan(span), saveRule, deleteRule, moveRule,
            cancelRule, cancelSelection, apply, removeOverride, forget, forgetAbsent, resetRules,
            reloadRouter, pickProcess, pickFallback, pickBatch, editBatch, blur, pickPriority, setScroll,
            clearFilter, quit,
@@ -36,6 +36,7 @@
   S.overflowEdit  the digits typed into the process page's overflow field (nil: not focused)
   S.procSel     the process tapped in the PROCESSES list: its page (prism.control.process_view) replaces the
                 list and panel. S.queue: its queue in rank order (router-queue), asked again with every status
+  S.chartSpan   the process page's chart: "5m" (default) or "24h"; S.dayHist: router-history for S.procSel
   S.machineCells  { [machine] = { [cell] = { w, n, down, wait } } }: machine states seen per 160 s cell (the
                 last 45), for the process page's bands
   S.msg/msgOk   the flash message in the footer (S.msgWarn: in yellow, for news like a new item);
@@ -102,6 +103,12 @@ function Model.new(settings, modem)
     if not S.sel then return end
     S.explainReq = S.explainReq + 1
     m.send({ cmd = "explain", key = S.sel.key, req = S.explainReq })
+  end
+
+  local function askHistory()
+    if not S.procSel or S.chartSpan ~= "24h" then return end
+    S.historyReq, S.dayHistAt = (S.historyReq or 0) + 1, computer.uptime()
+    m.send({ cmd = "history", process = S.procSel, req = S.historyReq })
   end
 
   local function askQueue()
@@ -262,11 +269,19 @@ function Model.new(settings, modem)
 
   function m.selectProcess(name)
     S.sel, S.ruleEdit, S.preview = nil, nil, nil
-    S.procSel, S.queue = name, nil
+    S.procSel, S.queue, S.dayHist = name, nil, nil
     askQueue()
+    askHistory()
   end
 
   function m.cancelProcess() S.procSel, S.queue, S.overflowEdit = nil, nil, nil end
+
+  -- The process page's chart: "5m" (the screen's samples) or "24h" (the router's 24 hours, asked once a minute).
+  function m.setChartSpan(span)
+    S.chartSpan = span
+    S.dayHist = nil
+    askHistory()
+  end
 
   function m.setHold(on)
     if not S.procSel then return end
@@ -432,6 +447,7 @@ function Model.new(settings, modem)
       S.logEvents = msg.events
       askExplain()
       askQueue()
+      if S.chartSpan == "24h" and computer.uptime() - (S.dayHistAt or 0) >= 60 then askHistory() end
       recordMachines(msg.machines)
       return "full"
     elseif from ~= S.router and S.router then
@@ -472,6 +488,10 @@ function Model.new(settings, modem)
       S.log = { list = S.logBuf, now = msg.now or 0, real = msg.real, at = computer.uptime() }
       S.logBuf = nil
       return S.tab == "log" and "full"
+    elseif msg.type == "router-history" then
+      if msg.req ~= S.historyReq or msg.process ~= S.procSel then return false end
+      S.dayHist = msg
+      return "full"
     elseif msg.type == "router-queue" then
       if msg.req ~= S.queueReq or msg.process ~= S.procSel then return false end
       S.queue = msg

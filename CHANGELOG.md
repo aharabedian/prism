@@ -71,6 +71,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   needs 8000 L of Sulfuric Acid in the main net). Below it for a minute, the process shares every item with a
   fallback, and one warn replaces its stall and idle alerts; above it for a minute, it goes back. The card and the
   process page show it; LENS gets `prism_supply_amount`. Protocol: `supply` on `router-status` processes.
+- **24-hour history**: the router keeps each process's backlog and items out per 10 minutes for 24 hours in
+  `prism-history.cfg` (about 3 KB per process), across restarts. The process page's chart has **5 MIN** (the
+  screen's own samples) and **24 H**, with the items out as a row under the backlog. Protocol: the `history`
+  command and `router-history` reply.
 
 ## [1.4.0] - 2026-11-18
 

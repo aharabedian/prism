@@ -26,6 +26,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_fallbacks.lua` | Sharing with fallbacks on overflow, items never shared, always share (persisted), status/list fields, and the screen: process panel, ALWAYS SHARE, Fallback row |
 | `test_stockers.lua` | GT stocking input buses: top items incl. batch items, stable slots, auto-pull off, no database, unloaded bus, less than one batch left (not stocked, no stall/idle), screen row |
 | `test_glance.lua` | Glance mode: after `glanceAfter`, a third of the resolution with each process big; a touch goes back without acting; off by default |
+| `test_history.lua` | 24 hours per process: `prism-history.cfg` across a restart, the `history` command, the page's 24 H and 5 MIN |
 | `test_hold.lua` | Holding a process: outputs cleared, no stall or idle alerts, status and explain, kept across a restart, RESUME; the screen's HOLD / RESUME and the card |
 | `test_interfaces.lua` | ME interfaces another network pulls from: top batch-1 items, clearing at start and exit, one rewrite per item running out, status, screen row, configuration errors |
 | `test_feeders.lua` | Exact-batch feeding against a machine that only consumes full batches; catalog paging, forget |
@@ -44,7 +45,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 | `test_update.lua` | prism-update install/update, keeping config, pointing to prism-setup, rejecting bad downloads, migrating old `router*.cfg` |
 | `test_example_config.lua` | The shipped example config loads and routes with its default rules |
 | `test_who.lua` | Who changed it: the player on every command, overrides keeping who and when, OVERRIDES' by column |
-| `test_units.lua` | Pure modules on their own: `rules` (incl. fallbacks), `router/planner` (incl. spill and its hysteresis), `router/slots`, `router/flow`, `rules.ideas`, `protocol`, `setup/editor` |
+| `test_units.lua` | Pure modules on their own: `rules` (incl. fallbacks), `router/planner` (incl. spill and its hysteresis), `router/slots`, `router/flow`, `router/daily`, `rules.ideas`, `protocol`, `setup/editor` |
 | `test_log.lua` | The event log: what's kept, real times, across restarts, paging and filters; the LOG tab with and without `timezone` |
 | `test_modules.lua` | Packaging and contracts: `manifest.lua` lists every file, one version, docs list every setting and command, the program bootstrap, the vendored LENS modules match `../lens` |
 | `helper.lua` | Shared setup (`H`) |

@@ -111,16 +111,18 @@ M.onPull = function()
   if not done.r then done.r = true; return cmd({ cmd = "rules" }) end
   if not done.p then done.p = true; return cmd({ cmd = "previewRule", pattern = "Ore$", index = 5, req = 1 }) end
   if not done.i then done.i = true; return cmd({ cmd = "items", offset = 0, req = 1 }) end
+  if not done.e then done.e = true; return cmd({ cmd = "explain", key = GT .. ":2028", req = 1 }) end
   return { "interrupted" }
 end
 assert(loadfile(H.SRC .. "/prism.lua"))(cfgPath)
-local status, rulesMsg, preview, itemsMsg
+local status, rulesMsg, preview, itemsMsg, explainMsg
 for _, s in ipairs(M.sent) do
   local m = ser.unserialize(s.data)
   if m.type == "router-status" then status = s.data end
   if m.type == "router-rules" then rulesMsg = s.data end
   if m.type == "router-preview" then preview = m end
   if m.type == "router-items" then itemsMsg = m end
+  if m.type == "router-explain" then explainMsg = m end
 end
 check(status and rulesMsg and preview and itemsMsg, "router produced status, rules, preview and items")
 local st = ser.unserialize(status)
@@ -169,6 +171,11 @@ local steps = {
   function()
     check(M.find("▾ centrifuge", 5, RX) ~= nil and M.find("▾ ebf", 5, RX) ~= nil, "ITEMS grouped by process")
     return tap("Titanium Dust", 5, RX)
+  end,
+  function()                                  -- the router's answer for the Now: line
+    local c = lastSent()
+    check(c.cmd == "explain" and explainMsg, "tapping an item asks what it's doing")
+    return msg(withReq(explainMsg, c.req))
   end,
   function()
     H.screen("showcase-dashboard")

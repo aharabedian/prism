@@ -288,4 +288,25 @@ do
   check(#rules.ideas({ "Flint", "Clay" }) == 0, "one-word names give no idea")
 end
 
+---------------------------------------------------------------- daily (24 hours per process)
+do
+  local Daily = require("prism.router.daily")
+  local path = H.TMP .. "/daily.cfg"
+  os.remove(path)
+  local d = Daily.open(path)
+  local t0 = 1795154400
+  d:add(t0, "wash", 900, 10)
+  d:add(t0 + 300, "wash", 800, 15)
+  d:add(t0 + 600, "wash", 700, 5)
+  local b, o = d:values("wash", t0 + 600)
+  check(#b == 144 and b[144] == 700 and o[144] == 5 and b[143] == 800 and o[143] == 25 and b[142] == false,
+    "one slot per 10 minutes: the last backlog, the items out added up, false where nothing was recorded")
+  check(d:save(t0 + 600) and not d:save(t0 + 610), "saved once per slot")
+  d:add(t0 + 600 + 144 * 600, "wash", 1, 1)
+  d:save(t0 + 600 + 144 * 600)
+  local again = Daily.open(path)
+  b = again:values("wash", t0 + 600 + 144 * 600)
+  check(b[144] == 1 and b[1] == false and again.data.wash[math.floor(t0 / 600)] == nil, "read back; slots older than 24 hours are dropped")
+end
+
 H.done()

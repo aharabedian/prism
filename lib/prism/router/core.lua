@@ -17,6 +17,7 @@
     r.lastStatus the latest router-status
     r.telemetry  reporting to LENS (prism.router.telemetry), or nil when lensPort is off
     r.flow       items out and in per process, and machines' busy share (prism.router.flow)
+    r.daily      each process's last 24 hours (prism.router.daily, <base>-history.cfg)
     r.supplies   what processes need from elsewhere (prism.router.supplies); r.lows: those low in the latest scan
     r.moved      { [process] = { out, arrived } } in the latest scan
     r.heldAt     { [process] = uptime }: since when each held process (store.held) has been held here
@@ -45,6 +46,7 @@ local commands  = require("prism.router.commands")
 local Telemetry = require("prism.router.telemetry")
 local Flow      = require("prism.router.flow")
 local Supplies  = require("prism.router.supplies")
+local Daily     = require("prism.router.daily")
 local Events    = require("prism.router.events")
 local Clock     = require("prism.clock")
 local filesystem = require("filesystem")
@@ -76,6 +78,7 @@ function Router:setup()
   self.store = Store.open(self.configPath, cfg, log)
   if not self.events then
     self.events = Events.open(self.store.paths.log, log)
+    self.daily = Daily.open(self.store.paths.history, log)
     self.clock = Clock.new(filesystem, (self.configPath:match("^(.*)/[^/]*$") or ".") .. "/.prism-clock")
     self.alertAt = {}
   end
@@ -294,6 +297,13 @@ function Router:cycle()
   self.moved = self.flow:update(computer.uptime(), scan, self.stats.cycles > 0 and self.last or nil, function(key)
     return (store:classify(store:labelOf(key, self.last.labels[key]), key))
   end, self.machines)
+  local seen = {}
+  for proc, b in pairs(scan.backlog) do
+    seen[proc] = true
+    self.daily:add(t, proc, b.items, self.moved[proc] and self.moved[proc].out or 0)
+  end
+  for proc, mv in pairs(self.moved) do if not seen[proc] then self.daily:add(t, proc, 0, mv.out) end end
+  self.daily:save(t)
 
   self.last = { labels = scan.labels, present = scan.present, queues = scan.queues }
   self.stats.cycles = self.stats.cycles + 1
@@ -356,6 +366,7 @@ function Router:run()
 
   self:event({ kind = "stop", text = "router stopped" })
   self.events:save()
+  self.daily:save()
   for _, o in ipairs(self.outputs) do o:close() end   -- hand stock back to the network
   if self.modem and self.cfg.modemPort then self.modem.close(self.cfg.modemPort) end
   if self.telemetry then self.telemetry:close() end
