@@ -13,6 +13,8 @@
     output:step(queue)    feeders only: one feed step, every feedInterval
     output:status(labels) its row in router-status
     output:alert()        -> { id, level, text } | nil
+    output:holds(key)     -> where it holds that item now ("slot 3", a feeder's state) | nil
+    output.size           how many items it holds at once (its slots; a feeder 1)
     output:close()        on exit: hand anything held back to the network
     output.claims         optional { address, slot }[]: ME interface slots it configures; two outputs
                           claiming the same slot is a configuration error

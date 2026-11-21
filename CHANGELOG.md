@@ -5,6 +5,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Why it waits**: ROUTE ITEM has a **Now:** line saying what the item is doing: on which bus, stocker,
+  interface or feeder (and the slot), or why it waits (below its batch and how many more it needs, ranked below
+  what its outputs hold, a batch item with no feeder or stocker, nothing serving its process). Protocol: the
+  `explain` command and `router-explain` reply.
+
 ## [1.4.0] - 2026-11-18
 
 ### Added

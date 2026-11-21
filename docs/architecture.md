@@ -45,6 +45,7 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `router/health` | stall detection and alerts, with their state between scans | core |
 | `router/status` | `build()` the `router-status` message | core |
 | `router/commands` | the command table: `{ fields, run }` per wireless command | core |
+| `router/explain` | `item(r, key)`: one line on what an item is doing now (on which output, or why it waits), from the output interface only | commands |
 | `router/telemetry` | reporting to [LENS](https://github.com/aharabedian/lens) on `lensPort`: describe at start, a snapshot after each scan, answering `hello`. Every call is protected, so a failure never stops routing | core |
 | `lens/metrics`, `lens/codec` | **vendored** from LENS (`tools/sync-lens.sh`), byte for byte; don't edit here. `test_modules` compares them with a `../lens` checkout | telemetry |
 | `control/ui` | the control screen's layout on top of `gui`, sparklines | screen views |
@@ -59,7 +60,8 @@ Shared modules never require role modules, and role modules never require each o
 
 Everything that sends a process's items somewhere implements one interface (`lib/prism/router/outputs.lua`):
 `kind`, `name`, `process`, `takesBatches`, `statusList`, `apply(queue)` after each scan, `step(queue)`
-between scans (feeders), `status(labels)`, `alert()`, `close()`, `fed` for feeders, and `claims` (the ME
+between scans (feeders), `status(labels)`, `alert()`, `holds(key)` (where it holds an item now, for the
+screen's "Now:" line), `size` (items held at once), `close()`, `fed` for feeders, and `claims` (the ME
 interface slots it configures; two outputs claiming one slot won't start). The scan, stall detection, status
 and warnings only use this interface, so a new kind of output is one new module plus a line in `outputs.lua`.
 
@@ -160,6 +162,7 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
   each card's "N/M working" (everything, if machines were added, removed or moved to another process).
 - Item lists are fetched in pages, because wireless packets are limited to about 8 KB.
 - All edits are commands to the router; the screen re-fetches after each `router-ack`.
+- ROUTE ITEM's "Now:" line is the router's `explain` for the selected item, asked again with every status.
 - The left column is one card per process: header (backlog, history, machines working), its machines,
   and a line about its outputs (export buses "N filters", stockers/interfaces "N stocked", feeders, and
   anything wrong). Things without a process get a last "(no process)" card.

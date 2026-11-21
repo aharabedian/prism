@@ -28,8 +28,10 @@ handlers are the table in `lib/prism/router/commands.lua` (a test checks it matc
 | `deleteRule` | `index` | → `router-ack` |
 | `moveRule` | `index`, `dir` (`-1` up, `1` down) | → `router-ack` |
 | `resetRules` | | Delete `prism-rules.cfg`, back to `prism.cfg` rules → `router-ack` |
-| `previewRule` | `pattern`, `index?`, `process?`, `req` | `router-preview` |
+| `previewRule` | `pattern`, `index?`, `process?`, `req` | `router-explain` | `req`, `key`, `text` (one line: on which outputs, or why it waits), `level` (`ok` on an output, `warn` waiting for something to change, `dim`) |
+| `router-preview` |
 | `alwaysShare` | `process`, `on` (boolean) | Share every item of a process that has a fallback (`on`), or only on overflow; saved in `prism-always-share.cfg` → `router-ack`, rescan |
+| `explain` | `key`, `req?` | `router-explain`: what the item is doing now |
 | `reload` | | Re-read `prism.cfg` → `router-ack` |
 
 ## Messages (router → screen)

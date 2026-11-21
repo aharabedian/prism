@@ -22,6 +22,8 @@
                 "name" or "qty"
   S.sel         the item being routed: { key, label, size, list, source, process },
                 with the choices S.selProc, S.selFallback, S.selPrio, S.selBatch
+  S.explain     the router's line on what S.sel is doing now: { key, text, level } (router-explain); asked
+                again with every status while an item is selected
   S.ruleEdit    the rule being edited: { index?, pattern, process, fallback?, priority, batch }; S.preview
   S.batchEdit   the digits typed into the Batch field while it has focus (nil: not focused)
   S.procSel     the process tapped in the PROCESSES list (its panel: overflow, ALWAYS SHARE)
@@ -49,6 +51,7 @@ function Model.new(settings, modem)
     items = nil, itemsBuf = nil, itemsReq = 0, fetching = false, fetchAt = 0,
     rules = nil, rulesSource = nil,
     ruleEdit = nil, preview = nil, previewReq = 0,
+    explain = nil, explainReq = 0,
     tab = "unassigned", scroll = 0, filter = "", itemSort = "process", collapsed = {},
     sel = nil, selProc = nil, selFallback = nil, selPrio = 10, selBatch = 1, procSel = nil, batchEdit = nil,
     msg = nil, msgOk = true, msgAt = 0,
@@ -79,6 +82,12 @@ function Model.new(settings, modem)
     if r.pattern == "" then S.preview = nil; return end
     S.previewReq = S.previewReq + 1
     m.send({ cmd = "previewRule", pattern = r.pattern, index = r.index, process = r.process, req = S.previewReq })
+  end
+
+  local function askExplain()
+    if not S.sel then return end
+    S.explainReq = S.explainReq + 1
+    m.send({ cmd = "explain", key = S.sel.key, req = S.explainReq })
   end
 
   local function refreshTab()
@@ -130,6 +139,8 @@ function Model.new(settings, modem)
     S.selFallback = row.fallback
     S.selPrio  = row.priority or 10
     S.selBatch = row.batch or 1
+    S.explain = nil
+    askExplain()
   end
 
   function m.cancelSelection() S.sel = nil end
@@ -290,6 +301,7 @@ function Model.new(settings, modem)
       checkAlerts(msg)
       S.status, S.statusAt = msg, computer.uptime()
       if S.tab == "items" and not S.fetching then fetchItems() end   -- keep quantities fresh
+      askExplain()
       return "full"
     elseif msg.type == "router-machines" then
       if not S.status then return false end
@@ -314,6 +326,10 @@ function Model.new(settings, modem)
     elseif msg.type == "router-preview" then
       if msg.req ~= S.previewReq or not S.ruleEdit then return false end
       S.preview = msg
+      return "full"
+    elseif msg.type == "router-explain" then
+      if msg.req ~= S.explainReq or not S.sel or msg.key ~= S.sel.key then return false end
+      S.explain = { key = msg.key, text = msg.text, level = msg.level }
       return "full"
     elseif msg.type == "router-ack" then
       m.flash(msg.text or "ok", msg.ok ~= false)

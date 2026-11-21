@@ -71,6 +71,7 @@ function Interface:apply(queue)
 end
 
 function Interface:status(labels) return Bus.statusRow(self, labels, "interface") end
+function Interface:holds(key) return Bus.slotOf(self, key) end
 function Interface.step() end
 function Interface.alert() return nil end
 

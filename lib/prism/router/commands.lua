@@ -11,6 +11,7 @@
 
 local rules    = require("prism.rules")
 local protocol = require("prism.protocol")
+local explain  = require("prism.router.explain")
 
 local C = {}
 
@@ -204,6 +205,11 @@ COMMANDS.items = { run = function(r, msg, reply)
   local page = {}
   for i = offset + 1, math.min(#all, offset + protocol.PAGE) do page[#page + 1] = all[i] end
   reply({ type = "router-items", req = msg.req, offset = offset, total = #all, list = page })
+end }
+
+COMMANDS.explain = { fields = { key = "string" }, run = function(r, msg, reply)
+  local e = explain.item(r, msg.key)
+  reply({ type = "router-explain", req = msg.req, key = msg.key, text = e.text, level = e.level })
 end }
 
 ---------------------------------------------------------------- dispatch
