@@ -1,9 +1,9 @@
 --[[ prism.control.panel_view: the panel under the list and the footer.
 
   PanelView.new(ui, m) -> v
-  v.draw()        the process panel (its overflow and outputs) while a process is selected, the rule editor while a rule is
-                  edited, else ROUTE ITEM (or the RULES help). ROUTE ITEM's "Now:" line is the router's explanation
-                  of what the item is doing (m.S.explain)
+  v.draw()        the process panel (throughput, its machines' busy share, overflow, outputs) while a process
+                  is selected, the rule editor while a rule is edited, else ROUTE ITEM (or the RULES help).
+                  ROUTE ITEM's "Now:" line is the router's explanation of what the item is doing (m.S.explain)
   v.drawFooter()  flash message / router error / rotating alerts, RELOAD CFG and QUIT
 ]]
 
@@ -181,6 +181,16 @@ function PanelView.new(ui, m)
     local p = S.status and S.status.processes and S.status.processes[name] or {}
     fill(RX, P, RW, H - 1 - P, C.panel)
     put(RX, P, " PROCESS " .. name, C.accent, C.panel)
+    if p.outRate then
+      local net = p.outRate - (p.inRate or 0)
+      local tail = (p.items or 0) == 0 and "" or net > 0 and ("clears in " .. U.fmtShort(p.items / net * 60))
+        or net < 0 and ("growing " .. U.fmtNum(-net) .. "/min") or "steady"
+      local text = ("Out %s/min  ·  in %s/min  (last 5 min)%s"):format(U.fmtNum(p.outRate), U.fmtNum(p.inRate or 0),
+        tail ~= "" and ("  ·  " .. tail) or "")
+      put(RX + 1, P + 1, fit(text, RW - 2), net < 0 and C.warn or C.text, C.panel)
+    end
+    local busy, kind = ui.busyText(p)
+    if busy then put(RX + 1, P + 5, fit(busy, RW - 2), (kind == "limit" or kind == "slow") and C.warn or C.dim, C.panel) end
     put(RX + 1, P + 2, fit(("%s items waiting (%d types)  ·  %d output(s)"):format(
       U.fmtNum(p.items or 0), p.types or 0, p.buses or 0), RW - 2), C.text, C.panel)
     if p.alwaysShare then

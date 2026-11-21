@@ -249,4 +249,29 @@ local names = { "Washer 10", "washer 2", "Centrifuge 1", "Washer 1" }
 table.sort(names, U.natLess)
 check(table.concat(names, ",") == "Centrifuge 1,Washer 1,washer 2,Washer 10", "natLess: " .. table.concat(names, ","))
 
+---------------------------------------------------------------- flow (throughput, busy)
+do
+  local Flow = require("prism.router.flow")
+  local fl = Flow.new()
+  local function scanOf(present, queues) return { present = present, queues = queues } end
+  local function q(...) local out = {} for _, e in ipairs({ ... }) do out[#out + 1] = { key = e[1], size = e[2] } end return out end
+  local cls = function(key) return key == "gone:0" and "wash" or nil end
+  local f1 = scanOf({ ["a:0"] = 100, ["b:0"] = 50, ["gone:0"] = 30 }, { wash = q({ "a:0", 100 }, { "b:0", 50 }, { "gone:0", 30 }) })
+  local mv = fl:update(0, f1, nil, cls, { { process = "wash", state = "working" }, { process = "wash", state = "idle" } })
+  check(next(mv) == nil and fl:rates("wash", 0) == nil, "the first scan counts nothing")
+  local f2 = scanOf({ ["a:0"] = 70, ["b:0"] = 60 }, { wash = q({ "a:0", 70 }, { "b:0", 60 }) })
+  mv = fl:update(30, f2, f1, cls, { { process = "wash", state = "working" }, { process = "wash", state = "working" } })
+  check(mv.wash.out == 60 and mv.wash.arrived == 10, "out: a dropped 30 and gone left with 30; arrived: b rose 10")
+  local out, arrived = fl:rates("wash", 30)
+  check(out == 120 and arrived == 20, "per minute over the time measured so far (60 in 30 s)")
+  check(fl:busy("wash") == 0.75 and fl:busy("crush") == nil, "busy: 3 of 4 machine readings were working")
+  local f3 = scanOf({ ["a:0"] = 70, ["b:0"] = 60 }, { wash = q({ "a:0", 70 }, { "b:0", 60 }) })
+  fl:update(400, f3, f2, cls, {})
+  check(fl:rates("wash", 400) == 0, "samples older than 5 minutes drop out")
+  fl:update(4000, f3, f3, cls, {})
+  check(fl:busy("wash") == nil, "busy readings older than an hour drop out")
+  check(require("prism.util").fmtShort(2520) == "42m" and require("prism.util").fmtShort(8160) == "2h16m"
+    and require("prism.util").fmtShort(30) == "<1m", "fmtShort")
+end
+
 H.done()

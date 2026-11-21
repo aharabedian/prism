@@ -8,6 +8,7 @@
   fmtNum(n)          1234 -> "1234", 12345 -> "12.3k", 1.2e6 -> "1.2M"
   fmtSecs(s)         45 -> "45s", 125 -> "2m05s"            (router log/alert text)
   fmtTime(s)         45 -> "0m45s", 3720 -> "1h02m"         (control screen)
+  fmtShort(s)        45 -> "<1m", 2520 -> "42m", 8160 -> "2h16m", over 99 hours -> "99h+"   (how long until)
   pct(x)             0.426 -> "43%", nil -> ""
   round2(x)          to two decimals, nil stays nil
   natLess(a, b)      a before b with numbers compared by value: "Washer 2" < "Washer 10"
@@ -59,6 +60,14 @@ function U.fmtTime(s)
   local h, m = math.floor(s / 3600), math.floor(s % 3600 / 60)
   if h > 0 then return ("%dh%02dm"):format(h, m) end
   return ("%dm%02ds"):format(m, s % 60)
+end
+
+function U.fmtShort(s)
+  s = math.floor(s or 0)
+  if s < 60 then return "<1m" end
+  if s < 3600 then return math.floor(s / 60) .. "m" end
+  if s >= 99 * 3600 then return "99h+" end
+  return ("%dh%02dm"):format(math.floor(s / 3600), math.floor(s % 3600 / 60))
 end
 
 function U.pct(x)

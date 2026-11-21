@@ -13,6 +13,11 @@ versions follow [Semantic Versioning](https://semver.org/).
 - **Below a full batch**: each process card says how many items wait below their batch ("56 below batch"), and
   ITEMS has a BELOW BATCH button that lists only those items, with how many more each needs. `router-status`
   processes carry `below`.
+- **Throughput and time to clear**: the router counts items leaving and arriving per process. Each card ends
+  with `212/min  ·  clears 42m` (or `growing 20/min` in yellow), and the process panel shows out and in per
+  minute and how busy its machines were in the last hour, with what that means (`they are the limit`,
+  `items reach them more slowly than they run`, `they wait for items`). `router-status` processes carry
+  `outRate`, `inRate` and `busy`; LENS gets `prism_items_out_total{process}`.
 
 ## [1.4.0] - 2026-11-18
 

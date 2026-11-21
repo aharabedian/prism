@@ -43,6 +43,7 @@ function Telemetry.open(cfg, modem, log)
   t.progress     = m:gauge("prism_machine_progress_ratio", "Monitored machine recipe progress", "0..1")
   t.scanSeconds  = m:gauge("prism_scan_seconds", "How long the latest scan took", "s")
   t.scans        = m:counter("prism_scans_total", "Scans since the router started", "scans")
+  t.itemsOut     = m:counter("prism_items_out_total", "Items that left each process's backlog", "items")
   t.writes       = m:counter("prism_writes_total", "Filter and interface writes since the router started", "writes")
   t.enc = codec.encoder{ node = cfg.lensNode or "prism", role = "prism", boot = codec.newBoot(),
     interval = cfg.interval, token = cfg.lensToken, version = require("prism.version") }
@@ -82,6 +83,9 @@ function Telemetry:report(r, scan, stalled, alerts)
       end
     end
     if mc.progress then self.progress:set(mc.progress, { process = mc.process, machine = mc.name }) end
+  end
+  for proc, mv in pairs(r.moved or {}) do
+    if mv.out > 0 then self.itemsOut:add(mv.out, { process = proc }) end
   end
   self.scanSeconds:set(r.stats.cycleMs / 1000)
   self.scans:add(math.max(0, r.stats.cycles - self.lastCycles))

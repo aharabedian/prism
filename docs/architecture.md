@@ -43,6 +43,7 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `router/database` | staging items in a Database Upgrade: `stage(key, stack)` | exportbus, interface, feeder |
 | `router/machines` | `open`, `poll`, `summary` for monitored GT machines | core, status |
 | `router/health` | stall detection and alerts, with their state between scans | core |
+| `router/flow` | items leaving and arriving per process (rates over 5 minutes), and its machines' busy share over the last hour | core, status, telemetry |
 | `router/status` | `build()` the `router-status` message | core |
 | `router/commands` | the command table: `{ fields, run }` per wireless command | core |
 | `router/explain` | `item(r, key)`: one line on what an item is doing now (on which output, or why it waits), from the output interface only | commands |
@@ -97,7 +98,7 @@ A command that changes routing (assign, rule edit, reload...) triggers an immedi
    sees the queues after sharing.
 2. Add new items to the catalog (`prism-items.cfg`); log new problems once.
 3. `output:apply(queue)` for every output (what each kind takes: [Outputs](#outputs)); feeders do nothing here.
-4. `health`: detect stalls and build alerts.
+4. `health`: detect stalls and build alerts; `flow`: count what left and arrived since the last scan.
 5. `status.build`, then broadcast it.
 
 ### Export bus filters
@@ -166,6 +167,8 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 - The left column is one card per process: header (backlog, history, machines working), its machines,
   and a line about its outputs (export buses "N filters", stockers/interfaces "N stocked", feeders, items
   below their batch, and anything wrong). Things without a process get a last "(no process)" card.
+- A card's outputs line ends with the process's throughput (`212/min  ·  clears 42m`, or `growing 20/min`);
+  its panel adds the rates and what its machines' busy share means.
 - When the cards don't fit, the biggest first list fewer machines ("+N more"), then shrink to their
   header with machines as dots (the outputs line stays only if something's wrong).
 - Tapping a card opens its panel (overflow, what's shared, each bus/stocker/feeder, SHARE ON OVERFLOW /

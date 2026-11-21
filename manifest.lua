@@ -26,6 +26,7 @@ return {
   { "lib/prism/router/explain.lua", "lib/prism/router/explain.lua" },
   { "lib/prism/router/exportbus.lua", "lib/prism/router/exportbus.lua" },
   { "lib/prism/router/feeder.lua", "lib/prism/router/feeder.lua" },
+  { "lib/prism/router/flow.lua", "lib/prism/router/flow.lua" },
   { "lib/prism/router/health.lua", "lib/prism/router/health.lua" },
   { "lib/prism/router/interface.lua", "lib/prism/router/interface.lua" },
   { "lib/prism/router/machines.lua", "lib/prism/router/machines.lua" },
