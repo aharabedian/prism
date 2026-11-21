@@ -17,6 +17,7 @@
     r.lastStatus the latest router-status
     r.telemetry  reporting to LENS (prism.router.telemetry), or nil when lensPort is off
     r.flow       items out and in per process, and machines' busy share (prism.router.flow)
+    r.supplies   what processes need from elsewhere (prism.router.supplies); r.lows: those low in the latest scan
     r.moved      { [process] = { out, arrived } } in the latest scan
     r.heldAt     { [process] = uptime }: since when each held process (store.held) has been held here
     r.events     the event log (prism.router.events, <base>-log.cfg); r:event(entry) adds one, stamped with
@@ -43,6 +44,7 @@ local status    = require("prism.router.status")
 local commands  = require("prism.router.commands")
 local Telemetry = require("prism.router.telemetry")
 local Flow      = require("prism.router.flow")
+local Supplies  = require("prism.router.supplies")
 local Events    = require("prism.router.events")
 local Clock     = require("prism.clock")
 local filesystem = require("filesystem")
@@ -98,6 +100,7 @@ function Router:setup()
   })
   self.feeders = outputs.ofKind(self.outputs, "feeder")
   self.machines = machines.open(cfg, proxyOf)
+  self.supplies = Supplies.open(cfg, proxyOf, self.net, log)
 
   self.modem = proxyOf("modem")
   if self.modem and cfg.modemPort then self.modem.open(cfg.modemPort) end
@@ -191,7 +194,12 @@ end
 -- Share items with their fallbacks (planner.spill) and log when a process starts and stops sharing.
 function Router:spill(scan)
   local before = self.spilling or {}
-  self.spilled = planner.spill(scan, self.store:limits(), self.spilled or {})
+  local limits = self.store:limits()
+  for proc in pairs(self.lows or {}) do             -- low on a supply: share as with ALWAYS SHARE
+    limits[proc] = limits[proc] or {}
+    limits[proc].alwaysShare = true
+  end
+  self.spilled = planner.spill(scan, limits, self.spilled or {})
   local now = {}
   for proc, s in pairs(scan.spilled) do
     now[proc] = true
@@ -236,6 +244,8 @@ function Router:cycle()
   for _, key in ipairs(store:expireNext(now)) do
     self:event({ kind = "edit", text = "run next ended: " .. (store:labelOf(key, self.last.labels[key]) or key) })
   end
+  self.supplies:read(computer.uptime())
+  self.lows = self.supplies:low()
   local scan = planner.plan(self.net.getItemsInNetwork() or {}, function(label, key)
     local proc, prio, batch, _, _, fallback = store:classify(label, key)
     if proc and proc ~= "ignore" and store:nextLeft(key, now) then prio = (prio or 0) + Store.NEXT_BOOST end
@@ -263,13 +273,16 @@ function Router:cycle()
   for proc in pairs(self.heldAt) do if not store.held[proc] then self.heldAt[proc] = nil end end
   for _, o in ipairs(self.outputs) do o:apply(self:queueFor(o.process, scan.queues)) end
 
+  local quiet = {}                                  -- held or low on a supply: no stall, idle or stuck alerts
+  for proc in pairs(store.held) do quiet[proc] = true end
+  for proc in pairs(self.lows) do quiet[proc] = true end
   local stalled = self.health:stalls(computer.uptime(), scan, self.last, self.outputs, self.machines, function(key)
     return (store:classify(store:labelOf(key, self.last.labels[key]), key))
-  end, store.held)
-  local stuck = self.stats.cycles > 0 and self.health:stuck(computer.uptime(), scan, self.last, self.outputs, store.held,
+  end, quiet)
+  local stuck = self.stats.cycles > 0 and self.health:stuck(computer.uptime(), scan, self.last, self.outputs, quiet,
     stalled) or {}
   local unassigned = self:unassignedFor(scan, computer.uptime())
-  local alerts = self.health:alerts(scan.backlog, stalled, self.outputs, self.machines, stuck, unassigned)
+  local alerts = self.health:alerts(scan.backlog, stalled, self.outputs, self.machines, stuck, unassigned, self.lows)
   for _, a in ipairs(self.health.changes.started) do
     self.alertAt[a.id] = t
     self.events:add({ at = t, kind = "alert", level = a.level, text = a.text })

@@ -66,6 +66,11 @@ versions follow [Semantic Versioning](https://semver.org/).
   control screen that hears more than one shows the first and puts a button per router in its header, with the
   others' alert counts (`ore-line ⚠2`); tapping one shows its cards and lists and sends commands to it. Protocol:
   `name` on `router-status`.
+- **Supplies a process needs** (to check in game first: `prism-discover --fluids`): `supplies` in prism.cfg names a
+  fluid or item a process needs and a minimum, read from any ME network the router has an adapter on (`chembath`
+  needs 8000 L of Sulfuric Acid in the main net). Below it for a minute, the process shares every item with a
+  fallback, and one warn replaces its stall and idle alerts; above it for a minute, it goes back. The card and the
+  process page show it; LENS gets `prism_supply_amount`. Protocol: `supply` on `router-status` processes.
 
 ## [1.4.0] - 2026-11-18
 

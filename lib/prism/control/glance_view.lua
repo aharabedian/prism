@@ -77,6 +77,7 @@ function GlanceView.new(ui, m)
       end
       local text, color
       if p.held then text, color = "held", C.warn
+      elseif p.supply and p.supply.low then text, color = "low " .. p.supply.name, C.warn
       elseif p.stalled then text, color = "stalled " .. U.fmtShort(p.stalled), C.bad
       else
         local rate, kind = ui.rateText(p)

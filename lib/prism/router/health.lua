@@ -15,7 +15,8 @@
     An item with at least one batch, on one of its process's outputs, that hasn't gone down for cfg.stuckAfter
     seconds while its process used other items in that time. Not for held or stalled processes, nor shared
     copies; off when cfg.stuckAfter is false.
-  health:alerts(backlog, stalled, outputs, machines, stuck, unassigned) -> { id, level = "bad"|"warn", text }[]
+  health:alerts(backlog, stalled, outputs, machines, stuck, unassigned, lows) -> { id, level = "bad"|"warn", text }[]
+    lows: { [process] = supply } low on a supply (prism.router.supplies): a warn each, id "supply:<process>"
     unassigned: how many items have stayed unassigned for cfg.unassignedAlert seconds (a warn, id "unassigned")
     Ids are stable (stall:wash, feeder:<name>, machine:<name>, idle:<name>, stuck:<key>; at most 5 stuck);
     logs each alert when it starts and when it resolves, and leaves health.changes = { started = alerts[],
@@ -120,7 +121,7 @@ function Health:stuck(now, scan, before, outputs, held, stalled)
   return out
 end
 
-function Health:alerts(backlog, stalled, outputs, machines, stuck, unassigned)
+function Health:alerts(backlog, stalled, outputs, machines, stuck, unassigned, lows)
   local list = {}
   local function add(id, level, text) list[#list + 1] = { id = id, level = level, text = text } end
   local procs = {}
@@ -144,6 +145,14 @@ function Health:alerts(backlog, stalled, outputs, machines, stuck, unassigned)
     end
   end
 
+  local lowProcs = {}
+  for proc in pairs(lows or {}) do lowProcs[#lowProcs + 1] = proc end
+  table.sort(lowProcs)
+  for _, proc in ipairs(lowProcs) do
+    local s = lows[proc]
+    add("supply:" .. proc, "warn", ("%s low on %s: %s of %s%s"):format(proc, s.name, U.fmtNum(s.amount or 0),
+      U.fmtNum(s.min), s.unit or ""))
+  end
   if (unassigned or 0) > 0 then
     add("unassigned", "warn", ("%d item%s unassigned for %s or more: route %s in UNASSIGNED"):format(unassigned,
       unassigned == 1 and "" or "s", U.fmtShort(self.cfg.unassignedAlert), unassigned == 1 and "it" or "them"))

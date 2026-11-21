@@ -40,6 +40,7 @@ return {
   { "lib/prism/router/status.lua", "lib/prism/router/status.lua" },
   { "lib/prism/router/stocker.lua", "lib/prism/router/stocker.lua" },
   { "lib/prism/router/store.lua", "lib/prism/router/store.lua" },
+  { "lib/prism/router/supplies.lua", "lib/prism/router/supplies.lua" },
   { "lib/prism/router/telemetry.lua", "lib/prism/router/telemetry.lua" },
   { "lib/prism/rules.lua", "lib/prism/rules.lua" },
   { "lib/prism/splash.lua", "lib/prism/splash.lua" },

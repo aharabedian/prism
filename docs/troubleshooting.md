@@ -11,6 +11,7 @@ alert and error. `prism-discover` shows what the computer can actually see.
 | `no database found` | Put a Database Upgrade *inside* an adapter (needed for export buses, interfaces and feeders) |
 | `prism-discover` lists no stocking input buses | Put an adapter against each one. Still none: your pack's OpenComputers predates the stocking bus driver; update GTNH |
 | `<name>: no me_inputbus matching ...` | Wrong `address` in `stockers`; run `prism-discover` |
+| A supply never reads anything (amount 0) | Run `prism-discover --fluids` on the router: the fluid's label there is what `fluid =` must say. If the network isn't listed, put an adapter against its controller or an ME interface, and set `network` |
 | `prism-discover` lists no export buses | The adapter must touch the **cable block** the buses are on, not the bus face or the machine |
 | `bus ... (side x): no export bus` | Wrong `side`. Run `prism-setup` again, or use the line `prism-discover` printed |
 | `transposer sees no inventory on interfaceSide` | Sides are relative to the transposer; check `prism-discover`'s transposer section. Use an ME Interface **block** |

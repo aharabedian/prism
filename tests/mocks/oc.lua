@@ -6,6 +6,8 @@
   drive and inspect:
 
     M.items                 the ME network contents: { name, damage, label, size }
+    M.fluids                its fluids: { name, label, amount }
+    M.network(addr, items, fluids)  another ME network (an me_controller) the router can read supplies from
     M.busHosts[addr][side]  export bus filter slots, per cable block and side
     M.dbSlots               the Database Upgrade's slots
     M.proxies[addr]         every component; add your own (machines, transposers...)
@@ -94,8 +96,15 @@ local database = {
   end,
 }
 
+M.fluids = {}
 local controller = {
   address = "me000000-cccc", type = "me_controller",
+  -- AE2's fluids, { name, label, amount (mB) } (unverified in game; prism-discover --fluids is the probe)
+  getFluidsInNetwork = function()
+    local out = { n = #M.fluids }
+    for i, f in ipairs(M.fluids) do out[i] = { name = f.name, label = f.label, amount = f.amount + 0.0 } end
+    return out
+  end,
   getItemsInNetwork = function()
     local out = { n = #M.items }
     for i, it in ipairs(M.items) do
@@ -169,6 +178,22 @@ function M.machine(addr, fields)
     end
   end })
   return fields
+end
+
+-- Another ME network (component me_controller): getItemsInNetwork / getFluidsInNetwork over its own lists.
+function M.network(addr, items, fluids)
+  proxies[addr] = { address = addr, type = "me_controller",
+    getItemsInNetwork = function()
+      local out = { n = #items }
+      for i, it in ipairs(items) do out[i] = { name = it.name, damage = (it.damage or 0) + 0.0, label = it.label, size = it.size } end
+      return out
+    end,
+    getFluidsInNetwork = function()
+      local out = { n = #fluids }
+      for i, f in ipairs(fluids) do out[i] = { name = f.name, label = f.label, amount = f.amount + 0.0 } end
+      return out
+    end }
+  return proxies[addr]
 end
 
 ---------------------------------------------------------------- ME interface blocks
