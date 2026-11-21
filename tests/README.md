@@ -15,6 +15,7 @@ Each `test_*.lua` runs in its own interpreter; the runner exits non-zero on any 
 
 | File | Covers |
 |---|---|
+| `test_new_items.lua` | New items: first-seen times in the catalog and status, `unassignedAlert`, the seen column, the footer and beep |
 | `test_overflow_field.lua` | The overflow mark set on the screen: `setOverflow`, `prism-processes.cfg` winning over prism.cfg, going back; the page's field |
 | `test_process_page.lua` | The process page: the `queue` command, then the page's chart, machine bands, queue, outputs, sharing and CLOSE |
 | `test_rule_ideas.lua` | UNASSIGNED grouped under rule ideas, MAKE RULE opening the editor with the pattern |

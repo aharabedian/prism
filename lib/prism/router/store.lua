@@ -3,7 +3,8 @@
   Files next to prism.cfg (<base> = the config path without .cfg):
     <base>-overrides.cfg  overrides     { [key] = { process, priority?, batch?, label?, by?, at? } }  made on the
                                         screen (by: the player, at: when, prism.clock)
-    <base>-items.cfg      catalog       { [key] = { label } }                                every item ever seen
+    <base>-items.cfg      catalog       { [key] = { label, seen? } }                         every item ever seen
+                                        (seen: when it was first seen, prism.clock)
     <base>-overrides.cfg  (entries may also have fallback)
     <base>-rules.cfg      screenRules   { pattern, process, priority?, batch?, fallback? }[] rules edited on the screen
     <base>-always-share.cfg  alwaysShare  { [process] = true }                             set to ALWAYS SHARE on the screen

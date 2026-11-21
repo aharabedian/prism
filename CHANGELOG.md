@@ -50,6 +50,10 @@ versions follow [Semantic Versioning](https://semver.org/).
   all (`^Purified Pile of .+ Dust$`, "catches 3 here"), with a MAKE RULE button that opens the rule editor with
   it; the preview shows what it catches before SAVE. Items with no common pattern go under "no rule idea for
   these".
+- **New items**: the catalog keeps when each item was first seen. UNASSIGNED has a **seen** column (`new 4m` in
+  orange for the last hour), and an item that appears with no rule for it shows in the footer with one beep. The
+  new `unassignedAlert` setting (seconds, off by default) warns when items stay unassigned that long. Protocol:
+  `seen` on `router-status` unassigned rows; `now` and `clockReal` on `router-status`.
 
 ## [1.4.0] - 2026-11-18
 

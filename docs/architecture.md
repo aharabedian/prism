@@ -189,6 +189,8 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
   machine states it receives in 160 s cells), the queue in rank order with what each item is doing
   (`queue`, asked again with every status), its outputs, sharing (the overflow mark is a field: tap, type,
   Enter), and HOLD / SHARE ON OVERFLOW / ALWAYS SHARE / CLOSE.
+- UNASSIGNED shows when each item was first seen (`new 4m` for the last hour); an item that appears with no
+  rule shows in the footer, with one beep.
 - UNASSIGNED groups items whose names differ in one word under the rule that would catch them
   (`rules.ideas`), with MAKE RULE opening the rule editor with it.
 - LOG lists the router's event log, fetched in pages when the tab opens and when `router-status`'s `events`

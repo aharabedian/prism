@@ -67,7 +67,12 @@ function S.build(r, scan, stalled, alerts)
     local list = s[o.statusList]
     list[#list + 1] = o:status(scan.labels)
   end
-  for i = 1, math.min(#scan.unassigned, protocol.UNASSIGNED_TOP) do s.unassigned[i] = scan.unassigned[i] end
+  for i = 1, math.min(#scan.unassigned, protocol.UNASSIGNED_TOP) do
+    local u = scan.unassigned[i]
+    local c = r.store.catalog[u.key]
+    s.unassigned[i] = { key = u.key, label = u.label, size = u.size, seen = c and c.seen }
+  end
+  if r.clock then s.now, s.clockReal = r.clock:at(computer.uptime()), r.clock.real end
   return s
 end
 
