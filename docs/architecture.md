@@ -54,6 +54,7 @@ returns. Read that rather than the code. Modules hold no state at load time; sta
 | `control/ui` | the control screen's layout on top of `gui`, sparklines | screen views |
 | `control/model` | screen state (`S`), actions, handling router messages; no drawing | screen |
 | `control/status_view`, `list_view`, `panel_view` | header + left column; the tabbed list (one descriptor per tab); the panels and footer | screen |
+| `control/glance_view` | glance mode: the screen at a third of its resolution, a row per process | screen |
 | `control/process_view` | the process page, which replaces the list and panel while a process is selected | screen |
 | `setup/*` | `input` (prompts), `render` (config text), `processes`, `hardware`, `autostart`, `save`, `router`/`control` (the two roles), `paths`; the editor: `editor` (found vs configured hardware and the edits, pure) and `screen` (drawing, touch, keys) | `prism-setup.lua` |
 
@@ -177,6 +178,8 @@ From the `gt_machine` component: `disabled` (work not allowed), `maintenance` (s
 - Item lists are fetched in pages, because wireless packets are limited to about 8 KB.
 - All edits are commands to the router; the screen re-fetches after each `router-ack`. Every command carries
   the player who tapped; OVERRIDES shows who made each screen override and how long ago.
+- With `glanceAfter` set, the screen switches to glance mode (a third of its resolution) after that many minutes
+  without a touch; the next touch only switches back.
 - ROUTE ITEM's "Now:" line is the router's `explain` for the selected item, asked again with every status.
 - The left column is one card per process: header (backlog, history, machines working), its machines,
   and a line about its outputs (export buses "N filters", stockers/interfaces "N stocked", feeders, items
@@ -220,6 +223,7 @@ match the game first if they differ.
 | `math.random(m, n)` doesn't return an integer (the mock returns floats); LENS boot ids use `codec.newBoot()` | Seen in-game (LENS reporting crashed on it) |
 | `gt_machine` method names (`isMachineActive`, `getWorkProgress`, `getWorkMaxProgress`, `getEUStored`, `getEUMaxStored`, `isWorkAllowed`, `getSensorInformation`, `getCoordinates`) | **Unverified** |
 | Multiblock `Problems:` line format in sensor info | **Unverified** |
+| `gpu.setResolution` at run time (glance mode switches between a third and the full resolution) | Seen in game in LUMEN (big mode); **unverified** in PRISM |
 | `os.sleep` (OpenOS) waits while yielding; `gpu.set` draws `▀` with the foreground on top (the splash's half-block pixels) | **Unverified** |
 | `internet.request` streaming, `/home/bin` on the OpenOS shell path | Reported working |
 | `/home/lib/?.lua` appended to `package.path` finds `/home/lib/prism/*.lua`; clearing `package.loaded["prism.*"]` reloads modules on restart | Reported working (modules branch) |

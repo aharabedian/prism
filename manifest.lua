@@ -9,6 +9,7 @@ return {
   { "src/prism-update.lua", "bin/prism-update.lua" },
   { "lib/prism/clock.lua", "lib/prism/clock.lua" },
   { "lib/prism/config.lua", "lib/prism/config.lua" },
+  { "lib/prism/control/glance_view.lua", "lib/prism/control/glance_view.lua" },
   { "lib/prism/control/list_view.lua", "lib/prism/control/list_view.lua" },
   { "lib/prism/control/model.lua", "lib/prism/control/model.lua" },
   { "lib/prism/control/panel_view.lua", "lib/prism/control/panel_view.lua" },

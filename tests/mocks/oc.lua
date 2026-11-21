@@ -18,7 +18,8 @@
                             table to deliver it, or nil to let time pass
     M.sent                  every modem send/broadcast: { to, port, data }
     M.row(y), M.find(text, minY, minX), M.dump(path)
-                            read the 160x50 screen the GPU drew
+                            read the 160x50 screen the GPU drew (M.resW, M.resH: the resolution last set;
+                            M.dump keeps to it)
     M.oob, M.beeps, M.cleared, M.setCalls
     M.slept                 seconds waited in os.sleep (which OpenOS adds; time passes)
     M.epoch                 real-world seconds at uptime 0, for filesystem.lastModified: 2026-11-20 06:00 UTC.
@@ -275,6 +276,7 @@ local GW, GH, buf, fgb, bgb
 -- A blank w x h screen (160x50 = tier 3, 80x25 = tier 2). The GPU's maxResolution follows it.
 function M.resize(w, h)
   GW, GH = w, h
+  M.resW, M.resH = nil, nil
   M.W, M.H = GW, GH
   buf, fgb, bgb = {}, {}, {}
   for y = 1, GH do
@@ -296,7 +298,7 @@ end
 local gpu = {
   address = "gp000000", type = "gpu",
   maxResolution = function() return GW, GH end,
-  setResolution = function() return true end,
+  setResolution = function(w, h) M.resW, M.resH = w, h; return true end,
   setForeground = function(c) local o = cf; cf = c; return o end,
   setBackground = function(c) local o = cb; cb = c; return o end,
   set = function(x, y, s)
@@ -328,9 +330,10 @@ end
 -- turns it into a PNG.
 function M.dump(path)
   local f = assert(io.open(path, "w"))
-  f:write(string.format("size\t%d\t%d\n", GW, GH))
-  for y = 1, GH do
-    for x = 1, GW do f:write(string.format("%s\t%06x\t%06x\n", buf[y][x], fgb[y][x], bgb[y][x])) end
+  local w, h = math.min(GW, M.resW or GW), math.min(GH, M.resH or GH)   -- what the screen shows at its resolution
+  f:write(string.format("size\t%d\t%d\n", w, h))
+  for y = 1, h do
+    for x = 1, w do f:write(string.format("%s\t%06x\t%06x\n", buf[y][x], fgb[y][x], bgb[y][x])) end
   end
   f:close()
 end
