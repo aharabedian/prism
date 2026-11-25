@@ -19,7 +19,7 @@
 local U        = require("prism.util")
 local protocol = require("prism.protocol")
 
-local Feeder = { kind = "feeder", takesBatches = true, statusList = "feeders" }
+local Feeder = { kind = "feeder", takesBatches = true, statusList = "feeders", size = 1 }
 Feeder.__index = Feeder
 
 -- Point the interface slot at an item (stocking a full stack), or clear it (key = nil).
@@ -149,6 +149,10 @@ function Feeder.apply() end   -- feeders work between scans, in step()
 function Feeder:status()
   return { name = self.name, process = self.process, state = self.state, level = protocol.feederLevel(self.state),
            label = self.label, batch = self.batch, fed = self.fed }
+end
+
+function Feeder:holds(key)
+  if self.item == key then return self.state end
 end
 
 function Feeder:alert()

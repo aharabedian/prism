@@ -23,6 +23,7 @@ alert and error. `prism-discover` shows what the computer can actually see.
 
 | Symptom | Fix |
 |---|---|
+| An item isn't going out | Tap it: ROUTE ITEM's **Now:** line says where it is or what it waits for (a full batch, a higher rank, an output for its process) |
 | Item stays in **UNASSIGNED** | No rule matches its name; add a rule or tap it and APPLY |
 | A rule doesn't apply | An override or an earlier rule wins. Open it in the rule editor; the preview says which |
 | `needs batches of N - '<process>' has no feeder or stocker` | Export buses and interfaces can't send exact amounts. Add a feeder or stocker, or set the batch to 1 |

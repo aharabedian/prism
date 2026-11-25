@@ -64,6 +64,7 @@ function Stocker:apply(queue)
 end
 
 function Stocker:status(labels) return Bus.statusRow(self, labels, "stocker") end
+function Stocker:holds(key) return Bus.slotOf(self, key) end
 function Stocker.step() end
 function Stocker.alert() return nil end
 function Stocker.close() end

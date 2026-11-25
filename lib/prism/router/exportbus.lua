@@ -74,7 +74,13 @@ function Bus.statusRow(o, labels, kind)
   return { name = o.name, process = o.process, filters = filters, kind = kind }
 end
 
+-- Shared with stockers and interfaces: "slot N" when one of its slots holds the item.
+function Bus.slotOf(o, key)
+  for i = 1, o.size do if o.slots[i] == key then return "slot " .. i end end
+end
+
 function Bus:status(labels) return Bus.statusRow(self, labels, nil) end
+function Bus:holds(key) return Bus.slotOf(self, key) end
 function Bus.step() end
 function Bus.alert() return nil end
 function Bus.close() end
